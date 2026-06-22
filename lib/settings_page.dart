@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'transaction_provider.dart'; // Make sure this import matches your file structure
+import 'main.dart'; // To access ThemeProvider
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -19,21 +20,21 @@ class _SettingsPageState extends State<SettingsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black), 
+          icon: Icon(Icons.arrow_back, color: Theme.of(context).colorScheme.onSurface), 
           onPressed: () => Navigator.pop(context)
         ),
-        title: const Text('Settings', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+        title: Text('Settings', style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.bold)),
       ),
       body: ListView(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(16),
         children: [
           _buildProfileSection(),
-          const SizedBox(height: 32),
+          const SizedBox(height: 16),
           
           _buildSectionHeader('Preferences'),
           _buildSettingTile(
@@ -50,7 +51,7 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
           _buildThemeToggle(),
           
-          const SizedBox(height: 32),
+          const SizedBox(height: 16),
           
           _buildSectionHeader('Data Management'),
           _buildSettingTile(
@@ -278,8 +279,8 @@ class _SettingsPageState extends State<SettingsPage> {
     return GestureDetector(
       onTap: _editProfileName,
       child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24)),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(color: Theme.of(context).cardColor, borderRadius: BorderRadius.circular(16)),
         child: Row(
           children: [
             const CircleAvatar(radius: 35, backgroundImage: NetworkImage('https://i.pravatar.cc/150?u=a042581f4e29026704d')),
@@ -304,18 +305,18 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Widget _buildSectionHeader(String title) {
     return Padding(
-      padding: const EdgeInsets.only(left: 4, bottom: 12),
-      child: Text(title, style: TextStyle(color: Colors.grey.shade500, fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 1)),
+      padding: const EdgeInsets.only(left: 4, bottom: 8),
+      child: Text(title, style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5), fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 1)),
     );
   }
 
   Widget _buildSettingTile(IconData icon, String title, String? trailing, {bool isDestructive = false, VoidCallback? onTap}) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(color: Theme.of(context).cardColor, borderRadius: BorderRadius.circular(12)),
       child: ListTile(
-        leading: Icon(icon, color: isDestructive ? Colors.red : const Color(0xFF1E293B)),
-        title: Text(title, style: TextStyle(color: isDestructive ? Colors.red : Colors.black, fontWeight: FontWeight.w600)),
+        leading: Icon(icon, color: isDestructive ? Colors.red : Theme.of(context).colorScheme.onSurface),
+        title: Text(title, style: TextStyle(color: isDestructive ? Colors.red : Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.w600)),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -330,12 +331,13 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Widget _buildThemeToggle() {
+    final isDarkMode = Provider.of<ThemeProvider>(context).isDarkMode;
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(color: Theme.of(context).cardColor, borderRadius: BorderRadius.circular(12)),
       child: ListTile(
-        leading: const Icon(Icons.dark_mode_outlined, color: Color(0xFF1E293B)),
-        title: const Text('Dark Mode', style: TextStyle(fontWeight: FontWeight.w600)),
+        leading: Icon(Icons.dark_mode_outlined, color: Theme.of(context).colorScheme.onSurface),
+        title: Text('Dark Mode', style: TextStyle(fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurface)),
         trailing: Switch(
           value: isDarkMode,
           onChanged: (v) {
@@ -344,8 +346,7 @@ class _SettingsPageState extends State<SettingsPage> {
               'Confirm Theme Change', 
               'Are you sure you want to turn ${v ? 'on' : 'off'} Dark Mode?', 
               () {
-                setState(() => isDarkMode = v);
-                // TODO: Update your Global Theme Provider here
+                Provider.of<ThemeProvider>(context, listen: false).toggleTheme(v);
               }
             );
           },

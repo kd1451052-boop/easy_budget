@@ -35,8 +35,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Transaction History', style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
+        backgroundColor: Colors.transparent,
         elevation: 0,
       ),
       body: Column(
@@ -140,7 +139,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 trailing: Text(
                   '${isIncome ? '+' : '-'}\$${tx.amount.toStringAsFixed(2)}',
                   style: TextStyle(
-                    color: isIncome ? Colors.green : Colors.black,
+                    color: isIncome ? Colors.green : Theme.of(context).colorScheme.onSurface,
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
                   ),

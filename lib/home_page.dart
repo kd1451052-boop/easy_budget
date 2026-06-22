@@ -24,6 +24,8 @@ import 'scanner.dart';
 import 'add_transaction_screen.dart';
 import 'settings_page.dart';
 
+enum FilterPeriod { year, month, week }
+
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -34,10 +36,41 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   int _selectedIndex = 0;
   final Color _primaryIndigo = const Color(0xFF5442F5); // Matches the Figma prototype
+  FilterPeriod _selectedPeriod = FilterPeriod.year;
+
+  String _getPeriodLabel() {
+    final now = DateTime.now();
+    switch (_selectedPeriod) {
+      case FilterPeriod.year:
+        return '${now.year}';
+      case FilterPeriod.month:
+        final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        return months[now.month - 1];
+      case FilterPeriod.week:
+        return 'This Week';
+    }
+  }
+
+  List<Transaction> _getFilteredTransactions(List<Transaction> all) {
+    final now = DateTime.now();
+    return all.where((t) {
+      if (_selectedPeriod == FilterPeriod.year) {
+        return t.dateTime.year == now.year;
+      } else if (_selectedPeriod == FilterPeriod.month) {
+        return t.dateTime.year == now.year && t.dateTime.month == now.month;
+      } else {
+        DateTime startOfWeek = now.subtract(Duration(days: now.weekday - 1));
+        startOfWeek = DateTime(startOfWeek.year, startOfWeek.month, startOfWeek.day);
+        DateTime endOfWeek = startOfWeek.add(const Duration(days: 7));
+        return t.dateTime.isAfter(startOfWeek.subtract(const Duration(seconds: 1))) && 
+               t.dateTime.isBefore(endOfWeek);
+      }
+    }).toList();
+  }
 
   /// Groups expense transactions by category for the Donut Chart
-  List<PieChartSectionData> _getPieChartData(TransactionProvider provider) {
-    final expenses = provider.transactions.where((t) => t.type == TransactionType.expense).toList();
+  List<PieChartSectionData> _getPieChartData(List<Transaction> transactions) {
+    final expenses = transactions.where((t) => t.type == TransactionType.expense).toList();
     final Map<String, double> categoryMap = {};
 
     for (var t in expenses) {
@@ -72,18 +105,27 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF9FAFB), // Softer background
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor, // Softer background
       body: Consumer<TransactionProvider>(
         builder: (context, provider, child) {
+          final filteredTransactions = _getFilteredTransactions(provider.transactions);
+          double filteredIncome = 0;
+          double filteredExpense = 0;
+          for (var t in filteredTransactions) {
+            if (t.type == TransactionType.income) filteredIncome += t.amount;
+            if (t.type == TransactionType.expense) filteredExpense += t.amount;
+          }
+          double filteredBalance = filteredIncome - filteredExpense;
+
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildHeroHeader(provider),
+              _buildHeroHeader(filteredBalance, filteredIncome, filteredExpense),
               
               // Analytics Section
-              const Padding(
-                padding: EdgeInsets.fromLTRB(24, 24, 24, 16),
-                child: Text('Expense Analytics', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
+                child: Text('Expense Analytics', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface)),
               ),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -91,19 +133,19 @@ class _HomePageState extends State<HomePage> {
                   height: 220,
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: Theme.of(context).cardColor,
                     borderRadius: BorderRadius.circular(24),
                     boxShadow: [
                       BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4)),
                     ],
                   ),
-                  child: provider.totalExpense > 0 
+                  child: filteredExpense > 0 
                     ? Stack(
                         alignment: Alignment.center,
                         children: [
                           PieChart(
                             PieChartData(
-                              sections: _getPieChartData(provider),
+                              sections: _getPieChartData(filteredTransactions),
                               centerSpaceRadius: 60, // Wide center for donut chart
                               sectionsSpace: 4,
                             ),
@@ -111,23 +153,23 @@ class _HomePageState extends State<HomePage> {
                           Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Text("Total Spent", style: TextStyle(color: Colors.black54, fontSize: 12)),
-                              Text("\$${provider.totalExpense.toStringAsFixed(0)}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
+                              Text("Total Spent", style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6), fontSize: 12)),
+                              Text("\$${filteredExpense.toStringAsFixed(0)}", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20, color: Theme.of(context).colorScheme.onSurface)),
                             ],
                           )
                         ],
                       )
-                    : const Center(child: Text('No expenses yet!', style: TextStyle(color: Colors.black45))),
+                    : Center(child: Text('No expenses yet!', style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)))),
                 ),
               ),
 
               // Recent Transactions List
-              const Padding(
-                padding: EdgeInsets.fromLTRB(24, 24, 24, 12),
-                child: Text('Recent Transactions', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
+                child: Text('Recent Transactions', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface)),
               ),
               Expanded(
-                child: _buildTransactionList(provider),
+                child: _buildTransactionList(filteredTransactions),
               ),
             ],
           );
@@ -147,7 +189,7 @@ class _HomePageState extends State<HomePage> {
 
   // --- UI WIDGET EXTRACTS ---
 
-  Widget _buildHeroHeader(TransactionProvider provider) {
+  Widget _buildHeroHeader(double balance, double income, double expense) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(24, 60, 24, 32),
@@ -157,18 +199,57 @@ class _HomePageState extends State<HomePage> {
       ),
       child: Column(
         children: [
-          const Text('Total Balance', style: TextStyle(color: Colors.white70, fontSize: 14)),
+          PopupMenuButton<FilterPeriod>(
+            initialValue: _selectedPeriod,
+            onSelected: (FilterPeriod result) {
+              setState(() {
+                _selectedPeriod = result;
+              });
+            },
+            offset: const Offset(0, 30),
+            color: Theme.of(context).cardColor,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            itemBuilder: (BuildContext context) => <PopupMenuEntry<FilterPeriod>>[
+              const PopupMenuItem<FilterPeriod>(
+                value: FilterPeriod.year,
+                child: Text('Yearly'),
+              ),
+              const PopupMenuItem<FilterPeriod>(
+                value: FilterPeriod.month,
+                child: Text('Monthly'),
+              ),
+              const PopupMenuItem<FilterPeriod>(
+                value: FilterPeriod.week,
+                child: Text('Weekly'),
+              ),
+            ],
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(_getPeriodLabel(), style: const TextStyle(color: Colors.white70, fontSize: 14)),
+                  const SizedBox(width: 4),
+                  const Icon(Icons.keyboard_arrow_down, color: Colors.white70, size: 16),
+                ],
+              ),
+            ),
+          ),
           const SizedBox(height: 8),
-          Text('\$${provider.totalBalance.toStringAsFixed(2)}', 
+          Text('\$${balance.toStringAsFixed(2)}', 
             style: const TextStyle(color: Colors.white, fontSize: 40, fontWeight: FontWeight.bold)),
           const SizedBox(height: 32),
           
           // Glassmorphism Cards
           Row(
             children: [
-              Expanded(child: _buildGlassCard('Income', provider.totalIncome, Icons.arrow_upward, const Color(0xFF10B981))),
+              Expanded(child: _buildGlassCard('Income', income, Icons.arrow_upward, const Color(0xFF10B981))),
               const SizedBox(width: 16),
-              Expanded(child: _buildGlassCard('Expense', provider.totalExpense, Icons.arrow_downward, const Color(0xFFEF4444))),
+              Expanded(child: _buildGlassCard('Expense', expense, Icons.arrow_downward, const Color(0xFFEF4444))),
             ],
           ),
         ],
@@ -211,11 +292,11 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildTransactionList(TransactionProvider provider) {
-    final transactions = provider.transactions.take(5).toList();
+  Widget _buildTransactionList(List<Transaction> allFilteredTransactions) {
+    final transactions = allFilteredTransactions.take(5).toList();
     
     if (transactions.isEmpty) {
-      return const Center(child: Text("No recent transactions.", style: TextStyle(color: Colors.black45)));
+      return Center(child: Text("No recent transactions.", style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5))));
     }
 
     return ListView.builder(
@@ -232,29 +313,29 @@ class _HomePageState extends State<HomePage> {
         return Container(
           margin: const EdgeInsets.only(bottom: 12),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: Theme.of(context).cardColor,
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.grey.shade100),
+            border: Border.all(color: Theme.of(context).dividerColor.withValues(alpha: 0.1)),
           ),
-          child: ListTile(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            leading: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(color: txColor.withAlpha((0.1 * 255).round()), shape: BoxShape.circle),
-              child: Icon(txIcon, color: txColor),
-            ),
-            title: Text(tx.category, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-            subtitle: Text(tx.description, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.black54)),
-            trailing: Text(
-              '${isIncome ? '+' : '-'}\$${tx.amount.toStringAsFixed(2)}',
-              style: TextStyle(
-                color: isIncome ? const Color(0xFF10B981) : Colors.black87,
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
+            child: ListTile(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              leading: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(color: txColor.withAlpha((0.1 * 255).round()), shape: BoxShape.circle),
+                child: Icon(txIcon, color: txColor),
+              ),
+              title: Text(tx.category, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Theme.of(context).colorScheme.onSurface)),
+              subtitle: Text(tx.description, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6))),
+              trailing: Text(
+                '${isIncome ? '+' : '-'}\$${tx.amount.toStringAsFixed(2)}',
+                style: TextStyle(
+                  color: isIncome ? const Color(0xFF10B981) : Theme.of(context).colorScheme.onSurface,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
               ),
             ),
-          ),
-        );
+          );
       },
     );
   }
@@ -276,7 +357,7 @@ class _HomePageState extends State<HomePage> {
       showSelectedLabels: false,
       showUnselectedLabels: false,
       elevation: 0,
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).cardColor,
       items: const [
         BottomNavigationBarItem(icon: Icon(Icons.dashboard), label: 'Home'),
         BottomNavigationBarItem(icon: Icon(Icons.history), label: 'History'),
