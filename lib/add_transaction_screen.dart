@@ -17,6 +17,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'transaction_provider.dart';
 import 'history.dart';
+import 'settings_provider.dart';
 
 class AddExpenseScreen extends StatefulWidget {
   const AddExpenseScreen({super.key});
@@ -362,15 +363,15 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                       fontSize: 48,
                       fontWeight: FontWeight.bold,
                     ),
-                    decoration: const InputDecoration(
-                      prefixText: '\$ ',
-                      prefixStyle: TextStyle(
+                    decoration: InputDecoration(
+                      prefixText: '${Provider.of<SettingsProvider>(context).currencySymbol} ',
+                      prefixStyle: const TextStyle(
                         color: Colors.white70,
                         fontSize: 24,
                       ),
                       border: InputBorder.none,
                       hintText: "0.00",
-                      hintStyle: TextStyle(color: Colors.white38),
+                      hintStyle: const TextStyle(color: Colors.white38),
                     ),
                   ),
                 ],

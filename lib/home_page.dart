@@ -23,6 +23,7 @@ import 'history_screen.dart';
 import 'scanner.dart';
 import 'add_transaction_screen.dart';
 import 'settings_page.dart';
+import 'settings_provider.dart';
 
 enum FilterPeriod { year, month, week }
 
@@ -68,8 +69,7 @@ class _HomePageState extends State<HomePage> {
     }).toList();
   }
 
-  /// Groups expense transactions by category for the Donut Chart
-  List<PieChartSectionData> _getPieChartData(List<Transaction> transactions) {
+  List<PieChartSectionData> _getPieChartData(List<Transaction> transactions, String currencySymbol) {
     final expenses = transactions.where((t) => t.type == TransactionType.expense).toList();
     final Map<String, double> categoryMap = {};
 
@@ -94,7 +94,7 @@ class _HomePageState extends State<HomePage> {
       return PieChartSectionData(
         color: color,
         value: entry.value,
-        title: '${entry.key}\n\$${entry.value.toStringAsFixed(0)}',
+        title: '${entry.key}\n$currencySymbol${entry.value.toStringAsFixed(0)}',
         radius: 24, // Thinner radius for a modern donut look
         titleStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.transparent), // Hide raw text for cleaner look
         showTitle: false, // Turn off titles to keep the minimalist vibe
@@ -104,6 +104,7 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    final currencySymbol = Provider.of<SettingsProvider>(context).currencySymbol;
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor, // Softer background
       body: Consumer<TransactionProvider>(
@@ -145,7 +146,7 @@ class _HomePageState extends State<HomePage> {
                         children: [
                           PieChart(
                             PieChartData(
-                              sections: _getPieChartData(filteredTransactions),
+                              sections: _getPieChartData(filteredTransactions, currencySymbol),
                               centerSpaceRadius: 60, // Wide center for donut chart
                               sectionsSpace: 4,
                             ),
@@ -154,7 +155,7 @@ class _HomePageState extends State<HomePage> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Text("Total Spent", style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6), fontSize: 12)),
-                              Text("\$${filteredExpense.toStringAsFixed(0)}", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20, color: Theme.of(context).colorScheme.onSurface)),
+                              Text("$currencySymbol${filteredExpense.toStringAsFixed(0)}", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20, color: Theme.of(context).colorScheme.onSurface)),
                             ],
                           )
                         ],
@@ -240,7 +241,7 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
           const SizedBox(height: 8),
-          Text('\$${balance.toStringAsFixed(2)}', 
+          Text('${Provider.of<SettingsProvider>(context).currencySymbol}${balance.toStringAsFixed(2)}', 
             style: const TextStyle(color: Colors.white, fontSize: 40, fontWeight: FontWeight.bold)),
           const SizedBox(height: 32),
           
@@ -284,7 +285,7 @@ class _HomePageState extends State<HomePage> {
                 ],
               ),
               const SizedBox(height: 12),
-              Text('\$${amount.toStringAsFixed(2)}', style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+              Text('${Provider.of<SettingsProvider>(context).currencySymbol}${amount.toStringAsFixed(2)}', style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
             ],
           ),
         ),
@@ -327,7 +328,7 @@ class _HomePageState extends State<HomePage> {
               title: Text(tx.category, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Theme.of(context).colorScheme.onSurface)),
               subtitle: Text(tx.description, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6))),
               trailing: Text(
-                '${isIncome ? '+' : '-'}\$${tx.amount.toStringAsFixed(2)}',
+                '${isIncome ? '+' : '-'}${Provider.of<SettingsProvider>(context).currencySymbol}${tx.amount.toStringAsFixed(2)}',
                 style: TextStyle(
                   color: isIncome ? const Color(0xFF10B981) : Theme.of(context).colorScheme.onSurface,
                   fontWeight: FontWeight.bold,

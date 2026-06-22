@@ -16,6 +16,8 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart'; 
 import 'history.dart';
 import 'transaction_repository.dart';
+import 'package:provider/provider.dart';
+import 'settings_provider.dart';
 
 class AddTransactionScreen extends StatefulWidget {
   const AddTransactionScreen({super.key});
@@ -166,7 +168,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     textAlign: TextAlign.center,
                     style: const TextStyle(color: Colors.white, fontSize: 56, fontWeight: FontWeight.bold),
-                    decoration: const InputDecoration(prefixText: '\$', prefixStyle: TextStyle(color: Colors.white54), border: InputBorder.none, hintText: '0.00', hintStyle: TextStyle(color: Colors.white24)),
+                    decoration: InputDecoration(prefixText: '${Provider.of<SettingsProvider>(context).currencySymbol}', prefixStyle: const TextStyle(color: Colors.white54), border: InputBorder.none, hintText: '0.00', hintStyle: const TextStyle(color: Colors.white24)),
                   ),
                 ),
               ],

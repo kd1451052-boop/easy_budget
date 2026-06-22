@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'settings_provider.dart';
 
 class Scanner extends StatefulWidget {
   const Scanner({super.key});
@@ -56,7 +58,7 @@ class _ScannerState extends State<Scanner> with SingleTickerProviderStateMixin {
             const Text('Scan Result', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
             const SizedBox(height: 24),
             _buildResultRow('Merchant', 'Starbucks Coffee'),
-            _buildResultRow('Total Amount', '\$12.50'),
+            _buildResultRow('Total Amount', '${Provider.of<SettingsProvider>(context, listen: false).currencySymbol}12.50'),
             _buildResultRow('Date', 'Oct 24, 2023'),
             _buildResultRow('Category', 'Food & Drink'),
             const SizedBox(height: 32),

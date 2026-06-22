@@ -17,6 +17,7 @@ import 'package:provider/provider.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'transaction_provider.dart';
 import 'history.dart';
+import 'settings_provider.dart';
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
@@ -137,7 +138,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 title: Text(tx.category, style: const TextStyle(fontWeight: FontWeight.bold)),
                 subtitle: Text(tx.description),
                 trailing: Text(
-                  '${isIncome ? '+' : '-'}\$${tx.amount.toStringAsFixed(2)}',
+                  '${isIncome ? '+' : '-'}${Provider.of<SettingsProvider>(context).currencySymbol}${tx.amount.toStringAsFixed(2)}',
                   style: TextStyle(
                     color: isIncome ? Colors.green : Theme.of(context).colorScheme.onSurface,
                     fontWeight: FontWeight.bold,

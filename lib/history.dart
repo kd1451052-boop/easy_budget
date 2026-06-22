@@ -14,6 +14,8 @@
 
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
+import 'package:provider/provider.dart';
+import 'settings_provider.dart';
 
 part 'history.g.dart';
 
@@ -24,13 +26,13 @@ part 'history.g.dart';
 @HiveType(typeId: 1)
 enum TransactionType {
   @HiveField(0)
-  income, 
+  income,
   @HiveField(1)
-  expense 
+  expense,
 }
 
 /// The main data model for a Transaction.
-/// Extending [HiveObject] gives us helper methods like [save()] and [delete()] 
+/// Extending [HiveObject] gives us helper methods like [save()] and [delete()]
 /// directly on the object instance.
 @HiveType(typeId: 0)
 class Transaction extends HiveObject {
@@ -64,7 +66,8 @@ class Transaction extends HiveObject {
 
   /// Reconstructs [IconData] from the stored integer code point.
   // ignore: non_const_argument_for_const_parameter
-  IconData get icon => IconData( iconCodePoint, fontFamily: 'MaterialIcons');
+  IconData get icon => IconData(iconCodePoint, fontFamily: 'MaterialIcons');
+
   /// Reconstructs [Color] from the stored integer value.
   Color get iconColor => Color(iconColorValue);
 }
@@ -76,7 +79,12 @@ class CalendarDay {
   final bool hasExpense;
   final bool isSelected;
 
-  CalendarDay({required this.date, this.hasIncome = false, this.hasExpense = false, this.isSelected = false});
+  CalendarDay({
+    required this.date,
+    this.hasIncome = false,
+    this.hasExpense = false,
+    this.isSelected = false,
+  });
 }
 
 class TransactionHistoryScreen extends StatelessWidget {
@@ -85,37 +93,37 @@ class TransactionHistoryScreen extends StatelessWidget {
   /// Temporary mock data used for initial UI development.
   /// In a real app, this would be fetched from the [TransactionRepository].
   List<Transaction> get transactions => [
-        Transaction(
-          id: '1',
-          type: TransactionType.expense,
-          category: 'Food',
-          description: 'Lunch with team',
-          amount: -45.50,
-          dateTime: DateTime(2026, 6, 11, 14, 46),
-          iconCodePoint: Icons.restaurant.codePoint,
-          iconColorValue: const Color(0xFFFF9800).toARGB32(),
-        ),
-        Transaction(
-          id: '2',
-          type: TransactionType.income,
-          category: 'Salary',
-          description: 'Monthly Salary',
-          amount: 3000.00,
-          dateTime: DateTime(2026, 6, 10, 14, 46),
-          iconCodePoint: Icons.attach_money.codePoint,
-          iconColorValue: const Color(0xFF4CAF50).toARGB32(),
-        ),
-        Transaction(
-          id: '3',
-          type: TransactionType.expense,
-          category: 'Bill',
-          description: 'Electricity Bill',
-          amount: -120.00,
-          dateTime: DateTime(2026, 6, 8, 14, 46),
-          iconCodePoint: Icons.bolt.codePoint,
-          iconColorValue: const Color(0xFF2196F3).toARGB32(),
-        ),
-      ];
+    Transaction(
+      id: '1',
+      type: TransactionType.expense,
+      category: 'Food',
+      description: 'Lunch with team',
+      amount: -45.50,
+      dateTime: DateTime(2026, 6, 11, 14, 46),
+      iconCodePoint: Icons.restaurant.codePoint,
+      iconColorValue: const Color(0xFFFF9800).toARGB32(),
+    ),
+    Transaction(
+      id: '2',
+      type: TransactionType.income,
+      category: 'Salary',
+      description: 'Monthly Salary',
+      amount: 3000.00,
+      dateTime: DateTime(2026, 6, 10, 14, 46),
+      iconCodePoint: Icons.attach_money.codePoint,
+      iconColorValue: const Color(0xFF4CAF50).toARGB32(),
+    ),
+    Transaction(
+      id: '3',
+      type: TransactionType.expense,
+      category: 'Bill',
+      description: 'Electricity Bill',
+      amount: -120.00,
+      dateTime: DateTime(2026, 6, 8, 14, 46),
+      iconCodePoint: Icons.bolt.codePoint,
+      iconColorValue: const Color(0xFF2196F3).toARGB32(),
+    ),
+  ];
 
   /// Converts a [DateTime] object into a user-friendly string (e.g., "Jun 11, 14:46 PM").
   String _formatDateTime(DateTime dateTime) {
@@ -131,7 +139,7 @@ class TransactionHistoryScreen extends StatelessWidget {
       'Sep',
       'Oct',
       'Nov',
-      'Dec'
+      'Dec',
     ];
     return '${months[dateTime.month - 1]} ${dateTime.day}, ${dateTime.hour}:${dateTime.minute.toString().padLeft(2, '0')} ${dateTime.hour >= 12 ? 'PM' : 'AM'}';
   }
@@ -147,7 +155,10 @@ class TransactionHistoryScreen extends StatelessWidget {
           icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text('History', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+        title: const Text(
+          'History',
+          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+        ),
         centerTitle: false,
       ),
       body: Column(
@@ -158,15 +169,19 @@ class TransactionHistoryScreen extends StatelessWidget {
             child: Container(
               decoration: const BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.only(topLeft: Radius.circular(32), topRight: Radius.circular(32)),
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(32),
+                  topRight: Radius.circular(32),
+                ),
               ),
-              child: transactions.isEmpty 
-                ? _buildEmptyState()
-                : ListView.builder(
-                    padding: const EdgeInsets.all(24),
-                    itemCount: transactions.length,
-                    itemBuilder: (context, index) => _buildTransactionRow(transactions[index]),
-                  ),
+              child: transactions.isEmpty
+                  ? _buildEmptyState()
+                  : ListView.builder(
+                      padding: const EdgeInsets.all(24),
+                      itemCount: transactions.length,
+                      itemBuilder: (context, index) =>
+                          _buildTransactionRow(context, transactions[index]),
+                    ),
             ),
           ),
         ],
@@ -178,7 +193,10 @@ class TransactionHistoryScreen extends StatelessWidget {
   /// It highlights the selected day and shows dots for income/expenses.
   Widget _buildCalendarStrip() {
     // Mocking a weekly strip
-    final days = List.generate(7, (i) => DateTime.now().add(Duration(days: i - 3)));
+    final days = List.generate(
+      7,
+      (i) => DateTime.now().add(Duration(days: i - 3)),
+    );
     return SizedBox(
       height: 100,
       child: ListView.builder(
@@ -192,30 +210,69 @@ class TransactionHistoryScreen extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 8),
             child: Column(
               children: [
-                Text(['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][date.weekday % 7], 
-                  style: TextStyle(color: Colors.grey.shade500, fontSize: 12, fontWeight: FontWeight.w600)),
+                Text(
+                  [
+                    'Sun',
+                    'Mon',
+                    'Tue',
+                    'Wed',
+                    'Thu',
+                    'Fri',
+                    'Sat',
+                  ][date.weekday % 7],
+                  style: TextStyle(
+                    color: Colors.grey.shade500,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
                 const SizedBox(height: 8),
                 Container(
                   width: 45,
                   height: 45,
                   decoration: BoxDecoration(
-                    color: isSelected ? const Color(0xFF6366F1) : Colors.transparent,
+                    color: isSelected
+                        ? const Color(0xFF6366F1)
+                        : Colors.transparent,
                     borderRadius: BorderRadius.circular(16),
-                    border: !isSelected ? Border.all(color: Colors.grey.shade200) : null,
+                    border: !isSelected
+                        ? Border.all(color: Colors.grey.shade200)
+                        : null,
                   ),
                   alignment: Alignment.center,
-                  child: Text('${date.day}', 
-                    style: TextStyle(color: isSelected ? Colors.white : Colors.black, fontWeight: FontWeight.bold)),
+                  child: Text(
+                    '${date.day}',
+                    style: TextStyle(
+                      color: isSelected ? Colors.white : Colors.black,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 6),
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    if (index % 2 == 0) Container(width: 4, height: 4, decoration: const BoxDecoration(color: Colors.green, shape: BoxShape.circle)),
+                    if (index % 2 == 0)
+                      Container(
+                        width: 4,
+                        height: 4,
+                        decoration: const BoxDecoration(
+                          color: Colors.green,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
                     if (index % 3 == 0) const SizedBox(width: 2),
-                    if (index % 3 == 0) Container(width: 4, height: 4, decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle)),
+                    if (index % 3 == 0)
+                      Container(
+                        width: 4,
+                        height: 4,
+                        decoration: const BoxDecoration(
+                          color: Colors.red,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
                   ],
-                )
+                ),
               ],
             ),
           );
@@ -230,16 +287,23 @@ class TransactionHistoryScreen extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.receipt_long_outlined, size: 80, color: Colors.grey.shade300),
+          Icon(
+            Icons.receipt_long_outlined,
+            size: 80,
+            color: Colors.grey.shade300,
+          ),
           const SizedBox(height: 16),
-          Text('No transactions for this day', style: TextStyle(color: Colors.grey.shade500, fontSize: 16)),
+          Text(
+            'No transactions for this day',
+            style: TextStyle(color: Colors.grey.shade500, fontSize: 16),
+          ),
         ],
       ),
     );
   }
 
   /// A single row representing a transaction in the history list.
-  Widget _buildTransactionRow(Transaction transaction) {
+  Widget _buildTransactionRow(BuildContext context, Transaction transaction) {
     final isIncome = transaction.type == TransactionType.income;
     return Padding(
       padding: const EdgeInsets.only(bottom: 20),
@@ -259,7 +323,13 @@ class TransactionHistoryScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(transaction.category, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                Text(
+                  transaction.category,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
                 const SizedBox(height: 4),
                 Text(
                   '${transaction.description} • ${_formatDateTime(transaction.dateTime)}',
@@ -271,11 +341,13 @@ class TransactionHistoryScreen extends StatelessWidget {
             ),
           ),
           Text(
-            '${isIncome ? '+' : '-'}\$${transaction.amount.abs().toStringAsFixed(2)}',
+            '${isIncome ? '+' : '-'}${Provider.of<SettingsProvider>(context).currencySymbol}${transaction.amount.abs().toStringAsFixed(2)}',
             style: TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 16,
-              color: isIncome ? Colors.green : Colors.black,
+              color: isIncome
+                  ? Colors.green
+                  : Theme.of(context).colorScheme.onSurface,
             ),
           ),
         ],
