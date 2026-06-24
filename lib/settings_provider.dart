@@ -61,4 +61,43 @@ class SettingsProvider extends ChangeNotifier {
     _box.put('selectedLanguage', newLanguage);
     notifyListeners();
   }
+
+  // --- Custom Categories ---
+  Map<String, int> get customExpenseCategories {
+    final map = _box.get('customExpenseCategories', defaultValue: {});
+    return Map<String, int>.from(map);
+  }
+
+  void addCustomExpenseCategory(String name, int iconCodePoint) {
+    final map = customExpenseCategories;
+    map[name] = iconCodePoint;
+    _box.put('customExpenseCategories', map);
+    notifyListeners();
+  }
+
+  void removeCustomExpenseCategory(String name) {
+    final map = customExpenseCategories;
+    map.remove(name);
+    _box.put('customExpenseCategories', map);
+    notifyListeners();
+  }
+
+  Map<String, int> get customIncomeCategories {
+    final map = _box.get('customIncomeCategories', defaultValue: {});
+    return Map<String, int>.from(map);
+  }
+
+  void addCustomIncomeCategory(String name, int iconCodePoint) {
+    final map = customIncomeCategories;
+    map[name] = iconCodePoint;
+    _box.put('customIncomeCategories', map);
+    notifyListeners();
+  }
+
+  void removeCustomIncomeCategory(String name) {
+    final map = customIncomeCategories;
+    map.remove(name);
+    _box.put('customIncomeCategories', map);
+    notifyListeners();
+  }
 }

@@ -18,6 +18,7 @@ import 'package:provider/provider.dart';
 import 'transaction_provider.dart';
 import 'history.dart';
 import 'settings_provider.dart';
+import 'shared_bottom_nav.dart';
 
 class AddExpenseScreen extends StatefulWidget {
   const AddExpenseScreen({super.key});
@@ -35,13 +36,21 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   IconData _selectedIcon = Icons.fastfood; // Added to track custom icons
   DateTime _selectedDate = DateTime.now(); // Added for the date picker
 
-  final List<String> _categories = [
+  final List<String> _expenseCategories = [
     'Food',
     'Transport',
     'Bill',
     'Rent',
     'Shopping',
   ];
+
+  final List<String> _incomeCategories = [
+    'Salary',
+    'Investment',
+    'Gift',
+    'Bonus',
+  ];
+
 
   // Grid of 16 icons for the Custom Category Modal
   final List<IconData> _availableIcons = [
@@ -100,6 +109,14 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
 
   // Gets default icons for the standard string categories
   IconData _getIconForCategory(String category) {
+    final settings = Provider.of<SettingsProvider>(context, listen: false);
+    if (_selectedType == TransactionType.expense && settings.customExpenseCategories.containsKey(category)) {
+      return IconData(settings.customExpenseCategories[category]!, fontFamily: 'MaterialIcons');
+    }
+    if (_selectedType == TransactionType.income && settings.customIncomeCategories.containsKey(category)) {
+      return IconData(settings.customIncomeCategories[category]!, fontFamily: 'MaterialIcons');
+    }
+
     switch (category) {
       case 'Food':
         return Icons.fastfood;
@@ -111,8 +128,31 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
         return Icons.home;
       case 'Shopping':
         return Icons.shopping_bag;
+      case 'Salary':
+        return Icons.attach_money;
+      case 'Investment':
+        return Icons.trending_up;
+      case 'Gift':
+        return Icons.card_giftcard;
+      case 'Bonus':
+        return Icons.star;
       default:
         return Icons.more_horiz;
+    }
+  }
+
+  void _deleteCustomCategory(String cat) {
+    final settings = Provider.of<SettingsProvider>(context, listen: false);
+    if (_selectedType == TransactionType.expense) {
+      settings.removeCustomExpenseCategory(cat);
+    } else {
+      settings.removeCustomIncomeCategory(cat);
+    }
+    if (_selectedCategory == cat) {
+      setState(() {
+        _selectedCategory = _selectedType == TransactionType.expense ? _expenseCategories.first : _incomeCategories.first;
+        _selectedIcon = _getIconForCategory(_selectedCategory);
+      });
     }
   }
 
@@ -205,9 +245,34 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                       ),
                       onPressed: () {
                         if (customName.trim().isNotEmpty) {
+                          final settings = Provider.of<SettingsProvider>(context, listen: false);
+                          
+                          // Pre-check for limits
+                          if (_selectedType == TransactionType.expense) {
+                            if (!_expenseCategories.contains(customName) && !settings.customExpenseCategories.containsKey(customName)) {
+                              if (settings.customExpenseCategories.length >= 10) {
+                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Custom expense limit reached (10 max).')));
+                                return;
+                              }
+                            }
+                          } else {
+                            if (!_incomeCategories.contains(customName) && !settings.customIncomeCategories.containsKey(customName)) {
+                              if (settings.customIncomeCategories.length >= 10) {
+                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Custom income limit reached (10 max).')));
+                                return;
+                              }
+                            }
+                          }
+
                           setState(() {
-                            if (!_categories.contains(customName)) {
-                              _categories.add(customName);
+                            if (_selectedType == TransactionType.expense) {
+                              if (!_expenseCategories.contains(customName) && !settings.customExpenseCategories.containsKey(customName)) {
+                                settings.addCustomExpenseCategory(customName, customIcon.codePoint);
+                              }
+                            } else {
+                              if (!_incomeCategories.contains(customName) && !settings.customIncomeCategories.containsKey(customName)) {
+                                settings.addCustomIncomeCategory(customName, customIcon.codePoint);
+                              }
                             }
                             _selectedCategory = customName;
                             _selectedIcon = customIcon;
@@ -238,6 +303,10 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   @override
   Widget build(BuildContext context) {
     // FIXED: Dynamic colors and titles based on Expense/Income selection
+    final settings = Provider.of<SettingsProvider>(context);
+    final _currentCategories = _selectedType == TransactionType.expense 
+        ? [..._expenseCategories, ...settings.customExpenseCategories.keys]
+        : [..._incomeCategories, ...settings.customIncomeCategories.keys];
     final isExpense = _selectedType == TransactionType.expense;
     final headerColor = isExpense
         ? const Color(0xFF5442F5)
@@ -297,9 +366,13 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                       children: [
                         Expanded(
                           child: GestureDetector(
-                            onTap: () => setState(
-                              () => _selectedType = TransactionType.expense,
-                            ),
+                            onTap: () => setState(() {
+                              _selectedType = TransactionType.expense;
+                              if (!_expenseCategories.contains(_selectedCategory)) {
+                                _selectedCategory = _expenseCategories.first;
+                                _selectedIcon = _getIconForCategory(_selectedCategory);
+                              }
+                            }),
                             child: Container(
                               decoration: BoxDecoration(
                                 color: isExpense
@@ -320,9 +393,13 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                         ),
                         Expanded(
                           child: GestureDetector(
-                            onTap: () => setState(
-                              () => _selectedType = TransactionType.income,
-                            ),
+                            onTap: () => setState(() {
+                              _selectedType = TransactionType.income;
+                              if (!_incomeCategories.contains(_selectedCategory)) {
+                                _selectedCategory = _incomeCategories.first;
+                                _selectedIcon = _getIconForCategory(_selectedCategory);
+                              }
+                            }),
                             child: Container(
                               decoration: BoxDecoration(
                                 color: !isExpense
@@ -397,49 +474,89 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                     spacing: 12,
                     runSpacing: 12,
                     children: [
-                      ..._categories.map((cat) {
+                      ..._currentCategories.map((cat) {
                         bool isSelected = _selectedCategory == cat;
+                        bool isCustom = _selectedType == TransactionType.expense
+                            ? !_expenseCategories.contains(cat)
+                            : !_incomeCategories.contains(cat);
+
                         return GestureDetector(
                           onTap: () => setState(() {
                             _selectedCategory = cat;
-                            _selectedIcon = _getIconForCategory(
-                              cat,
-                            ); // Syncs standard icon
+                            _selectedIcon = _getIconForCategory(cat); // Syncs standard icon
                           }),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 20,
-                              vertical: 10,
-                            ),
-                            decoration: BoxDecoration(
-                              color: isSelected
-                                  ? headerColor.withOpacity(0.1)
-                                  : Colors.white,
-                              border: Border.all(
-                                color: isSelected
-                                    ? headerColor
-                                    : Colors.grey.shade300,
+                          onLongPress: isCustom ? () {
+                            _deleteCustomCategory(cat);
+                          } : null,
+                          child: Stack(
+                            clipBehavior: Clip.none,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 20,
+                                  vertical: 10,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: isSelected
+                                      ? headerColor.withOpacity(0.1)
+                                      : Colors.white,
+                                  border: Border.all(
+                                    color: isSelected
+                                        ? headerColor
+                                        : Colors.grey.shade300,
+                                  ),
+                                  borderRadius: BorderRadius.circular(24),
+                                ),
+                                child: Text(
+                                  cat,
+                                  style: TextStyle(
+                                    color: isSelected
+                                        ? headerColor
+                                        : Colors.black54,
+                                    fontWeight: isSelected
+                                        ? FontWeight.w600
+                                        : FontWeight.normal,
+                                  ),
+                                ),
                               ),
-                              borderRadius: BorderRadius.circular(24),
-                            ),
-                            child: Text(
-                              cat,
-                              style: TextStyle(
-                                color: isSelected
-                                    ? headerColor
-                                    : Colors.black54,
-                                fontWeight: isSelected
-                                    ? FontWeight.w600
-                                    : FontWeight.normal,
-                              ),
-                            ),
+                              if (isCustom)
+                                Positioned(
+                                  top: -8,
+                                  right: -8,
+                                  child: GestureDetector(
+                                    onTap: () => _deleteCustomCategory(cat),
+                                    child: Container(
+                                      padding: const EdgeInsets.all(4),
+                                      decoration: const BoxDecoration(
+                                        color: Colors.red,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(
+                                        Icons.close,
+                                        size: 12,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                            ],
                           ),
                         );
                       }).toList(),
 
                       // Custom Category Button triggers Modal
                       GestureDetector(
-                        onTap: _showAddCategoryModal,
+                        onTap: () {
+                          if (isExpense && settings.customExpenseCategories.length >= 10) {
+                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Custom expense limit reached (10 max). Please delete a category first.')));
+                            return;
+                          }
+                          if (!isExpense && settings.customIncomeCategories.length >= 10) {
+                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Custom income limit reached (10 max). Please delete a category first.')));
+                            return;
+                          }
+                          _showAddCategoryModal();
+                        },
                         child: Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 20,
@@ -588,6 +705,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
           ],
         ),
       ),
+      bottomNavigationBar: const SharedBottomNav(currentIndex: 0),
     );
   }
 }

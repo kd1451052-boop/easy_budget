@@ -48,17 +48,26 @@ class _ScannerState extends State<Scanner> with SingleTickerProviderStateMixin {
         padding: const EdgeInsets.all(24),
         decoration: const BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.only(topLeft: Radius.circular(32), topRight: Radius.circular(32)),
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(32),
+            topRight: Radius.circular(32),
+          ),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Mocked OCR results for demonstration purposes
-            const Text('Scan Result', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+            const Text(
+              'Scan Result',
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 24),
             _buildResultRow('Merchant', 'Starbucks Coffee'),
-            _buildResultRow('Total Amount', '${Provider.of<SettingsProvider>(context, listen: false).currencySymbol}12.50'),
+            _buildResultRow(
+              'Total Amount',
+              '${Provider.of<SettingsProvider>(context, listen: false).currencySymbol}12.50',
+            ),
             _buildResultRow('Date', 'Oct 24, 2023'),
             _buildResultRow('Category', 'Food & Drink'),
             const SizedBox(height: 32),
@@ -67,14 +76,24 @@ class _ScannerState extends State<Scanner> with SingleTickerProviderStateMixin {
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF6366F1),
                 minimumSize: const Size(double.infinity, 56),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
               ),
-              child: const Text('Confirm & Save', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              child: const Text(
+                'Confirm & Save',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
             const SizedBox(height: 12),
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Center(child: Text('Retake', style: TextStyle(color: Colors.grey))),
+              child: const Center(
+                child: Text('Retake', style: TextStyle(color: Colors.grey)),
+              ),
             ),
           ],
         ),
@@ -107,7 +126,10 @@ class _ScannerState extends State<Scanner> with SingleTickerProviderStateMixin {
               width: MediaQuery.of(context).size.width * 0.8,
               height: MediaQuery.of(context).size.height * 0.5,
               decoration: BoxDecoration(
-                border: Border.all(color: Colors.white.withValues(alpha: 0.5), width: 2),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.5),
+                  width: 2,
+                ),
                 borderRadius: BorderRadius.circular(24),
               ),
               child: Stack(
@@ -118,13 +140,23 @@ class _ScannerState extends State<Scanner> with SingleTickerProviderStateMixin {
                       animation: _animationController,
                       builder: (context, child) {
                         return Positioned(
-                          top: _animationController.value * (MediaQuery.of(context).size.height * 0.5 - 2),
+                          top:
+                              _animationController.value *
+                              (MediaQuery.of(context).size.height * 0.5 - 2),
                           left: 0,
                           right: 0,
                           child: Container(
                             height: 2,
                             decoration: BoxDecoration(
-                              boxShadow: [BoxShadow(color: Colors.cyanAccent.withValues(alpha: 0.5), blurRadius: 10, spreadRadius: 2)],
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.cyanAccent.withValues(
+                                    alpha: 0.5,
+                                  ),
+                                  blurRadius: 10,
+                                  spreadRadius: 2,
+                                ),
+                              ],
                               color: Colors.cyanAccent,
                             ),
                           ),
@@ -139,7 +171,10 @@ class _ScannerState extends State<Scanner> with SingleTickerProviderStateMixin {
           Positioned(
             top: 60,
             left: 20,
-            child: IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close, color: Colors.white, size: 30)),
+            child: IconButton(
+              onPressed: () => Navigator.pop(context),
+              icon: const Icon(Icons.close, color: Colors.white, size: 30),
+            ),
           ),
           // Bottom Controls
           Positioned(
@@ -149,7 +184,14 @@ class _ScannerState extends State<Scanner> with SingleTickerProviderStateMixin {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                IconButton(onPressed: () {}, icon: const Icon(Icons.photo_library_outlined, color: Colors.white, size: 28)),
+                IconButton(
+                  onPressed: () {},
+                  icon: const Icon(
+                    Icons.photo_library_outlined,
+                    color: Colors.white,
+                    size: 28,
+                  ),
+                ),
                 const SizedBox(width: 40),
                 GestureDetector(
                   onTap: _isScanning ? null : _simulateScan,
@@ -161,11 +203,23 @@ class _ScannerState extends State<Scanner> with SingleTickerProviderStateMixin {
                       border: Border.all(color: Colors.white, width: 4),
                     ),
                     padding: const EdgeInsets.all(4),
-                    child: Container(decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle)),
+                    child: Container(
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 40),
-                IconButton(onPressed: () {}, icon: const Icon(Icons.flash_on_outlined, color: Colors.white, size: 28)),
+                IconButton(
+                  onPressed: () {},
+                  icon: const Icon(
+                    Icons.flash_on_outlined,
+                    color: Colors.white,
+                    size: 28,
+                  ),
+                ),
               ],
             ),
           ),
@@ -173,7 +227,14 @@ class _ScannerState extends State<Scanner> with SingleTickerProviderStateMixin {
             const Center(
               child: Padding(
                 padding: EdgeInsets.only(top: 300),
-                child: Text('Scanning Receipt...', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                child: Text(
+                  'Scanning Receipt...',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
               ),
             ),
         ],

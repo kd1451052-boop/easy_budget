@@ -18,6 +18,7 @@ import 'package:table_calendar/table_calendar.dart';
 import 'transaction_provider.dart';
 import 'history.dart';
 import 'settings_provider.dart';
+import 'shared_bottom_nav.dart';
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
@@ -50,6 +51,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
           ),
         ],
       ),
+      bottomNavigationBar: const SharedBottomNav(currentIndex: 1),
     );
   }
 

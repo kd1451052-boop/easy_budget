@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'transaction_provider.dart'; // Make sure this import matches your file structure
 import 'settings_provider.dart';
+import 'shared_bottom_nav.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -74,6 +75,7 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
         ],
       ),
+      bottomNavigationBar: const SharedBottomNav(currentIndex: 3),
     );
   }
 
@@ -117,7 +119,10 @@ class _SettingsPageState extends State<SettingsPage> {
   // --- FEATURE LOGIC ---
 
   void _editProfileName() {
-    final userName = Provider.of<SettingsProvider>(context, listen: false).userName;
+    final userName = Provider.of<SettingsProvider>(
+      context,
+      listen: false,
+    ).userName;
     final TextEditingController nameController = TextEditingController(
       text: userName,
     );
@@ -158,7 +163,10 @@ class _SettingsPageState extends State<SettingsPage> {
                   'Confirm Name Change',
                   'Are you sure you want to change your profile name to $newName?',
                   () {
-                    Provider.of<SettingsProvider>(context, listen: false).updateUserName(newName);
+                    Provider.of<SettingsProvider>(
+                      context,
+                      listen: false,
+                    ).updateUserName(newName);
                   },
                 );
               } else {
@@ -173,7 +181,10 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   void _showCurrencyPicker() {
-    final selectedCurrency = Provider.of<SettingsProvider>(context, listen: false).selectedCurrency;
+    final selectedCurrency = Provider.of<SettingsProvider>(
+      context,
+      listen: false,
+    ).selectedCurrency;
     final currencies = ['USD', 'EUR', 'GBP', 'JPY', 'AUD', 'CAD'];
     showDialog(
       context: context,
@@ -193,7 +204,10 @@ class _SettingsPageState extends State<SettingsPage> {
                   'Confirm Currency',
                   'Are you sure you want to change your default currency to $currency?',
                   () {
-                    Provider.of<SettingsProvider>(context, listen: false).updateCurrency(currency);
+                    Provider.of<SettingsProvider>(
+                      context,
+                      listen: false,
+                    ).updateCurrency(currency);
                   },
                 );
               }
@@ -209,7 +223,10 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   void _showLanguagePicker() {
-    final selectedLanguage = Provider.of<SettingsProvider>(context, listen: false).selectedLanguage;
+    final selectedLanguage = Provider.of<SettingsProvider>(
+      context,
+      listen: false,
+    ).selectedLanguage;
     final languages = [
       'English',
       'Spanish',
@@ -236,7 +253,10 @@ class _SettingsPageState extends State<SettingsPage> {
                   'Confirm Language',
                   'Are you sure you want to change the app language to $lang?',
                   () {
-                    Provider.of<SettingsProvider>(context, listen: false).updateLanguage(lang);
+                    Provider.of<SettingsProvider>(
+                      context,
+                      listen: false,
+                    ).updateLanguage(lang);
                   },
                 );
               }
@@ -278,8 +298,8 @@ class _SettingsPageState extends State<SettingsPage> {
           );
         }
 
-        print("--- EXPORTED CSV DATA ---");
-        print(csv.toString());
+        debugPrint("--- EXPORTED CSV DATA ---");
+        debugPrint(csv.toString());
       },
     );
   }

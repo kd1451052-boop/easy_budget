@@ -24,6 +24,7 @@ import 'scanner.dart';
 import 'add_transaction_screen.dart';
 import 'settings_page.dart';
 import 'settings_provider.dart';
+import 'shared_bottom_nav.dart';
 
 enum FilterPeriod { year, month, week }
 
@@ -35,8 +36,9 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  int _selectedIndex = 0;
-  final Color _primaryIndigo = const Color(0xFF5442F5); // Matches the Figma prototype
+  final Color _primaryIndigo = const Color(
+    0xFF5442F5,
+  ); // Matches the Figma prototype
   FilterPeriod _selectedPeriod = FilterPeriod.year;
 
   String _getPeriodLabel() {
@@ -45,7 +47,20 @@ class _HomePageState extends State<HomePage> {
       case FilterPeriod.year:
         return '${now.year}';
       case FilterPeriod.month:
-        final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        final months = [
+          'Jan',
+          'Feb',
+          'Mar',
+          'Apr',
+          'May',
+          'Jun',
+          'Jul',
+          'Aug',
+          'Sep',
+          'Oct',
+          'Nov',
+          'Dec',
+        ];
         return months[now.month - 1];
       case FilterPeriod.week:
         return 'This Week';
@@ -61,16 +76,27 @@ class _HomePageState extends State<HomePage> {
         return t.dateTime.year == now.year && t.dateTime.month == now.month;
       } else {
         DateTime startOfWeek = now.subtract(Duration(days: now.weekday - 1));
-        startOfWeek = DateTime(startOfWeek.year, startOfWeek.month, startOfWeek.day);
+        startOfWeek = DateTime(
+          startOfWeek.year,
+          startOfWeek.month,
+          startOfWeek.day,
+        );
         DateTime endOfWeek = startOfWeek.add(const Duration(days: 7));
-        return t.dateTime.isAfter(startOfWeek.subtract(const Duration(seconds: 1))) && 
-               t.dateTime.isBefore(endOfWeek);
+        return t.dateTime.isAfter(
+              startOfWeek.subtract(const Duration(seconds: 1)),
+            ) &&
+            t.dateTime.isBefore(endOfWeek);
       }
     }).toList();
   }
 
-  List<PieChartSectionData> _getPieChartData(List<Transaction> transactions, String currencySymbol) {
-    final expenses = transactions.where((t) => t.type == TransactionType.expense).toList();
+  List<PieChartSectionData> _getPieChartData(
+    List<Transaction> transactions,
+    String currencySymbol,
+  ) {
+    final expenses = transactions
+        .where((t) => t.type == TransactionType.expense)
+        .toList();
     final Map<String, double> categoryMap = {};
 
     for (var t in expenses) {
@@ -90,13 +116,17 @@ class _HomePageState extends State<HomePage> {
     return categoryMap.entries.map((entry) {
       final color = sectionColors[index % sectionColors.length];
       index++;
-      
+
       return PieChartSectionData(
         color: color,
         value: entry.value,
         title: '${entry.key}\n$currencySymbol${entry.value.toStringAsFixed(0)}',
         radius: 24, // Thinner radius for a modern donut look
-        titleStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.transparent), // Hide raw text for cleaner look
+        titleStyle: const TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
+          color: Colors.transparent,
+        ), // Hide raw text for cleaner look
         showTitle: false, // Turn off titles to keep the minimalist vibe
       );
     }).toList();
@@ -104,12 +134,18 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    final currencySymbol = Provider.of<SettingsProvider>(context).currencySymbol;
+    final currencySymbol = Provider.of<SettingsProvider>(
+      context,
+    ).currencySymbol;
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor, // Softer background
+      backgroundColor: Theme.of(
+        context,
+      ).scaffoldBackgroundColor, // Softer background
       body: Consumer<TransactionProvider>(
         builder: (context, provider, child) {
-          final filteredTransactions = _getFilteredTransactions(provider.transactions);
+          final filteredTransactions = _getFilteredTransactions(
+            provider.transactions,
+          );
           double filteredIncome = 0;
           double filteredExpense = 0;
           for (var t in filteredTransactions) {
@@ -121,12 +157,23 @@ class _HomePageState extends State<HomePage> {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildHeroHeader(filteredBalance, filteredIncome, filteredExpense),
-              
+              _buildHeroHeader(
+                filteredBalance,
+                filteredIncome,
+                filteredExpense,
+              ),
+
               // Analytics Section
               Padding(
                 padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
-                child: Text('Expense Analytics', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface)),
+                child: Text(
+                  'Expense Analytics',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                ),
               ),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -137,54 +184,96 @@ class _HomePageState extends State<HomePage> {
                     color: Theme.of(context).cardColor,
                     borderRadius: BorderRadius.circular(24),
                     boxShadow: [
-                      BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4)),
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.03),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
                     ],
                   ),
-                  child: filteredExpense > 0 
-                    ? Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          PieChart(
-                            PieChartData(
-                              sections: _getPieChartData(filteredTransactions, currencySymbol),
-                              centerSpaceRadius: 60, // Wide center for donut chart
-                              sectionsSpace: 4,
+                  child: filteredExpense > 0
+                      ? Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            PieChart(
+                              PieChartData(
+                                sections: _getPieChartData(
+                                  filteredTransactions,
+                                  currencySymbol,
+                                ),
+                                centerSpaceRadius:
+                                    60, // Wide center for donut chart
+                                sectionsSpace: 4,
+                              ),
+                            ),
+                            Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  "Total Spent",
+                                  style: TextStyle(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurface
+                                        .withValues(alpha: 0.6),
+                                    fontSize: 12,
+                                  ),
+                                ),
+                                Text(
+                                  "$currencySymbol${filteredExpense.toStringAsFixed(0)}",
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 20,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurface,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        )
+                      : Center(
+                          child: Text(
+                            'No expenses yet!',
+                            style: TextStyle(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurface.withValues(alpha: 0.5),
                             ),
                           ),
-                          Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text("Total Spent", style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6), fontSize: 12)),
-                              Text("$currencySymbol${filteredExpense.toStringAsFixed(0)}", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20, color: Theme.of(context).colorScheme.onSurface)),
-                            ],
-                          )
-                        ],
-                      )
-                    : Center(child: Text('No expenses yet!', style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)))),
+                        ),
                 ),
               ),
 
               // Recent Transactions List
               Padding(
                 padding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
-                child: Text('Recent Transactions', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface)),
+                child: Text(
+                  'Recent Transactions',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                ),
               ),
-              Expanded(
-                child: _buildTransactionList(filteredTransactions),
-              ),
+              Expanded(child: _buildTransactionList(filteredTransactions)),
             ],
           );
         },
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AddExpenseScreen())),
+        onPressed: () => Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (_) => const AddExpenseScreen())),
         backgroundColor: _primaryIndigo,
         elevation: 4,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: const Icon(Icons.add, color: Colors.white, size: 32),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      bottomNavigationBar: _buildBottomNavigationBar(),
+      bottomNavigationBar: const SharedBottomNav(currentIndex: 0),
     );
   }
 
@@ -196,7 +285,10 @@ class _HomePageState extends State<HomePage> {
       padding: const EdgeInsets.fromLTRB(24, 60, 24, 32),
       decoration: BoxDecoration(
         color: _primaryIndigo,
-        borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(32), bottomRight: Radius.circular(32)),
+        borderRadius: const BorderRadius.only(
+          bottomLeft: Radius.circular(32),
+          bottomRight: Radius.circular(32),
+        ),
       ),
       child: Column(
         children: [
@@ -209,21 +301,24 @@ class _HomePageState extends State<HomePage> {
             },
             offset: const Offset(0, 30),
             color: Theme.of(context).cardColor,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            itemBuilder: (BuildContext context) => <PopupMenuEntry<FilterPeriod>>[
-              const PopupMenuItem<FilterPeriod>(
-                value: FilterPeriod.year,
-                child: Text('Yearly'),
-              ),
-              const PopupMenuItem<FilterPeriod>(
-                value: FilterPeriod.month,
-                child: Text('Monthly'),
-              ),
-              const PopupMenuItem<FilterPeriod>(
-                value: FilterPeriod.week,
-                child: Text('Weekly'),
-              ),
-            ],
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            itemBuilder: (BuildContext context) =>
+                <PopupMenuEntry<FilterPeriod>>[
+                  const PopupMenuItem<FilterPeriod>(
+                    value: FilterPeriod.year,
+                    child: Text('Yearly'),
+                  ),
+                  const PopupMenuItem<FilterPeriod>(
+                    value: FilterPeriod.month,
+                    child: Text('Monthly'),
+                  ),
+                  const PopupMenuItem<FilterPeriod>(
+                    value: FilterPeriod.week,
+                    child: Text('Weekly'),
+                  ),
+                ],
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
@@ -233,24 +328,51 @@ class _HomePageState extends State<HomePage> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(_getPeriodLabel(), style: const TextStyle(color: Colors.white70, fontSize: 14)),
+                  Text(
+                    _getPeriodLabel(),
+                    style: const TextStyle(color: Colors.white70, fontSize: 14),
+                  ),
                   const SizedBox(width: 4),
-                  const Icon(Icons.keyboard_arrow_down, color: Colors.white70, size: 16),
+                  const Icon(
+                    Icons.keyboard_arrow_down,
+                    color: Colors.white70,
+                    size: 16,
+                  ),
                 ],
               ),
             ),
           ),
           const SizedBox(height: 8),
-          Text('${Provider.of<SettingsProvider>(context).currencySymbol}${balance.toStringAsFixed(2)}', 
-            style: const TextStyle(color: Colors.white, fontSize: 40, fontWeight: FontWeight.bold)),
+          Text(
+            '${Provider.of<SettingsProvider>(context).currencySymbol}${balance.toStringAsFixed(2)}',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 40,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           const SizedBox(height: 32),
-          
+
           // Glassmorphism Cards
           Row(
             children: [
-              Expanded(child: _buildGlassCard('Income', income, Icons.arrow_upward, const Color(0xFF10B981))),
+              Expanded(
+                child: _buildGlassCard(
+                  'Income',
+                  income,
+                  Icons.arrow_upward,
+                  const Color(0xFF10B981),
+                ),
+              ),
               const SizedBox(width: 16),
-              Expanded(child: _buildGlassCard('Expense', expense, Icons.arrow_downward, const Color(0xFFEF4444))),
+              Expanded(
+                child: _buildGlassCard(
+                  'Expense',
+                  expense,
+                  Icons.arrow_downward,
+                  const Color(0xFFEF4444),
+                ),
+              ),
             ],
           ),
         ],
@@ -258,7 +380,12 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildGlassCard(String label, double amount, IconData icon, Color iconColor) {
+  Widget _buildGlassCard(
+    String label,
+    double amount,
+    IconData icon,
+    Color iconColor,
+  ) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(20),
       child: BackdropFilter(
@@ -277,15 +404,28 @@ class _HomePageState extends State<HomePage> {
                 children: [
                   Container(
                     padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                    ),
                     child: Icon(icon, color: iconColor, size: 16),
                   ),
                   const SizedBox(width: 8),
-                  Text(label, style: const TextStyle(color: Colors.white70, fontSize: 14)),
+                  Text(
+                    label,
+                    style: const TextStyle(color: Colors.white70, fontSize: 14),
+                  ),
                 ],
               ),
               const SizedBox(height: 12),
-              Text('${Provider.of<SettingsProvider>(context).currencySymbol}${amount.toStringAsFixed(2)}', style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+              Text(
+                '${Provider.of<SettingsProvider>(context).currencySymbol}${amount.toStringAsFixed(2)}',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ],
           ),
         ),
@@ -295,9 +435,18 @@ class _HomePageState extends State<HomePage> {
 
   Widget _buildTransactionList(List<Transaction> allFilteredTransactions) {
     final transactions = allFilteredTransactions.take(5).toList();
-    
+
     if (transactions.isEmpty) {
-      return Center(child: Text("No recent transactions.", style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5))));
+      return Center(
+        child: Text(
+          "No recent transactions.",
+          style: TextStyle(
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurface.withValues(alpha: 0.5),
+          ),
+        ),
+      );
     }
 
     return ListView.builder(
@@ -306,7 +455,7 @@ class _HomePageState extends State<HomePage> {
       itemBuilder: (context, index) {
         final tx = transactions[index];
         final isIncome = tx.type == TransactionType.income;
-        
+
         // Reuse model helpers to rebuild icon and color.
         final txIcon = tx.icon;
         final txColor = tx.iconColor;
@@ -316,55 +465,54 @@ class _HomePageState extends State<HomePage> {
           decoration: BoxDecoration(
             color: Theme.of(context).cardColor,
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Theme.of(context).dividerColor.withValues(alpha: 0.1)),
+            border: Border.all(
+              color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
+            ),
           ),
-            child: ListTile(
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              leading: Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(color: txColor.withAlpha((0.1 * 255).round()), shape: BoxShape.circle),
-                child: Icon(txIcon, color: txColor),
+          child: ListTile(
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 8,
+            ),
+            leading: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: txColor.withAlpha((0.1 * 255).round()),
+                shape: BoxShape.circle,
               ),
-              title: Text(tx.category, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Theme.of(context).colorScheme.onSurface)),
-              subtitle: Text(tx.description, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6))),
-              trailing: Text(
-                '${isIncome ? '+' : '-'}${Provider.of<SettingsProvider>(context).currencySymbol}${tx.amount.toStringAsFixed(2)}',
-                style: TextStyle(
-                  color: isIncome ? const Color(0xFF10B981) : Theme.of(context).colorScheme.onSurface,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
+              child: Icon(txIcon, color: txColor),
+            ),
+            title: Text(
+              tx.category,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
-          );
+            subtitle: Text(
+              tx.description,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.6),
+              ),
+            ),
+            trailing: Text(
+              '${isIncome ? '+' : '-'}${Provider.of<SettingsProvider>(context).currencySymbol}${tx.amount.toStringAsFixed(2)}',
+              style: TextStyle(
+                color: isIncome
+                    ? const Color(0xFF10B981)
+                    : Theme.of(context).colorScheme.onSurface,
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
+            ),
+          ),
+        );
       },
-    );
-  }
-
-  // FIXED: Removed the Hive database functions from the UI list!
-  Widget _buildBottomNavigationBar() {
-    return BottomNavigationBar(
-      currentIndex: _selectedIndex,
-      onTap: (index) {
-        setState(() => _selectedIndex = index);
-        // Note: Pushing directly from a BottomNav isn't standard routing, but leaving it as you had it to prevent breaking your flow!
-        if (index == 1) Navigator.of(context).push(MaterialPageRoute(builder: (_) => const HistoryScreen()));
-        if (index == 2) Navigator.of(context).push(MaterialPageRoute(builder: (_) => const Scanner()));
-        if (index == 3) Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SettingsPage()));
-      },
-      type: BottomNavigationBarType.fixed,
-      selectedItemColor: _primaryIndigo,
-      unselectedItemColor: Colors.grey.shade400,
-      showSelectedLabels: false,
-      showUnselectedLabels: false,
-      elevation: 0,
-      backgroundColor: Theme.of(context).cardColor,
-      items: const [
-        BottomNavigationBarItem(icon: Icon(Icons.dashboard), label: 'Home'),
-        BottomNavigationBarItem(icon: Icon(Icons.history), label: 'History'),
-        BottomNavigationBarItem(icon: Icon(Icons.qr_code_scanner), label: 'Scan'),
-        BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Settings'),
-      ],
     );
   }
 }
