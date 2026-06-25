@@ -55,6 +55,12 @@ class _SettingsPageState extends State<SettingsPage> {
             onTap: _showLanguagePicker,
           ),
           _buildThemeToggle(),
+          _buildSettingTile(
+            Icons.vpn_key_outlined,
+            'Gemini API Key',
+            settings.geminiApiKey.isEmpty ? 'Not Set' : '***',
+            onTap: _editGeminiApiKey,
+          ),
 
           const SizedBox(height: 16),
 
@@ -172,6 +178,65 @@ class _SettingsPageState extends State<SettingsPage> {
               } else {
                 Navigator.pop(ctx);
               }
+            },
+            child: const Text('Save', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _editGeminiApiKey() {
+    final apiKey = Provider.of<SettingsProvider>(
+      context,
+      listen: false,
+    ).geminiApiKey;
+    final TextEditingController keyController = TextEditingController(
+      text: apiKey,
+    );
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text(
+          'Gemini API Key',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        content: TextField(
+          controller: keyController,
+          decoration: InputDecoration(
+            hintText: 'Enter API Key',
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+          obscureText: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: Colors.black54),
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.black,
+              elevation: 0,
+            ),
+            onPressed: () {
+              final newKey = keyController.text.trim();
+              Navigator.pop(ctx);
+              // Trigger Confirmation
+              _confirmChange(
+                'Confirm API Key Change',
+                'Are you sure you want to update your Gemini API key?',
+                () {
+                  Provider.of<SettingsProvider>(
+                    context,
+                    listen: false,
+                  ).updateGeminiApiKey(newKey);
+                },
+              );
             },
             child: const Text('Save', style: TextStyle(color: Colors.white)),
           ),

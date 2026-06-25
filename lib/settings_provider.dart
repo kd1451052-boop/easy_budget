@@ -34,6 +34,14 @@ class SettingsProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  // --- Gemini API Key ---
+  String get geminiApiKey => _box.get('geminiApiKey', defaultValue: '');
+
+  void updateGeminiApiKey(String newKey) {
+    _box.put('geminiApiKey', newKey);
+    notifyListeners();
+  }
+
   // --- Currency ---
   String get selectedCurrency => _box.get('selectedCurrency', defaultValue: 'USD');
 

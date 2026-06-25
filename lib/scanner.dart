@@ -1,6 +1,11 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:google_generative_ai/google_generative_ai.dart';
 import 'settings_provider.dart';
+import 'transaction_provider.dart';
+import 'history.dart';
 
 class Scanner extends StatefulWidget {
   const Scanner({super.key});
@@ -12,11 +17,11 @@ class Scanner extends StatefulWidget {
 class _ScannerState extends State<Scanner> with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
   bool _isScanning = false;
+  final ImagePicker _picker = ImagePicker();
 
   @override
   void initState() {
     super.initState();
-    // Controls the "up and down" motion of the scanning line.
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 2),
@@ -29,23 +34,80 @@ class _ScannerState extends State<Scanner> with SingleTickerProviderStateMixin {
     super.dispose();
   }
 
-  /// Mocks the OCR (Optical Character Recognition) delay.
-  void _simulateScan() async {
-    setState(() => _isScanning = true);
-    await Future.delayed(const Duration(seconds: 3));
+  Future<void> _scanReceipt(ImageSource source) async {
+    final XFile? image = await _picker.pickImage(source: source);
+    if (image == null) return;
     if (!mounted) return;
-    setState(() => _isScanning = false);
-    _showResultBottomSheet();
+
+    final apiKey = Provider.of<SettingsProvider>(context, listen: false).geminiApiKey;
+    if (apiKey.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please set your Gemini API Key in Settings first.')),
+      );
+      return;
+    }
+
+    setState(() => _isScanning = true);
+
+    try {
+      final model = GenerativeModel(model: 'gemini-1.5-flash', apiKey: apiKey);
+      final bytes = await image.readAsBytes();
+      
+      final prompt = TextPart('''
+Extract receipt data as JSON. Return a JSON object with this exact structure: 
+{
+  "merchant": "name", 
+  "date": "yyyy-MM-dd", 
+  "total": 12.34, 
+  "items": [{"name": "item 1", "price": 1.23}]
+}
+Output ONLY valid JSON without any markdown formatting.
+''');
+      final imagePart = DataPart('image/jpeg', bytes);
+      
+      final response = await model.generateContent([
+        Content.multi([prompt, imagePart])
+      ]);
+
+      if (!mounted) return;
+
+      final text = response.text ?? '{}';
+      // Clean up potential markdown formatting from Gemini response
+      final jsonString = text.replaceAll('```json', '').replaceAll('```', '').trim();
+      
+      final data = jsonDecode(jsonString);
+      
+      _showResultBottomSheet(
+        merchant: data['merchant']?.toString() ?? 'Unknown Merchant',
+        total: double.tryParse(data['total']?.toString() ?? '0') ?? 0.0,
+        dateString: data['date']?.toString() ?? DateTime.now().toIso8601String().split('T')[0],
+        items: List<Map<String, dynamic>>.from(data['items'] ?? []),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error scanning receipt: $e')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isScanning = false);
+      }
+    }
   }
 
-  /// Displays the extracted data from the "scanned" receipt.
-  void _showResultBottomSheet() {
+  void _showResultBottomSheet({
+    required String merchant,
+    required double total,
+    required String dateString,
+    required List<Map<String, dynamic>> items,
+  }) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
         padding: const EdgeInsets.all(24),
+        constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.8),
         decoration: const BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.only(
@@ -57,22 +119,50 @@ class _ScannerState extends State<Scanner> with SingleTickerProviderStateMixin {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Mocked OCR results for demonstration purposes
             const Text(
               'Scan Result',
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 24),
-            _buildResultRow('Merchant', 'Starbucks Coffee'),
+            _buildResultRow('Merchant', merchant),
             _buildResultRow(
               'Total Amount',
-              '${Provider.of<SettingsProvider>(context, listen: false).currencySymbol}12.50',
+              '${Provider.of<SettingsProvider>(context, listen: false).currencySymbol}${total.toStringAsFixed(2)}',
             ),
-            _buildResultRow('Date', 'Oct 24, 2023'),
-            _buildResultRow('Category', 'Food & Drink'),
-            const SizedBox(height: 32),
+            _buildResultRow('Date', dateString),
+            
+            const SizedBox(height: 16),
+            const Text('Items:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            const SizedBox(height: 8),
+            
+            Expanded(
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: items.length,
+                itemBuilder: (context, index) {
+                  final item = items[index];
+                  final price = double.tryParse(item['price']?.toString() ?? '0') ?? 0.0;
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(child: Text(item['name']?.toString() ?? 'Unknown item', style: TextStyle(color: Colors.grey.shade700))),
+                        Text('${Provider.of<SettingsProvider>(context, listen: false).currencySymbol}${price.toStringAsFixed(2)}'),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+            
+            const SizedBox(height: 16),
             ElevatedButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: () {
+                _saveTransaction(merchant, total, dateString, items);
+                Navigator.pop(context); // Close bottom sheet
+                Navigator.pop(context); // Close scanner page
+              },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF6366F1),
                 minimumSize: const Size(double.infinity, 56),
@@ -99,6 +189,37 @@ class _ScannerState extends State<Scanner> with SingleTickerProviderStateMixin {
         ),
       ),
     );
+  }
+
+  void _saveTransaction(String merchant, double total, String dateString, List<Map<String, dynamic>> items) {
+    // Concatenate items for the description
+    StringBuffer descriptionBuffer = StringBuffer();
+    descriptionBuffer.writeln(merchant);
+    for (var item in items) {
+      final name = item['name'] ?? 'Item';
+      final price = item['price'] ?? 0.0;
+      descriptionBuffer.writeln('- $name: \$$price');
+    }
+
+    DateTime parsedDate;
+    try {
+      parsedDate = DateTime.parse(dateString);
+    } catch (_) {
+      parsedDate = DateTime.now();
+    }
+
+    final transaction = Transaction(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      type: TransactionType.expense,
+      category: 'Shopping', // Default category for scanned receipts
+      description: descriptionBuffer.toString().trim(),
+      amount: total,
+      dateTime: parsedDate,
+      iconCodePoint: Icons.receipt.codePoint,
+      iconColorValue: const Color(0xFF6366F1).toARGB32(),
+    );
+
+    Provider.of<TransactionProvider>(context, listen: false).addTransaction(transaction);
   }
 
   Widget _buildResultRow(String label, String value) {
@@ -135,14 +256,11 @@ class _ScannerState extends State<Scanner> with SingleTickerProviderStateMixin {
               child: Stack(
                 children: [
                   if (_isScanning)
-                    // AnimatedBuilder allows us to move the scanning line based on the controller's value.
                     AnimatedBuilder(
                       animation: _animationController,
                       builder: (context, child) {
                         return Positioned(
-                          top:
-                              _animationController.value *
-                              (MediaQuery.of(context).size.height * 0.5 - 2),
+                          top: _animationController.value * (MediaQuery.of(context).size.height * 0.5 - 2),
                           left: 0,
                           right: 0,
                           child: Container(
@@ -150,9 +268,7 @@ class _ScannerState extends State<Scanner> with SingleTickerProviderStateMixin {
                             decoration: BoxDecoration(
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.cyanAccent.withValues(
-                                    alpha: 0.5,
-                                  ),
+                                  color: Colors.cyanAccent.withValues(alpha: 0.5),
                                   blurRadius: 10,
                                   spreadRadius: 2,
                                 ),
@@ -185,7 +301,7 @@ class _ScannerState extends State<Scanner> with SingleTickerProviderStateMixin {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 IconButton(
-                  onPressed: () {},
+                  onPressed: () => _scanReceipt(ImageSource.gallery),
                   icon: const Icon(
                     Icons.photo_library_outlined,
                     color: Colors.white,
@@ -194,7 +310,7 @@ class _ScannerState extends State<Scanner> with SingleTickerProviderStateMixin {
                 ),
                 const SizedBox(width: 40),
                 GestureDetector(
-                  onTap: _isScanning ? null : _simulateScan,
+                  onTap: _isScanning ? null : () => _scanReceipt(ImageSource.camera),
                   child: Container(
                     width: 80,
                     height: 80,
