@@ -111,9 +111,11 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   IconData _getIconForCategory(String category) {
     final settings = Provider.of<SettingsProvider>(context, listen: false);
     if (_selectedType == TransactionType.expense && settings.customExpenseCategories.containsKey(category)) {
+      // ignore: non_const_argument_for_const_parameter
       return IconData(settings.customExpenseCategories[category]!, fontFamily: 'MaterialIcons');
     }
     if (_selectedType == TransactionType.income && settings.customIncomeCategories.containsKey(category)) {
+      // ignore: non_const_argument_for_const_parameter
       return IconData(settings.customIncomeCategories[category]!, fontFamily: 'MaterialIcons');
     }
 
@@ -359,7 +361,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                     height: 48,
                     padding: const EdgeInsets.all(4),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.15),
+                      color: Colors.white.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(24),
                     ),
                     child: Row(
@@ -498,7 +500,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                                 ),
                                 decoration: BoxDecoration(
                                   color: isSelected
-                                      ? headerColor.withOpacity(0.1)
+                                      ? headerColor.withValues(alpha: 0.1)
                                       : Colors.white,
                                   border: Border.all(
                                     color: isSelected

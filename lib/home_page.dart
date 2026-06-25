@@ -19,10 +19,7 @@ import 'dart:ui'; // Required for the glassmorphism backdrop filter
 
 import 'transaction_provider.dart';
 import 'history.dart'; // Assuming your model is here
-import 'history_screen.dart';
-import 'scanner.dart';
 import 'add_transaction_screen.dart';
-import 'settings_page.dart';
 import 'settings_provider.dart';
 import 'shared_bottom_nav.dart';
 

@@ -6,7 +6,7 @@ import 'package:google_generative_ai/google_generative_ai.dart';
 import 'settings_provider.dart';
 import 'transaction_provider.dart';
 import 'history.dart';
-
+import 'home_page.dart';
 class Scanner extends StatefulWidget {
   const Scanner({super.key});
 
@@ -160,8 +160,14 @@ Output ONLY valid JSON without any markdown formatting.
             ElevatedButton(
               onPressed: () {
                 _saveTransaction(merchant, total, dateString, items);
-                Navigator.pop(context); // Close bottom sheet
-                Navigator.pop(context); // Close scanner page
+                Navigator.of(context).pushAndRemoveUntil(
+                  PageRouteBuilder(
+                    pageBuilder: (context, animation1, animation2) => const HomePage(),
+                    transitionDuration: Duration.zero,
+                    reverseTransitionDuration: Duration.zero,
+                  ),
+                  (route) => false,
+                );
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF6366F1),
@@ -288,7 +294,16 @@ Output ONLY valid JSON without any markdown formatting.
             top: 60,
             left: 20,
             child: IconButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: () {
+                Navigator.of(context).pushAndRemoveUntil(
+                  PageRouteBuilder(
+                    pageBuilder: (context, animation1, animation2) => const HomePage(),
+                    transitionDuration: Duration.zero,
+                    reverseTransitionDuration: Duration.zero,
+                  ),
+                  (route) => false,
+                );
+              },
               icon: const Icon(Icons.close, color: Colors.white, size: 30),
             ),
           ),
