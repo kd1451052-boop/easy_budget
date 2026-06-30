@@ -81,7 +81,7 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
         ],
       ),
-      bottomNavigationBar: const SharedBottomNav(currentIndex: 3),
+      bottomNavigationBar: const SharedBottomNav(currentIndex: 4),
     );
   }
 

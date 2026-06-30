@@ -243,6 +243,9 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
 
+              // Warnings Section
+              _buildWarnings(provider, currencySymbol),
+
               // Recent Transactions List
               Padding(
                 padding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
@@ -269,7 +272,7 @@ class _HomePageState extends State<HomePage> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: const Icon(Icons.add, color: Colors.white, size: 32),
       ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       bottomNavigationBar: const SharedBottomNav(currentIndex: 0),
     );
   }
@@ -510,6 +513,106 @@ class _HomePageState extends State<HomePage> {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildWarnings(TransactionProvider provider, String currency) {
+    final now = DateTime.now();
+    List<Widget> warnings = [];
+
+    // Check Budgets
+    for (var budget in provider.budgets) {
+      if (budget.isFixed && budget.targetDate != null && budget.targetDate!.isBefore(now)) continue; // Expired
+      
+      final spent = provider.getSpentAmountForBudget(budget);
+      if (budget.amount > 0 && spent >= budget.amount * 0.9) {
+        warnings.add(_buildWarningTile(
+          icon: Icons.warning_amber_rounded,
+          color: Colors.red,
+          title: 'Budget Alert: ${budget.name}',
+          subtitle: 'You have spent $currency${spent.toStringAsFixed(0)} of your $currency${budget.amount.toStringAsFixed(0)} limit.',
+        ));
+      }
+    }
+
+    // Check Savings
+    for (var goal in provider.savingsGoals) {
+      if (goal.isFixed && goal.targetDate != null && goal.targetDate!.isBefore(now)) continue; // Expired
+
+      final saved = provider.getSavedAmountForGoal(goal);
+      if (goal.amount > 0) {
+        bool showWarning = false;
+        
+        if (goal.isFixed && goal.targetDate != null) {
+          final totalDuration = goal.targetDate!.difference(goal.createdAt).inDays;
+          final elapsedDuration = now.difference(goal.createdAt).inDays;
+          if (totalDuration > 0 && (elapsedDuration / totalDuration) >= 0.5 && (saved / goal.amount) < 0.5) {
+            showWarning = true;
+          }
+        } else if (!goal.isFixed && goal.period != null) {
+          if (goal.period == BudgetPeriod.monthly && now.day >= 24 && saved < goal.amount) showWarning = true;
+          if (goal.period == BudgetPeriod.weekly && now.weekday >= 6 && saved < goal.amount) showWarning = true;
+          if (goal.period == BudgetPeriod.yearly && now.month >= 11 && saved < goal.amount) showWarning = true;
+        }
+
+        if (showWarning) {
+          warnings.add(_buildWarningTile(
+            icon: Icons.track_changes,
+            color: Colors.orange,
+            title: 'Savings Falling Behind: ${goal.name}',
+            subtitle: 'You have only saved $currency${saved.toStringAsFixed(0)} of your $currency${goal.amount.toStringAsFixed(0)} goal.',
+          ));
+        }
+      }
+    }
+
+    if (warnings.isEmpty) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Alerts & Insights',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
+          ),
+          const SizedBox(height: 12),
+          ...warnings,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWarningTile({required IconData icon, required Color color, required String title, required String subtitle}) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: color, size: 28),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: TextStyle(fontWeight: FontWeight.bold, color: color)),
+                const SizedBox(height: 4),
+                Text(subtitle, style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurface)),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'home_page.dart';
 import 'history_screen.dart';
+import 'budget_page.dart';
 import 'scanner.dart';
 import 'settings_page.dart';
 
@@ -15,7 +16,7 @@ class SharedBottomNav extends StatelessWidget {
       currentIndex: currentIndex,
       onTap: (index) {
         if (index == currentIndex) return;
-        
+
         Widget nextScreen;
         switch (index) {
           case 0:
@@ -25,15 +26,18 @@ class SharedBottomNav extends StatelessWidget {
             nextScreen = const HistoryScreen();
             break;
           case 2:
-            nextScreen = const Scanner();
+            nextScreen = const BudgetPage();
             break;
           case 3:
+            nextScreen = const Scanner();
+            break;
+          case 4:
             nextScreen = const SettingsPage();
             break;
           default:
             nextScreen = const HomePage();
         }
-        
+
         Navigator.of(context).pushAndRemoveUntil(
           PageRouteBuilder(
             pageBuilder: (context, animation1, animation2) => nextScreen,
@@ -53,7 +57,14 @@ class SharedBottomNav extends StatelessWidget {
       items: const [
         BottomNavigationBarItem(icon: Icon(Icons.dashboard), label: 'Home'),
         BottomNavigationBarItem(icon: Icon(Icons.history), label: 'History'),
-        BottomNavigationBarItem(icon: Icon(Icons.qr_code_scanner), label: 'Scan'),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.account_balance_wallet),
+          label: 'Budget',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.qr_code_scanner),
+          label: 'Scan',
+        ),
         BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Settings'),
       ],
     );

@@ -50,7 +50,7 @@ class _ScannerState extends State<Scanner> with SingleTickerProviderStateMixin {
     setState(() => _isScanning = true);
 
     try {
-      final model = GenerativeModel(model: 'gemini-1.5-flash', apiKey: apiKey);
+      final model = GenerativeModel(model: 'gemini-1.5-flash-latest', apiKey: apiKey);
       final bytes = await image.readAsBytes();
       
       final prompt = TextPart('''

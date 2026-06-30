@@ -36,7 +36,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Transaction History', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text(
+          'Transaction History',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
@@ -46,9 +49,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
           _buildCalendar(),
           const Divider(),
           // 4. Filtered List
-          Expanded(
-            child: _buildFilteredList(),
-          ),
+          Expanded(child: _buildFilteredList()),
         ],
       ),
       bottomNavigationBar: const SharedBottomNav(currentIndex: 1),
@@ -81,9 +82,18 @@ class _HistoryScreenState extends State<HistoryScreen> {
             return provider.getTransactionsForDate(day);
           },
           calendarStyle: const CalendarStyle(
-            todayDecoration: BoxDecoration(color: Colors.blueAccent, shape: BoxShape.circle),
-            selectedDecoration: BoxDecoration(color: Color(0xFF0D47A1), shape: BoxShape.circle),
-            markerDecoration: BoxDecoration(color: Colors.orange, shape: BoxShape.circle),
+            todayDecoration: BoxDecoration(
+              color: Colors.blueAccent,
+              shape: BoxShape.circle,
+            ),
+            selectedDecoration: BoxDecoration(
+              color: Color(0xFF0D47A1),
+              shape: BoxShape.circle,
+            ),
+            markerDecoration: BoxDecoration(
+              color: Colors.orange,
+              shape: BoxShape.circle,
+            ),
           ),
           headerStyle: const HeaderStyle(
             formatButtonVisible: true,
@@ -98,7 +108,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
     return Consumer<TransactionProvider>(
       builder: (context, provider, child) {
         // Call getTransactionsForDate from the Provider
-        final filteredTransactions = provider.getTransactionsForDate(_selectedDay);
+        final filteredTransactions = provider.getTransactionsForDate(
+          _selectedDay,
+        );
 
         // 5. Empty State
         if (filteredTransactions.isEmpty) {
@@ -126,23 +138,32 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
             return Card(
               margin: const EdgeInsets.only(bottom: 10),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
               elevation: 2,
               child: ListTile(
                 leading: CircleAvatar(
-                  backgroundColor: isIncome ? Colors.green.withOpacity(0.1) : Colors.red.withOpacity(0.1),
+                  backgroundColor: isIncome
+                      ? Colors.green.withValues(alpha: 0.1)
+                      : Colors.red.withValues(alpha: 0.1),
                   child: Icon(
                     isIncome ? Icons.arrow_downward : Icons.arrow_upward,
                     color: isIncome ? Colors.green : Colors.red,
                     size: 20,
                   ),
                 ),
-                title: Text(tx.category, style: const TextStyle(fontWeight: FontWeight.bold)),
+                title: Text(
+                  tx.category,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
                 subtitle: Text(tx.description),
                 trailing: Text(
                   '${isIncome ? '+' : '-'}${Provider.of<SettingsProvider>(context).currencySymbol}${tx.amount.toStringAsFixed(2)}',
                   style: TextStyle(
-                    color: isIncome ? Colors.green : Theme.of(context).colorScheme.onSurface,
+                    color: isIncome
+                        ? Colors.green
+                        : Theme.of(context).colorScheme.onSurface,
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
                   ),

@@ -51,7 +51,6 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     'Bonus',
   ];
 
-
   // Grid of 16 icons for the Custom Category Modal
   final List<IconData> _availableIcons = [
     Icons.star,
@@ -110,13 +109,21 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   // Gets default icons for the standard string categories
   IconData _getIconForCategory(String category) {
     final settings = Provider.of<SettingsProvider>(context, listen: false);
-    if (_selectedType == TransactionType.expense && settings.customExpenseCategories.containsKey(category)) {
+    if (_selectedType == TransactionType.expense &&
+        settings.customExpenseCategories.containsKey(category)) {
       // ignore: non_const_argument_for_const_parameter
-      return IconData(settings.customExpenseCategories[category]!, fontFamily: 'MaterialIcons');
+      return IconData(
+        settings.customExpenseCategories[category]!,
+        fontFamily: 'MaterialIcons',
+      );
     }
-    if (_selectedType == TransactionType.income && settings.customIncomeCategories.containsKey(category)) {
+    if (_selectedType == TransactionType.income &&
+        settings.customIncomeCategories.containsKey(category)) {
       // ignore: non_const_argument_for_const_parameter
-      return IconData(settings.customIncomeCategories[category]!, fontFamily: 'MaterialIcons');
+      return IconData(
+        settings.customIncomeCategories[category]!,
+        fontFamily: 'MaterialIcons',
+      );
     }
 
     switch (category) {
@@ -152,7 +159,9 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     }
     if (_selectedCategory == cat) {
       setState(() {
-        _selectedCategory = _selectedType == TransactionType.expense ? _expenseCategories.first : _incomeCategories.first;
+        _selectedCategory = _selectedType == TransactionType.expense
+            ? _expenseCategories.first
+            : _incomeCategories.first;
         _selectedIcon = _getIconForCategory(_selectedCategory);
       });
     }
@@ -247,20 +256,43 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                       ),
                       onPressed: () {
                         if (customName.trim().isNotEmpty) {
-                          final settings = Provider.of<SettingsProvider>(context, listen: false);
-                          
+                          final settings = Provider.of<SettingsProvider>(
+                            context,
+                            listen: false,
+                          );
+
                           // Pre-check for limits
                           if (_selectedType == TransactionType.expense) {
-                            if (!_expenseCategories.contains(customName) && !settings.customExpenseCategories.containsKey(customName)) {
-                              if (settings.customExpenseCategories.length >= 10) {
-                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Custom expense limit reached (10 max).')));
+                            if (!_expenseCategories.contains(customName) &&
+                                !settings.customExpenseCategories.containsKey(
+                                  customName,
+                                )) {
+                              if (settings.customExpenseCategories.length >=
+                                  10) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'Custom expense limit reached (10 max).',
+                                    ),
+                                  ),
+                                );
                                 return;
                               }
                             }
                           } else {
-                            if (!_incomeCategories.contains(customName) && !settings.customIncomeCategories.containsKey(customName)) {
-                              if (settings.customIncomeCategories.length >= 10) {
-                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Custom income limit reached (10 max).')));
+                            if (!_incomeCategories.contains(customName) &&
+                                !settings.customIncomeCategories.containsKey(
+                                  customName,
+                                )) {
+                              if (settings.customIncomeCategories.length >=
+                                  10) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'Custom income limit reached (10 max).',
+                                    ),
+                                  ),
+                                );
                                 return;
                               }
                             }
@@ -268,12 +300,24 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
 
                           setState(() {
                             if (_selectedType == TransactionType.expense) {
-                              if (!_expenseCategories.contains(customName) && !settings.customExpenseCategories.containsKey(customName)) {
-                                settings.addCustomExpenseCategory(customName, customIcon.codePoint);
+                              if (!_expenseCategories.contains(customName) &&
+                                  !settings.customExpenseCategories.containsKey(
+                                    customName,
+                                  )) {
+                                settings.addCustomExpenseCategory(
+                                  customName,
+                                  customIcon.codePoint,
+                                );
                               }
                             } else {
-                              if (!_incomeCategories.contains(customName) && !settings.customIncomeCategories.containsKey(customName)) {
-                                settings.addCustomIncomeCategory(customName, customIcon.codePoint);
+                              if (!_incomeCategories.contains(customName) &&
+                                  !settings.customIncomeCategories.containsKey(
+                                    customName,
+                                  )) {
+                                settings.addCustomIncomeCategory(
+                                  customName,
+                                  customIcon.codePoint,
+                                );
                               }
                             }
                             _selectedCategory = customName;
@@ -306,7 +350,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   Widget build(BuildContext context) {
     // FIXED: Dynamic colors and titles based on Expense/Income selection
     final settings = Provider.of<SettingsProvider>(context);
-    final _currentCategories = _selectedType == TransactionType.expense 
+    final currentCategories = _selectedType == TransactionType.expense
         ? [..._expenseCategories, ...settings.customExpenseCategories.keys]
         : [..._incomeCategories, ...settings.customIncomeCategories.keys];
     final isExpense = _selectedType == TransactionType.expense;
@@ -370,9 +414,13 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                           child: GestureDetector(
                             onTap: () => setState(() {
                               _selectedType = TransactionType.expense;
-                              if (!_expenseCategories.contains(_selectedCategory)) {
+                              if (!_expenseCategories.contains(
+                                _selectedCategory,
+                              )) {
                                 _selectedCategory = _expenseCategories.first;
-                                _selectedIcon = _getIconForCategory(_selectedCategory);
+                                _selectedIcon = _getIconForCategory(
+                                  _selectedCategory,
+                                );
                               }
                             }),
                             child: Container(
@@ -397,9 +445,13 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                           child: GestureDetector(
                             onTap: () => setState(() {
                               _selectedType = TransactionType.income;
-                              if (!_incomeCategories.contains(_selectedCategory)) {
+                              if (!_incomeCategories.contains(
+                                _selectedCategory,
+                              )) {
                                 _selectedCategory = _incomeCategories.first;
-                                _selectedIcon = _getIconForCategory(_selectedCategory);
+                                _selectedIcon = _getIconForCategory(
+                                  _selectedCategory,
+                                );
                               }
                             }),
                             child: Container(
@@ -443,7 +495,8 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                       fontWeight: FontWeight.bold,
                     ),
                     decoration: InputDecoration(
-                      prefixText: '${Provider.of<SettingsProvider>(context).currencySymbol} ',
+                      prefixText:
+                          '${Provider.of<SettingsProvider>(context).currencySymbol} ',
                       prefixStyle: const TextStyle(
                         color: Colors.white70,
                         fontSize: 24,
@@ -476,7 +529,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                     spacing: 12,
                     runSpacing: 12,
                     children: [
-                      ..._currentCategories.map((cat) {
+                      ...currentCategories.map((cat) {
                         bool isSelected = _selectedCategory == cat;
                         bool isCustom = _selectedType == TransactionType.expense
                             ? !_expenseCategories.contains(cat)
@@ -485,11 +538,15 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                         return GestureDetector(
                           onTap: () => setState(() {
                             _selectedCategory = cat;
-                            _selectedIcon = _getIconForCategory(cat); // Syncs standard icon
+                            _selectedIcon = _getIconForCategory(
+                              cat,
+                            ); // Syncs standard icon
                           }),
-                          onLongPress: isCustom ? () {
-                            _deleteCustomCategory(cat);
-                          } : null,
+                          onLongPress: isCustom
+                              ? () {
+                                  _deleteCustomCategory(cat);
+                                }
+                              : null,
                           child: Stack(
                             clipBehavior: Clip.none,
                             children: [
@@ -544,17 +601,31 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                             ],
                           ),
                         );
-                      }).toList(),
+                      }),
 
                       // Custom Category Button triggers Modal
                       GestureDetector(
                         onTap: () {
-                          if (isExpense && settings.customExpenseCategories.length >= 10) {
-                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Custom expense limit reached (10 max). Please delete a category first.')));
+                          if (isExpense &&
+                              settings.customExpenseCategories.length >= 10) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Custom expense limit reached (10 max). Please delete a category first.',
+                                ),
+                              ),
+                            );
                             return;
                           }
-                          if (!isExpense && settings.customIncomeCategories.length >= 10) {
-                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Custom income limit reached (10 max). Please delete a category first.')));
+                          if (!isExpense &&
+                              settings.customIncomeCategories.length >= 10) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Custom income limit reached (10 max). Please delete a category first.',
+                                ),
+                              ),
+                            );
                             return;
                           }
                           _showAddCategoryModal();

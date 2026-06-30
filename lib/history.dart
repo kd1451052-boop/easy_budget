@@ -72,6 +72,84 @@ class Transaction extends HiveObject {
   Color get iconColor => Color(iconColorValue);
 }
 
+@HiveType(typeId: 2)
+enum BudgetPeriod {
+  @HiveField(0)
+  weekly,
+  @HiveField(1)
+  monthly,
+  @HiveField(2)
+  yearly,
+}
+
+@HiveType(typeId: 3)
+class Budget extends HiveObject {
+  @HiveField(0)
+  final String id;
+  @HiveField(1)
+  final String name;
+  @HiveField(2)
+  final String note;
+  @HiveField(3)
+  final double amount;
+  @HiveField(4)
+  final bool isFixed; // true if fixed date, false if period
+  @HiveField(5)
+  final DateTime? targetDate;
+  @HiveField(6)
+  final BudgetPeriod? period;
+  @HiveField(7)
+  final String category;
+  @HiveField(8)
+  final DateTime createdAt;
+
+  Budget({
+    required this.id,
+    required this.name,
+    required this.note,
+    required this.amount,
+    required this.isFixed,
+    this.targetDate,
+    this.period,
+    required this.category,
+    required this.createdAt,
+  });
+}
+
+@HiveType(typeId: 4)
+class SavingsGoal extends HiveObject {
+  @HiveField(0)
+  final String id;
+  @HiveField(1)
+  final String name;
+  @HiveField(2)
+  final String note;
+  @HiveField(3)
+  final double amount; // The target savings amount
+  @HiveField(4)
+  final bool isFixed;
+  @HiveField(5)
+  final DateTime? targetDate;
+  @HiveField(6)
+  final BudgetPeriod? period;
+  @HiveField(7)
+  final String category;
+  @HiveField(8)
+  final DateTime createdAt;
+
+  SavingsGoal({
+    required this.id,
+    required this.name,
+    required this.note,
+    required this.amount,
+    required this.isFixed,
+    this.targetDate,
+    this.period,
+    required this.category,
+    required this.createdAt,
+  });
+}
+
 /// A simple helper class for the calendar UI to track day state.
 class CalendarDay {
   final DateTime date;
