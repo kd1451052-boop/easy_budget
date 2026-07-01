@@ -7,6 +7,7 @@ import 'settings_provider.dart';
 import 'transaction_provider.dart';
 import 'history.dart';
 import 'home_page.dart';
+
 class Scanner extends StatefulWidget {
   const Scanner({super.key});
 
@@ -39,10 +40,15 @@ class _ScannerState extends State<Scanner> with SingleTickerProviderStateMixin {
     if (image == null) return;
     if (!mounted) return;
 
-    final apiKey = Provider.of<SettingsProvider>(context, listen: false).geminiApiKey;
+    final apiKey = Provider.of<SettingsProvider>(
+      context,
+      listen: false,
+    ).geminiApiKey;
     if (apiKey.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please set your Gemini API Key in Settings first.')),
+        const SnackBar(
+          content: Text('Please set your Gemini API Key in Settings first.'),
+        ),
       );
       return;
     }
@@ -50,9 +56,12 @@ class _ScannerState extends State<Scanner> with SingleTickerProviderStateMixin {
     setState(() => _isScanning = true);
 
     try {
-      final model = GenerativeModel(model: 'gemini-1.5-flash-latest', apiKey: apiKey);
+      final model = GenerativeModel(
+        model: 'gemini-1.5-flash-latest',
+        apiKey: apiKey,
+      );
       final bytes = await image.readAsBytes();
-      
+
       final prompt = TextPart('''
 Extract receipt data as JSON. Return a JSON object with this exact structure: 
 {
@@ -64,30 +73,35 @@ Extract receipt data as JSON. Return a JSON object with this exact structure:
 Output ONLY valid JSON without any markdown formatting.
 ''');
       final imagePart = DataPart('image/jpeg', bytes);
-      
+
       final response = await model.generateContent([
-        Content.multi([prompt, imagePart])
+        Content.multi([prompt, imagePart]),
       ]);
 
       if (!mounted) return;
 
       final text = response.text ?? '{}';
       // Clean up potential markdown formatting from Gemini response
-      final jsonString = text.replaceAll('```json', '').replaceAll('```', '').trim();
-      
+      final jsonString = text
+          .replaceAll('```json', '')
+          .replaceAll('```', '')
+          .trim();
+
       final data = jsonDecode(jsonString);
-      
+
       _showResultBottomSheet(
         merchant: data['merchant']?.toString() ?? 'Unknown Merchant',
         total: double.tryParse(data['total']?.toString() ?? '0') ?? 0.0,
-        dateString: data['date']?.toString() ?? DateTime.now().toIso8601String().split('T')[0],
+        dateString:
+            data['date']?.toString() ??
+            DateTime.now().toIso8601String().split('T')[0],
         items: List<Map<String, dynamic>>.from(data['items'] ?? []),
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error scanning receipt: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error scanning receipt: $e')));
     } finally {
       if (mounted) {
         setState(() => _isScanning = false);
@@ -107,7 +121,9 @@ Output ONLY valid JSON without any markdown formatting.
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
         padding: const EdgeInsets.all(24),
-        constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.8),
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.8,
+        ),
         decoration: const BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.only(
@@ -130,39 +146,51 @@ Output ONLY valid JSON without any markdown formatting.
               '${Provider.of<SettingsProvider>(context, listen: false).currencySymbol}${total.toStringAsFixed(2)}',
             ),
             _buildResultRow('Date', dateString),
-            
+
             const SizedBox(height: 16),
-            const Text('Items:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            const Text(
+              'Items:',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
             const SizedBox(height: 8),
-            
+
             Expanded(
               child: ListView.builder(
                 shrinkWrap: true,
                 itemCount: items.length,
                 itemBuilder: (context, index) {
                   final item = items[index];
-                  final price = double.tryParse(item['price']?.toString() ?? '0') ?? 0.0;
+                  final price =
+                      double.tryParse(item['price']?.toString() ?? '0') ?? 0.0;
                   return Padding(
                     padding: const EdgeInsets.symmetric(vertical: 4),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Expanded(child: Text(item['name']?.toString() ?? 'Unknown item', style: TextStyle(color: Colors.grey.shade700))),
-                        Text('${Provider.of<SettingsProvider>(context, listen: false).currencySymbol}${price.toStringAsFixed(2)}'),
+                        Expanded(
+                          child: Text(
+                            item['name']?.toString() ?? 'Unknown item',
+                            style: TextStyle(color: Colors.grey.shade700),
+                          ),
+                        ),
+                        Text(
+                          '${Provider.of<SettingsProvider>(context, listen: false).currencySymbol}${price.toStringAsFixed(2)}',
+                        ),
                       ],
                     ),
                   );
                 },
               ),
             ),
-            
+
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: () {
                 _saveTransaction(merchant, total, dateString, items);
                 Navigator.of(context).pushAndRemoveUntil(
                   PageRouteBuilder(
-                    pageBuilder: (context, animation1, animation2) => const HomePage(),
+                    pageBuilder: (context, animation1, animation2) =>
+                        const HomePage(),
                     transitionDuration: Duration.zero,
                     reverseTransitionDuration: Duration.zero,
                   ),
@@ -197,7 +225,12 @@ Output ONLY valid JSON without any markdown formatting.
     );
   }
 
-  void _saveTransaction(String merchant, double total, String dateString, List<Map<String, dynamic>> items) {
+  void _saveTransaction(
+    String merchant,
+    double total,
+    String dateString,
+    List<Map<String, dynamic>> items,
+  ) {
     // Concatenate items for the description
     StringBuffer descriptionBuffer = StringBuffer();
     descriptionBuffer.writeln(merchant);
@@ -225,7 +258,10 @@ Output ONLY valid JSON without any markdown formatting.
       iconColorValue: const Color(0xFF6366F1).toARGB32(),
     );
 
-    Provider.of<TransactionProvider>(context, listen: false).addTransaction(transaction);
+    Provider.of<TransactionProvider>(
+      context,
+      listen: false,
+    ).addTransaction(transaction);
   }
 
   Widget _buildResultRow(String label, String value) {
@@ -266,7 +302,9 @@ Output ONLY valid JSON without any markdown formatting.
                       animation: _animationController,
                       builder: (context, child) {
                         return Positioned(
-                          top: _animationController.value * (MediaQuery.of(context).size.height * 0.5 - 2),
+                          top:
+                              _animationController.value *
+                              (MediaQuery.of(context).size.height * 0.5 - 2),
                           left: 0,
                           right: 0,
                           child: Container(
@@ -274,7 +312,9 @@ Output ONLY valid JSON without any markdown formatting.
                             decoration: BoxDecoration(
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.cyanAccent.withValues(alpha: 0.5),
+                                  color: Colors.cyanAccent.withValues(
+                                    alpha: 0.5,
+                                  ),
                                   blurRadius: 10,
                                   spreadRadius: 2,
                                 ),
@@ -297,7 +337,8 @@ Output ONLY valid JSON without any markdown formatting.
               onPressed: () {
                 Navigator.of(context).pushAndRemoveUntil(
                   PageRouteBuilder(
-                    pageBuilder: (context, animation1, animation2) => const HomePage(),
+                    pageBuilder: (context, animation1, animation2) =>
+                        const HomePage(),
                     transitionDuration: Duration.zero,
                     reverseTransitionDuration: Duration.zero,
                   ),
@@ -325,7 +366,9 @@ Output ONLY valid JSON without any markdown formatting.
                 ),
                 const SizedBox(width: 40),
                 GestureDetector(
-                  onTap: _isScanning ? null : () => _scanReceipt(ImageSource.camera),
+                  onTap: _isScanning
+                      ? null
+                      : () => _scanReceipt(ImageSource.camera),
                   child: Container(
                     width: 80,
                     height: 80,
