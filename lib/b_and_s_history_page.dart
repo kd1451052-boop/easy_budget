@@ -5,6 +5,7 @@ import 'settings_provider.dart';
 import 'history.dart';
 import 'shared_bottom_nav.dart';
 import 'package:easy_budget/l10n/app_localizations.dart';
+import 'scanner.dart';
 
 class BAndSHistoryPage extends StatelessWidget {
   const BAndSHistoryPage({super.key});
@@ -77,7 +78,17 @@ class BAndSHistoryPage extends StatelessWidget {
           );
         },
       ),
-      bottomNavigationBar: const SharedBottomNav(currentIndex: 2), // Index 2 for Budget/History context
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (_) => const Scanner())),
+        backgroundColor: const Color(0xFF5442F5),
+        elevation: 4,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: const Icon(Icons.qr_code_scanner, color: Colors.white, size: 32),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+      bottomNavigationBar: const SharedBottomNav(currentIndex: 3), // Index 3 for Budget/History context
     );
   }
 

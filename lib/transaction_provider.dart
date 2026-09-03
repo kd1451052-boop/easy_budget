@@ -20,7 +20,7 @@ class TransactionProvider extends ChangeNotifier {
 
   void _initStreams() {
     _transactionsSub = _repository.getTransactionsStream().listen((data) {
-      _transactions = data;
+      _transactions = data..sort((a, b) => b.dateTime.compareTo(a.dateTime));
       notifyListeners();
     });
 

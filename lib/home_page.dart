@@ -22,6 +22,7 @@ import 'history.dart'; // Assuming your model is here
 import 'add_transaction_screen.dart';
 import 'settings_provider.dart';
 import 'shared_bottom_nav.dart';
+import 'scanner.dart';
 import 'package:easy_budget/l10n/app_localizations.dart';
 
 enum FilterPeriod { year, month, week }
@@ -259,11 +260,11 @@ class _HomePageState extends State<HomePage> {
       floatingActionButton: FloatingActionButton(
         onPressed: () => Navigator.of(
           context,
-        ).push(MaterialPageRoute(builder: (_) => const AddExpenseScreen())),
+        ).push(MaterialPageRoute(builder: (_) => const Scanner())),
         backgroundColor: _primaryIndigo,
         elevation: 4,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: const Icon(Icons.add, color: Colors.white, size: 32),
+        child: const Icon(Icons.qr_code_scanner, color: Colors.white, size: 32),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       bottomNavigationBar: const SharedBottomNav(currentIndex: 0),

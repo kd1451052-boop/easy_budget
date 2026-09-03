@@ -20,6 +20,7 @@ import 'history.dart';
 import 'settings_provider.dart';
 import 'shared_bottom_nav.dart';
 import 'package:easy_budget/l10n/app_localizations.dart';
+import 'scanner.dart';
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
@@ -53,6 +54,16 @@ class _HistoryScreenState extends State<HistoryScreen> {
           Expanded(child: _buildFilteredList()),
         ],
       ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (_) => const Scanner())),
+        backgroundColor: const Color(0xFF5442F5),
+        elevation: 4,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: const Icon(Icons.qr_code_scanner, color: Colors.white, size: 32),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       bottomNavigationBar: const SharedBottomNav(currentIndex: 1),
     );
   }

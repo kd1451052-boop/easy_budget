@@ -15,11 +15,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'home_page.dart';
 import 'transaction_provider.dart';
 import 'history.dart';
 import 'settings_provider.dart';
 import 'shared_bottom_nav.dart';
 import 'package:easy_budget/l10n/app_localizations.dart';
+import 'scanner.dart';
 
 class AddExpenseScreen extends StatefulWidget {
   const AddExpenseScreen({super.key});
@@ -104,7 +106,14 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     );
 
     Provider.of<TransactionProvider>(context, listen: false).addTransaction(tx);
-    Navigator.pop(context);
+    Navigator.of(context).pushAndRemoveUntil(
+      PageRouteBuilder(
+        pageBuilder: (context, animation1, animation2) => const HomePage(),
+        transitionDuration: Duration.zero,
+        reverseTransitionDuration: Duration.zero,
+      ),
+      (route) => false,
+    );
   }
 
   // Gets default icons for the standard string categories
@@ -390,7 +399,16 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                     children: [
                       IconButton(
                         icon: const Icon(Icons.arrow_back, color: Colors.white),
-                        onPressed: () => Navigator.pop(context),
+                        onPressed: () {
+                          Navigator.of(context).pushAndRemoveUntil(
+                            PageRouteBuilder(
+                              pageBuilder: (context, animation1, animation2) => const HomePage(),
+                              transitionDuration: Duration.zero,
+                              reverseTransitionDuration: Duration.zero,
+                            ),
+                            (route) => false,
+                          );
+                        },
                       ),
                       Text(
                         headerTitle, // Dynamic Title
@@ -783,7 +801,17 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: const SharedBottomNav(currentIndex: 0),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (_) => const Scanner())),
+        backgroundColor: const Color(0xFF5442F5),
+        elevation: 4,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: const Icon(Icons.qr_code_scanner, color: Colors.white, size: 32),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+      bottomNavigationBar: const SharedBottomNav(currentIndex: 2),
     );
   }
 }

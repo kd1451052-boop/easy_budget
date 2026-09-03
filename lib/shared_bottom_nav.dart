@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'home_page.dart';
 import 'history_screen.dart';
 import 'budget_page.dart';
-import 'scanner.dart';
+import 'add_transaction_screen.dart';
 import 'settings_page.dart';
 
 class SharedBottomNav extends StatelessWidget {
@@ -26,10 +26,10 @@ class SharedBottomNav extends StatelessWidget {
             nextScreen = const HistoryScreen();
             break;
           case 2:
-            nextScreen = const BudgetPage();
+            nextScreen = const AddExpenseScreen();
             break;
           case 3:
-            nextScreen = const Scanner();
+            nextScreen = const BudgetPage();
             break;
           case 4:
             nextScreen = const SettingsPage();
@@ -58,12 +58,21 @@ class SharedBottomNav extends StatelessWidget {
         BottomNavigationBarItem(icon: Icon(Icons.dashboard), label: 'Home'),
         BottomNavigationBarItem(icon: Icon(Icons.history), label: 'History'),
         BottomNavigationBarItem(
-          icon: Icon(Icons.account_balance_wallet),
-          label: 'Budget',
+          icon: DecoratedBox(
+            decoration: BoxDecoration(
+              color: Color(0xFF5442F5),
+              shape: BoxShape.circle,
+            ),
+            child: Padding(
+              padding: EdgeInsets.all(8.0),
+              child: Icon(Icons.add, color: Colors.white, size: 28),
+            ),
+          ),
+          label: 'Add',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.qr_code_scanner),
-          label: 'Scan',
+          icon: Icon(Icons.account_balance_wallet),
+          label: 'Budget',
         ),
         BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Settings'),
       ],
