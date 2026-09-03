@@ -19,6 +19,7 @@ import 'transaction_provider.dart';
 import 'history.dart';
 import 'settings_provider.dart';
 import 'shared_bottom_nav.dart';
+import 'package:easy_budget/l10n/app_localizations.dart';
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
@@ -36,9 +37,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'Transaction History',
-          style: TextStyle(fontWeight: FontWeight.bold),
+        title: Text(
+          AppLocalizations.of(context)!.transactionHistory,
+          style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -120,9 +121,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
               children: [
                 Icon(Icons.event_busy, size: 64, color: Colors.grey[300]),
                 const SizedBox(height: 16),
-                const Text(
-                  "No transactions on this date",
-                  style: TextStyle(color: Colors.grey, fontSize: 16),
+                Text(
+                  AppLocalizations.of(context)!.noTransactionsOnDate,
+                  style: const TextStyle(color: Colors.grey, fontSize: 16),
                 ),
               ],
             ),
@@ -148,7 +149,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                       ? Colors.green.withValues(alpha: 0.1)
                       : Colors.red.withValues(alpha: 0.1),
                   child: Icon(
-                    isIncome ? Icons.arrow_downward : Icons.arrow_upward,
+                    isIncome ? Icons.arrow_upward : Icons.arrow_downward,
                     color: isIncome ? Colors.green : Colors.red,
                     size: 20,
                   ),

@@ -4,6 +4,7 @@ import 'transaction_provider.dart';
 import 'settings_provider.dart';
 import 'history.dart';
 import 'shared_bottom_nav.dart';
+import 'package:easy_budget/l10n/app_localizations.dart';
 
 class BAndSHistoryPage extends StatelessWidget {
   const BAndSHistoryPage({super.key});
@@ -13,7 +14,7 @@ class BAndSHistoryPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text('History', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(AppLocalizations.of(context)!.history, style: const TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
@@ -42,30 +43,30 @@ class BAndSHistoryPage extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Past Budgets',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                Text(
+                  AppLocalizations.of(context)!.pastBudgets,
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 12),
                 if (expiredBudgets.isEmpty)
-                  const Center(child: Padding(
-                    padding: EdgeInsets.all(16.0),
-                    child: Text('No past budgets.', style: TextStyle(color: Colors.grey)),
+                  Center(child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Text(AppLocalizations.of(context)!.noPastBudgets, style: const TextStyle(color: Colors.grey)),
                   ))
                 else
                   ...expiredBudgets.map((b) => _buildBudgetCard(context, b, provider, currency)),
 
                 const SizedBox(height: 32),
 
-                const Text(
-                  'Past Saving Goals',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                Text(
+                  AppLocalizations.of(context)!.pastSavingGoals,
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 12),
                 if (expiredSavings.isEmpty)
-                  const Center(child: Padding(
-                    padding: EdgeInsets.all(16.0),
-                    child: Text('No past savings goals.', style: TextStyle(color: Colors.grey)),
+                  Center(child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Text(AppLocalizations.of(context)!.noPastSavingsGoals, style: const TextStyle(color: Colors.grey)),
                   ))
                 else
                   ...expiredSavings.map((s) => _buildSavingCard(context, s, provider, currency)),
@@ -112,8 +113,8 @@ class BAndSHistoryPage extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('$currency${spent.toStringAsFixed(0)} spent', style: TextStyle(color: isWarning ? Colors.red : null)),
-              Text('$currency${limit.toStringAsFixed(0)} limit', style: const TextStyle(fontWeight: FontWeight.bold)),
+              Text(AppLocalizations.of(context)!.spentText(currency, spent.toStringAsFixed(0)), style: TextStyle(color: isWarning ? Colors.red : null)),
+              Text(AppLocalizations.of(context)!.limitText(currency, limit.toStringAsFixed(0)), style: const TextStyle(fontWeight: FontWeight.bold)),
             ],
           ),
           const SizedBox(height: 8),
@@ -160,8 +161,8 @@ class BAndSHistoryPage extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('$currency${saved.toStringAsFixed(0)} saved'),
-              Text('$currency${target.toStringAsFixed(0)} goal', style: const TextStyle(fontWeight: FontWeight.bold)),
+              Text(AppLocalizations.of(context)!.savedText(currency, saved.toStringAsFixed(0))),
+              Text(AppLocalizations.of(context)!.goalText(currency, target.toStringAsFixed(0)), style: const TextStyle(fontWeight: FontWeight.bold)),
             ],
           ),
           const SizedBox(height: 8),

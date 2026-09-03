@@ -2,7 +2,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:google_generative_ai/google_generative_ai.dart';
+import 'package:firebase_ai/firebase_ai.dart';
+
 import 'settings_provider.dart';
 import 'transaction_provider.dart';
 import 'history.dart';
@@ -40,26 +41,11 @@ class _ScannerState extends State<Scanner> with SingleTickerProviderStateMixin {
     if (image == null) return;
     if (!mounted) return;
 
-    final apiKey = Provider.of<SettingsProvider>(
-      context,
-      listen: false,
-    ).geminiApiKey;
-    if (apiKey.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please set your Gemini API Key in Settings first.'),
-        ),
-      );
-      return;
-    }
-
     setState(() => _isScanning = true);
 
     try {
-      final model = GenerativeModel(
-        model: 'gemini-1.5-flash-latest',
-        apiKey: apiKey,
-      );
+      final googleAI = FirebaseAI.googleAI();
+      final model = googleAI.generativeModel(model: 'gemini-flash-latest');
       final bytes = await image.readAsBytes();
 
       final prompt = TextPart('''
@@ -72,7 +58,7 @@ Extract receipt data as JSON. Return a JSON object with this exact structure:
 }
 Output ONLY valid JSON without any markdown formatting.
 ''');
-      final imagePart = DataPart('image/jpeg', bytes);
+      final imagePart = InlineDataPart('image/jpeg', bytes);
 
       final response = await model.generateContent([
         Content.multi([prompt, imagePart]),
@@ -247,7 +233,7 @@ Output ONLY valid JSON without any markdown formatting.
       parsedDate = DateTime.now();
     }
 
-    final transaction = Transaction(
+    final transaction = AppTransaction(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       type: TransactionType.expense,
       category: 'Shopping', // Default category for scanned receipts

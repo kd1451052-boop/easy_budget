@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'transaction_provider.dart';
 import 'settings_provider.dart';
 import 'history.dart';
+import 'package:easy_budget/l10n/app_localizations.dart';
 
 class SavingPage extends StatefulWidget {
   const SavingPage({super.key});
@@ -43,7 +44,7 @@ class _SavingPageState extends State<SavingPage> {
 
     if (name.isEmpty || amount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a valid name and goal amount')),
+        SnackBar(content: Text(AppLocalizations.of(context)!.enterValidNameAndGoalAmount)),
       );
       return;
     }
@@ -73,7 +74,7 @@ class _SavingPageState extends State<SavingPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('New Saving Goal'),
+        title: Text(AppLocalizations.of(context)!.newSavingGoal),
         backgroundColor: headerColor,
         foregroundColor: Colors.white,
       ),
@@ -86,7 +87,7 @@ class _SavingPageState extends State<SavingPage> {
             TextField(
               controller: _nameController,
               decoration: InputDecoration(
-                labelText: "Goal Name",
+                labelText: AppLocalizations.of(context)!.goalName,
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
               ),
             ),
@@ -97,7 +98,7 @@ class _SavingPageState extends State<SavingPage> {
               controller: _noteController,
               style: const TextStyle(fontSize: 14),
               decoration: InputDecoration(
-                labelText: "Note",
+                labelText: AppLocalizations.of(context)!.note,
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
               ),
             ),
@@ -109,7 +110,7 @@ class _SavingPageState extends State<SavingPage> {
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
               inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*'))],
               decoration: InputDecoration(
-                labelText: "Target Amount",
+                labelText: AppLocalizations.of(context)!.targetAmount,
                 prefixText: '${settings.currencySymbol} ',
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
               ),
@@ -117,7 +118,7 @@ class _SavingPageState extends State<SavingPage> {
             const SizedBox(height: 32),
 
             // Time Selection
-            const Text("Timeframe", style: TextStyle(fontWeight: FontWeight.w600)),
+            Text(AppLocalizations.of(context)!.timeframe, style: const TextStyle(fontWeight: FontWeight.w600)),
             const SizedBox(height: 8),
             Row(
               children: [
@@ -128,7 +129,7 @@ class _SavingPageState extends State<SavingPage> {
                       foregroundColor: _isFixed ? Colors.white : Colors.black,
                     ),
                     onPressed: () => setState(() => _isFixed = true),
-                    child: const Text('Fixed Date'),
+                    child: Text(AppLocalizations.of(context)!.fixedDate),
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -139,7 +140,7 @@ class _SavingPageState extends State<SavingPage> {
                       foregroundColor: !_isFixed ? Colors.white : Colors.black,
                     ),
                     onPressed: () => setState(() => _isFixed = false),
-                    child: const Text('Period'),
+                    child: Text(AppLocalizations.of(context)!.period),
                   ),
                 ),
               ],
@@ -173,10 +174,10 @@ class _SavingPageState extends State<SavingPage> {
               DropdownButtonFormField<BudgetPeriod>(
                 initialValue: _selectedPeriod,
                 decoration: InputDecoration(border: OutlineInputBorder(borderRadius: BorderRadius.circular(16))),
-                items: const [
-                  DropdownMenuItem(value: BudgetPeriod.weekly, child: Text('Weekly')),
-                  DropdownMenuItem(value: BudgetPeriod.monthly, child: Text('Monthly')),
-                  DropdownMenuItem(value: BudgetPeriod.yearly, child: Text('Yearly')),
+                items: [
+                  DropdownMenuItem(value: BudgetPeriod.weekly, child: Text(AppLocalizations.of(context)!.weekly)),
+                  DropdownMenuItem(value: BudgetPeriod.monthly, child: Text(AppLocalizations.of(context)!.monthly)),
+                  DropdownMenuItem(value: BudgetPeriod.yearly, child: Text(AppLocalizations.of(context)!.yearly)),
                 ],
                 onChanged: (val) {
                   if (val != null) setState(() => _selectedPeriod = val);
@@ -185,7 +186,7 @@ class _SavingPageState extends State<SavingPage> {
             const SizedBox(height: 32),
 
             // Category Selection
-            const Text("Category", style: TextStyle(fontWeight: FontWeight.w600)),
+            Text(AppLocalizations.of(context)!.category, style: const TextStyle(fontWeight: FontWeight.w600)),
             const SizedBox(height: 8),
             Wrap(
               spacing: 12,
@@ -217,7 +218,7 @@ class _SavingPageState extends State<SavingPage> {
                   backgroundColor: headerColor,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 ),
-                child: const Text("Save Goal", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                child: Text(AppLocalizations.of(context)!.saveGoal, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
               ),
             ),
           ],

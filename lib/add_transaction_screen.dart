@@ -19,6 +19,7 @@ import 'transaction_provider.dart';
 import 'history.dart';
 import 'settings_provider.dart';
 import 'shared_bottom_nav.dart';
+import 'package:easy_budget/l10n/app_localizations.dart';
 
 class AddExpenseScreen extends StatefulWidget {
   const AddExpenseScreen({super.key});
@@ -82,17 +83,17 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     final amount = double.tryParse(_amountController.text) ?? 0.0;
     if (amount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a valid amount')),
+        SnackBar(content: Text(AppLocalizations.of(context)!.enterValidAmount)),
       );
       return;
     }
 
-    final tx = Transaction(
+    final tx = AppTransaction(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       type: _selectedType,
       category: _selectedCategory,
       description: _noteController.text.isEmpty
-          ? 'No note'
+          ? AppLocalizations.of(context)!.noNote
           : _noteController.text,
       amount: amount,
       dateTime: _selectedDate, // Now uses the actual selected date
@@ -109,21 +110,25 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   // Gets default icons for the standard string categories
   IconData _getIconForCategory(String category) {
     final settings = Provider.of<SettingsProvider>(context, listen: false);
+    // For custom icons, we MUST do a constant lookup to allow Flutter to tree-shake icon fonts
+    const List<IconData> allKnownIcons = [
+      Icons.star, Icons.bolt, Icons.coffee, Icons.fitness_center, Icons.flight, 
+      Icons.gamepad, Icons.medical_services, Icons.pets, Icons.school, 
+      Icons.local_bar, Icons.build, Icons.card_giftcard, Icons.movie, 
+      Icons.headset, Icons.directions_bike, Icons.attach_money,
+      Icons.fastfood, Icons.directions_car, Icons.receipt_long, Icons.home,
+      Icons.shopping_bag, Icons.trending_up, Icons.restaurant, Icons.more_horiz,
+    ];
+
     if (_selectedType == TransactionType.expense &&
         settings.customExpenseCategories.containsKey(category)) {
-      // ignore: non_const_argument_for_const_parameter
-      return IconData(
-        settings.customExpenseCategories[category]!,
-        fontFamily: 'MaterialIcons',
-      );
+      final code = settings.customExpenseCategories[category]!;
+      return allKnownIcons.firstWhere((i) => i.codePoint == code, orElse: () => Icons.more_horiz);
     }
     if (_selectedType == TransactionType.income &&
         settings.customIncomeCategories.containsKey(category)) {
-      // ignore: non_const_argument_for_const_parameter
-      return IconData(
-        settings.customIncomeCategories[category]!,
-        fontFamily: 'MaterialIcons',
-      );
+      final code = settings.customIncomeCategories[category]!;
+      return allKnownIcons.firstWhere((i) => i.codePoint == code, orElse: () => Icons.more_horiz);
     }
 
     switch (category) {
@@ -192,14 +197,14 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    "Customize Category",
+                  Text(
+                    AppLocalizations.of(context)!.customizeCategory,
                     style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 16),
                   TextField(
                     decoration: InputDecoration(
-                      labelText: "Category Name",
+                      labelText: AppLocalizations.of(context)!.categoryName,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -207,8 +212,8 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                     onChanged: (val) => customName = val,
                   ),
                   const SizedBox(height: 20),
-                  const Text(
-                    "Select Icon",
+                  Text(
+                    AppLocalizations.of(context)!.selectIcon,
                     style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(height: 12),
@@ -270,9 +275,9 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                               if (settings.customExpenseCategories.length >=
                                   10) {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
+                                  SnackBar(
                                     content: Text(
-                                      'Custom expense limit reached (10 max).',
+                                      AppLocalizations.of(context)!.customExpenseLimitReached,
                                     ),
                                   ),
                                 );
@@ -287,9 +292,9 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                               if (settings.customIncomeCategories.length >=
                                   10) {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
+                                  SnackBar(
                                     content: Text(
-                                      'Custom income limit reached (10 max).',
+                                      AppLocalizations.of(context)!.customIncomeLimitReached,
                                     ),
                                   ),
                                 );
@@ -326,8 +331,8 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                           Navigator.pop(context);
                         }
                       },
-                      child: const Text(
-                        "Save Custom Category",
+                      child: Text(
+                        AppLocalizations.of(context)!.saveCustomCategory,
                         style: TextStyle(color: Colors.white),
                       ),
                     ),
@@ -357,7 +362,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     final headerColor = isExpense
         ? const Color(0xFF5442F5)
         : const Color(0xFF10B981);
-    final headerTitle = isExpense ? "Add Expense" : "Add Income";
+    final headerTitle = isExpense ? AppLocalizations.of(context)!.addExpense : AppLocalizations.of(context)!.addIncome;
 
     return Scaffold(
       body: SingleChildScrollView(
@@ -432,7 +437,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                               ),
                               alignment: Alignment.center,
                               child: Text(
-                                "Expense",
+                                AppLocalizations.of(context)!.expense,
                                 style: TextStyle(
                                   color: isExpense ? headerColor : Colors.white,
                                   fontWeight: FontWeight.w600,
@@ -463,7 +468,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                               ),
                               alignment: Alignment.center,
                               child: Text(
-                                "Income",
+                                AppLocalizations.of(context)!.income,
                                 style: TextStyle(
                                   color: !isExpense
                                       ? headerColor
@@ -516,8 +521,8 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    "Category",
+                  Text(
+                    AppLocalizations.of(context)!.category,
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
@@ -609,9 +614,9 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                           if (isExpense &&
                               settings.customExpenseCategories.length >= 10) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
+                              SnackBar(
                                 content: Text(
-                                  'Custom expense limit reached (10 max). Please delete a category first.',
+                                  AppLocalizations.of(context)!.customExpenseLimitReachedDeleteFirst,
                                 ),
                               ),
                             );
@@ -620,9 +625,9 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                           if (!isExpense &&
                               settings.customIncomeCategories.length >= 10) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
+                              SnackBar(
                                 content: Text(
-                                  'Custom income limit reached (10 max). Please delete a category first.',
+                                  AppLocalizations.of(context)!.customIncomeLimitReachedDeleteFirst,
                                 ),
                               ),
                             );
@@ -640,8 +645,8 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                             border: Border.all(color: Colors.grey.shade300),
                             borderRadius: BorderRadius.circular(24),
                           ),
-                          child: const Text(
-                            "Custom +",
+                          child: Text(
+                            AppLocalizations.of(context)!.customPlus,
                             style: TextStyle(color: Colors.black54),
                           ),
                         ),
@@ -651,8 +656,8 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                   const SizedBox(height: 32),
 
                   // FIXED: Interactive Date & Time Picker
-                  const Text(
-                    "Date & Time",
+                  Text(
+                    AppLocalizations.of(context)!.dateTime,
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
@@ -717,8 +722,8 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                   ),
                   const SizedBox(height: 32),
 
-                  const Text(
-                    "Note",
+                  Text(
+                    AppLocalizations.of(context)!.note,
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
@@ -729,7 +734,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                   TextField(
                     controller: _noteController,
                     decoration: InputDecoration(
-                      hintText: "What was this for?",
+                      hintText: AppLocalizations.of(context)!.whatWasThisFor,
                       hintStyle: const TextStyle(color: Colors.black38),
                       contentPadding: const EdgeInsets.symmetric(
                         horizontal: 16,
@@ -762,8 +767,8 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                           borderRadius: BorderRadius.circular(16),
                         ),
                       ),
-                      child: const Text(
-                        "Save Transaction",
+                      child: Text(
+                        AppLocalizations.of(context)!.saveTransaction,
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 18,

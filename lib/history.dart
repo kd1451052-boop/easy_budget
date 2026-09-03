@@ -13,47 +13,31 @@
 //limitations under the License.
 
 import 'package:flutter/material.dart';
-import 'package:hive/hive.dart';
 import 'package:provider/provider.dart';
 import 'settings_provider.dart';
 
-part 'history.g.dart';
+enum TransactionType { income, expense }
 
-/// Hive uses typeId to uniquely identify classes when saving data.
-/// This enum represents the type of transaction.
-/// @HiveType(typeId: 1) tells the generator to create an adapter for this enum.
-/// @HiveField(index) marks each value so it can be stored persistently.
-@HiveType(typeId: 1)
-enum TransactionType {
-  @HiveField(0)
-  income,
-  @HiveField(1)
-  expense,
+extension TransactionTypeExtension on TransactionType {
+  String toShortString() => toString().split('.').last;
+  static TransactionType fromString(String str) =>
+      TransactionType.values.firstWhere(
+        (e) => e.toShortString() == str,
+        orElse: () => TransactionType.expense,
+      );
 }
 
-/// The main data model for a Transaction.
-/// Extending [HiveObject] gives us helper methods like [save()] and [delete()]
-/// directly on the object instance.
-@HiveType(typeId: 0)
-class Transaction extends HiveObject {
-  @HiveField(0)
+class AppTransaction {
   final String id;
-  @HiveField(1)
   final TransactionType type;
-  @HiveField(2)
   final String category;
-  @HiveField(3)
   final String description;
-  @HiveField(4)
   final double amount;
-  @HiveField(5)
   final DateTime dateTime;
-  @HiveField(6)
   final int iconCodePoint;
-  @HiveField(7)
   final int iconColorValue;
 
-  Transaction({
+  AppTransaction({
     required this.id,
     required this.type,
     required this.category,
@@ -64,43 +48,90 @@ class Transaction extends HiveObject {
     required this.iconColorValue,
   });
 
-  /// Reconstructs [IconData] from the stored integer code point.
-  // ignore: non_const_argument_for_const_parameter
-  IconData get icon => IconData(iconCodePoint, fontFamily: 'MaterialIcons');
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'type': type.toShortString(),
+      'category': category,
+      'description': description,
+      'amount': amount,
+      'dateTime': dateTime.toIso8601String(),
+      'iconCodePoint': iconCodePoint,
+      'iconColorValue': iconColorValue,
+    };
+  }
 
-  /// Reconstructs [Color] from the stored integer value.
+  factory AppTransaction.fromMap(Map<String, dynamic> map, String id) {
+    return AppTransaction(
+      id: id,
+      type: TransactionTypeExtension.fromString(map['type'] ?? 'expense'),
+      category: map['category'] ?? '',
+      description: map['description'] ?? '',
+      amount: (map['amount'] ?? 0.0).toDouble(),
+      dateTime: map['dateTime'] != null
+          ? DateTime.parse(map['dateTime'])
+          : DateTime.now(),
+      iconCodePoint: map['iconCodePoint'] ?? Icons.more_horiz.codePoint,
+      iconColorValue: map['iconColorValue'] ?? Colors.grey.value,
+    );
+  }
+
+  static const List<IconData> _knownIcons = [
+    Icons.star,
+    Icons.bolt,
+    Icons.coffee,
+    Icons.fitness_center,
+    Icons.flight,
+    Icons.gamepad,
+    Icons.medical_services,
+    Icons.pets,
+    Icons.school,
+    Icons.local_bar,
+    Icons.build,
+    Icons.card_giftcard,
+    Icons.movie,
+    Icons.headset,
+    Icons.directions_bike,
+    Icons.attach_money,
+    Icons.fastfood,
+    Icons.directions_car,
+    Icons.receipt_long,
+    Icons.home,
+    Icons.shopping_bag,
+    Icons.trending_up,
+    Icons.restaurant,
+    Icons.more_horiz,
+  ];
+
+  IconData get icon {
+    return _knownIcons.firstWhere(
+      (i) => i.codePoint == iconCodePoint,
+      orElse: () => Icons.more_horiz,
+    );
+  }
+
   Color get iconColor => Color(iconColorValue);
 }
 
-@HiveType(typeId: 2)
-enum BudgetPeriod {
-  @HiveField(0)
-  weekly,
-  @HiveField(1)
-  monthly,
-  @HiveField(2)
-  yearly,
+enum BudgetPeriod { weekly, monthly, yearly }
+
+extension BudgetPeriodExtension on BudgetPeriod {
+  String toShortString() => toString().split('.').last;
+  static BudgetPeriod fromString(String str) => BudgetPeriod.values.firstWhere(
+    (e) => e.toShortString() == str,
+    orElse: () => BudgetPeriod.monthly,
+  );
 }
 
-@HiveType(typeId: 3)
-class Budget extends HiveObject {
-  @HiveField(0)
+class Budget {
   final String id;
-  @HiveField(1)
   final String name;
-  @HiveField(2)
   final String note;
-  @HiveField(3)
   final double amount;
-  @HiveField(4)
   final bool isFixed; // true if fixed date, false if period
-  @HiveField(5)
   final DateTime? targetDate;
-  @HiveField(6)
   final BudgetPeriod? period;
-  @HiveField(7)
   final String category;
-  @HiveField(8)
   final DateTime createdAt;
 
   Budget({
@@ -114,27 +145,51 @@ class Budget extends HiveObject {
     required this.category,
     required this.createdAt,
   });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'name': name,
+      'note': note,
+      'amount': amount,
+      'isFixed': isFixed,
+      'targetDate': targetDate?.toIso8601String(),
+      'period': period?.toShortString(),
+      'category': category,
+      'createdAt': createdAt.toIso8601String(),
+    };
+  }
+
+  factory Budget.fromMap(Map<String, dynamic> map, String id) {
+    return Budget(
+      id: id,
+      name: map['name'] ?? '',
+      note: map['note'] ?? '',
+      amount: (map['amount'] ?? 0.0).toDouble(),
+      isFixed: map['isFixed'] ?? false,
+      targetDate: map['targetDate'] != null
+          ? DateTime.parse(map['targetDate'])
+          : null,
+      period: map['period'] != null
+          ? BudgetPeriodExtension.fromString(map['period'])
+          : null,
+      category: map['category'] ?? '',
+      createdAt: map['createdAt'] != null
+          ? DateTime.parse(map['createdAt'])
+          : DateTime.now(),
+    );
+  }
 }
 
-@HiveType(typeId: 4)
-class SavingsGoal extends HiveObject {
-  @HiveField(0)
+class SavingsGoal {
   final String id;
-  @HiveField(1)
   final String name;
-  @HiveField(2)
   final String note;
-  @HiveField(3)
   final double amount; // The target savings amount
-  @HiveField(4)
   final bool isFixed;
-  @HiveField(5)
   final DateTime? targetDate;
-  @HiveField(6)
   final BudgetPeriod? period;
-  @HiveField(7)
   final String category;
-  @HiveField(8)
   final DateTime createdAt;
 
   SavingsGoal({
@@ -148,6 +203,40 @@ class SavingsGoal extends HiveObject {
     required this.category,
     required this.createdAt,
   });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'name': name,
+      'note': note,
+      'amount': amount,
+      'isFixed': isFixed,
+      'targetDate': targetDate?.toIso8601String(),
+      'period': period?.toShortString(),
+      'category': category,
+      'createdAt': createdAt.toIso8601String(),
+    };
+  }
+
+  factory SavingsGoal.fromMap(Map<String, dynamic> map, String id) {
+    return SavingsGoal(
+      id: id,
+      name: map['name'] ?? '',
+      note: map['note'] ?? '',
+      amount: (map['amount'] ?? 0.0).toDouble(),
+      isFixed: map['isFixed'] ?? false,
+      targetDate: map['targetDate'] != null
+          ? DateTime.parse(map['targetDate'])
+          : null,
+      period: map['period'] != null
+          ? BudgetPeriodExtension.fromString(map['period'])
+          : null,
+      category: map['category'] ?? '',
+      createdAt: map['createdAt'] != null
+          ? DateTime.parse(map['createdAt'])
+          : DateTime.now(),
+    );
+  }
 }
 
 /// A simple helper class for the calendar UI to track day state.
@@ -170,18 +259,18 @@ class TransactionHistoryScreen extends StatelessWidget {
 
   /// Temporary mock data used for initial UI development.
   /// In a real app, this would be fetched from the [TransactionRepository].
-  List<Transaction> get transactions => [
-    Transaction(
+  List<AppTransaction> get transactions => [
+    AppTransaction(
       id: '1',
       type: TransactionType.expense,
       category: 'Food',
       description: 'Lunch with team',
-      amount: -45.50,
+      amount: 45.50,
       dateTime: DateTime(2026, 6, 11, 14, 46),
       iconCodePoint: Icons.restaurant.codePoint,
       iconColorValue: const Color(0xFFFF9800).toARGB32(),
     ),
-    Transaction(
+    AppTransaction(
       id: '2',
       type: TransactionType.income,
       category: 'Salary',
@@ -191,12 +280,12 @@ class TransactionHistoryScreen extends StatelessWidget {
       iconCodePoint: Icons.attach_money.codePoint,
       iconColorValue: const Color(0xFF4CAF50).toARGB32(),
     ),
-    Transaction(
+    AppTransaction(
       id: '3',
       type: TransactionType.expense,
       category: 'Bill',
       description: 'Electricity Bill',
-      amount: -120.00,
+      amount: 120.00,
       dateTime: DateTime(2026, 6, 8, 14, 46),
       iconCodePoint: Icons.bolt.codePoint,
       iconColorValue: const Color(0xFF2196F3).toARGB32(),
@@ -381,7 +470,10 @@ class TransactionHistoryScreen extends StatelessWidget {
   }
 
   /// A single row representing a transaction in the history list.
-  Widget _buildTransactionRow(BuildContext context, Transaction transaction) {
+  Widget _buildTransactionRow(
+    BuildContext context,
+    AppTransaction transaction,
+  ) {
     final isIncome = transaction.type == TransactionType.income;
     return Padding(
       padding: const EdgeInsets.only(bottom: 20),

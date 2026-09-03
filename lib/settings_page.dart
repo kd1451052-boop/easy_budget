@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'transaction_provider.dart'; // Make sure this import matches your file structure
 import 'settings_provider.dart';
 import 'shared_bottom_nav.dart';
+import 'package:easy_budget/l10n/app_localizations.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -28,7 +29,7 @@ class _SettingsPageState extends State<SettingsPage> {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          'Settings',
+          AppLocalizations.of(context)!.settings,
           style: TextStyle(
             color: Theme.of(context).colorScheme.onSurface,
             fontWeight: FontWeight.bold,
@@ -41,40 +42,33 @@ class _SettingsPageState extends State<SettingsPage> {
           _buildProfileSection(),
           const SizedBox(height: 16),
 
-          _buildSectionHeader('Preferences'),
+          _buildSectionHeader(AppLocalizations.of(context)!.preferences),
           _buildSettingTile(
             Icons.monetization_on_outlined,
-            'Currency',
+            AppLocalizations.of(context)!.currency,
             settings.selectedCurrency,
             onTap: _showCurrencyPicker,
           ),
           _buildSettingTile(
             Icons.language_outlined,
-            'Language',
+            AppLocalizations.of(context)!.language,
             settings.selectedLanguage,
             onTap: _showLanguagePicker,
           ),
           _buildThemeToggle(),
-          _buildSettingTile(
-            Icons.vpn_key_outlined,
-            'Gemini API Key',
-            settings.geminiApiKey.isEmpty ? 'Not Set' : '***',
-            onTap: _editGeminiApiKey,
-          ),
-
           const SizedBox(height: 16),
 
-          _buildSectionHeader('Data Management'),
+          _buildSectionHeader(AppLocalizations.of(context)!.dataManagement),
           _buildSettingTile(
             Icons.file_download_outlined,
-            'Export Data (CSV)',
+            AppLocalizations.of(context)!.exportDataCSV,
             null,
             onTap: () => _exportToCSV(context),
           ),
 
           _buildSettingTile(
             Icons.delete_outline,
-            'Clear All Data',
+            AppLocalizations.of(context)!.clearAllData,
             null,
             isDestructive: true,
             onTap: () => _showClearDataDialog(context),
@@ -98,9 +92,9 @@ class _SettingsPageState extends State<SettingsPage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx), // Cancel does nothing
-            child: const Text(
-              'Cancel',
-              style: TextStyle(color: Colors.black54),
+            child: Text(
+              AppLocalizations.of(context)!.cancel,
+              style: const TextStyle(color: Colors.black54),
             ),
           ),
           ElevatedButton(
@@ -112,10 +106,10 @@ class _SettingsPageState extends State<SettingsPage> {
               Navigator.pop(ctx); // Close the dialog
               onConfirm(); // Execute the actual change
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Changes applied successfully!')),
+                SnackBar(content: Text(AppLocalizations.of(context)!.changesApplied)),
               );
             },
-            child: const Text('Confirm', style: TextStyle(color: Colors.white)),
+            child: Text(AppLocalizations.of(context)!.confirm, style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -136,23 +130,23 @@ class _SettingsPageState extends State<SettingsPage> {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text(
-          'Edit Profile Name',
-          style: TextStyle(fontWeight: FontWeight.bold),
+        title: Text(
+          AppLocalizations.of(context)!.editProfileName,
+          style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         content: TextField(
           controller: nameController,
           decoration: InputDecoration(
-            hintText: 'Enter your name',
+            hintText: AppLocalizations.of(context)!.enterYourName,
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text(
-              'Cancel',
-              style: TextStyle(color: Colors.black54),
+            child: Text(
+              AppLocalizations.of(context)!.cancel,
+              style: const TextStyle(color: Colors.black54),
             ),
           ),
           ElevatedButton(
@@ -166,8 +160,8 @@ class _SettingsPageState extends State<SettingsPage> {
                 Navigator.pop(ctx); // Close input dialog
                 // Trigger Confirmation
                 _confirmChange(
-                  'Confirm Name Change',
-                  'Are you sure you want to change your profile name to $newName?',
+                  AppLocalizations.of(context)!.confirmNameChange,
+                  AppLocalizations.of(context)!.confirmNameChangeDesc(newName),
                   () {
                     Provider.of<SettingsProvider>(
                       context,
@@ -179,71 +173,14 @@ class _SettingsPageState extends State<SettingsPage> {
                 Navigator.pop(ctx);
               }
             },
-            child: const Text('Save', style: TextStyle(color: Colors.white)),
+            child: Text(AppLocalizations.of(context)!.save, style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),
     );
   }
 
-  void _editGeminiApiKey() {
-    final apiKey = Provider.of<SettingsProvider>(
-      context,
-      listen: false,
-    ).geminiApiKey;
-    final TextEditingController keyController = TextEditingController(
-      text: apiKey,
-    );
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text(
-          'Gemini API Key',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        content: TextField(
-          controller: keyController,
-          decoration: InputDecoration(
-            hintText: 'Enter API Key',
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-          ),
-          obscureText: true,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text(
-              'Cancel',
-              style: TextStyle(color: Colors.black54),
-            ),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.black,
-              elevation: 0,
-            ),
-            onPressed: () {
-              final newKey = keyController.text.trim();
-              Navigator.pop(ctx);
-              // Trigger Confirmation
-              _confirmChange(
-                'Confirm API Key Change',
-                'Are you sure you want to update your Gemini API key?',
-                () {
-                  Provider.of<SettingsProvider>(
-                    context,
-                    listen: false,
-                  ).updateGeminiApiKey(newKey);
-                },
-              );
-            },
-            child: const Text('Save', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-  }
+
 
   void _showCurrencyPicker() {
     final selectedCurrency = Provider.of<SettingsProvider>(
@@ -254,9 +191,9 @@ class _SettingsPageState extends State<SettingsPage> {
     showDialog(
       context: context,
       builder: (ctx) => SimpleDialog(
-        title: const Text(
-          'Select Currency',
-          style: TextStyle(fontWeight: FontWeight.bold),
+        title: Text(
+          AppLocalizations.of(context)!.selectCurrency,
+          style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         children: currencies.map((currency) {
@@ -266,8 +203,8 @@ class _SettingsPageState extends State<SettingsPage> {
               if (currency != selectedCurrency) {
                 // Trigger Confirmation
                 _confirmChange(
-                  'Confirm Currency',
-                  'Are you sure you want to change your default currency to $currency?',
+                  AppLocalizations.of(context)!.confirmCurrency,
+                  AppLocalizations.of(context)!.confirmCurrencyDesc(currency),
                   () {
                     Provider.of<SettingsProvider>(
                       context,
@@ -303,9 +240,9 @@ class _SettingsPageState extends State<SettingsPage> {
     showDialog(
       context: context,
       builder: (ctx) => SimpleDialog(
-        title: const Text(
-          'Select Language',
-          style: TextStyle(fontWeight: FontWeight.bold),
+        title: Text(
+          AppLocalizations.of(context)!.confirmLanguage,
+          style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         children: languages.map((lang) {
@@ -315,8 +252,8 @@ class _SettingsPageState extends State<SettingsPage> {
               if (lang != selectedLanguage) {
                 // Trigger Confirmation
                 _confirmChange(
-                  'Confirm Language',
-                  'Are you sure you want to change the app language to $lang?',
+                  AppLocalizations.of(context)!.confirmLanguage,
+                  AppLocalizations.of(context)!.confirmLanguageDesc(lang),
                   () {
                     Provider.of<SettingsProvider>(
                       context,
@@ -338,8 +275,8 @@ class _SettingsPageState extends State<SettingsPage> {
 
   void _exportToCSV(BuildContext context) {
     _confirmChange(
-      'Export Data',
-      'Are you sure you want to generate and export all your transaction data as a CSV file?',
+      AppLocalizations.of(context)!.exportData,
+      AppLocalizations.of(context)!.exportDataDesc,
       () {
         final provider = Provider.of<TransactionProvider>(
           context,
@@ -350,7 +287,7 @@ class _SettingsPageState extends State<SettingsPage> {
         if (transactions.isEmpty) {
           ScaffoldMessenger.of(
             context,
-          ).showSnackBar(const SnackBar(content: Text('No data to export!')));
+          ).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.noDataToExport)));
           return;
         }
 
@@ -374,19 +311,19 @@ class _SettingsPageState extends State<SettingsPage> {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text(
-          "Clear All Data?",
-          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red),
+        title: Text(
+          AppLocalizations.of(context)!.clearAllDataPrompt,
+          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.red),
         ),
-        content: const Text(
-          "Are you absolutely sure? This will permanently delete all your transactions. This action cannot be undone.",
+        content: Text(
+          AppLocalizations.of(context)!.clearAllDataDesc,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text(
-              "Cancel",
-              style: TextStyle(color: Colors.black54),
+            child: Text(
+              AppLocalizations.of(context)!.cancel,
+              style: const TextStyle(color: Colors.black54),
             ),
           ),
           ElevatedButton(
@@ -401,12 +338,12 @@ class _SettingsPageState extends State<SettingsPage> {
               ).clearAllData();
               Navigator.pop(ctx);
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('All data cleared successfully')),
+                SnackBar(content: Text(AppLocalizations.of(context)!.allDataCleared)),
               );
             },
-            child: const Text(
-              "Delete All",
-              style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+            child: Text(
+              AppLocalizations.of(context)!.deleteAll,
+              style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
             ),
           ),
         ],
@@ -455,9 +392,9 @@ class _SettingsPageState extends State<SettingsPage> {
                     color: Colors.amber.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Text(
-                    'Pro Member',
-                    style: TextStyle(
+                  child: Text(
+                    AppLocalizations.of(context)!.proMember,
+                    style: const TextStyle(
                       color: Colors.amber,
                       fontWeight: FontWeight.bold,
                       fontSize: 10,
@@ -544,7 +481,7 @@ class _SettingsPageState extends State<SettingsPage> {
           color: Theme.of(context).colorScheme.onSurface,
         ),
         title: Text(
-          'Dark Mode',
+          AppLocalizations.of(context)!.darkMode,
           style: TextStyle(
             fontWeight: FontWeight.w600,
             color: Theme.of(context).colorScheme.onSurface,
@@ -555,8 +492,8 @@ class _SettingsPageState extends State<SettingsPage> {
           onChanged: (v) {
             // Trigger Confirmation when flipping the switch
             _confirmChange(
-              'Confirm Theme Change',
-              'Are you sure you want to turn ${v ? 'on' : 'off'} Dark Mode?',
+              AppLocalizations.of(context)!.confirmThemeChange,
+              AppLocalizations.of(context)!.confirmThemeChangeDesc(v ? AppLocalizations.of(context)!.on : AppLocalizations.of(context)!.off),
               () {
                 Provider.of<SettingsProvider>(
                   context,

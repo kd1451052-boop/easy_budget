@@ -1,0 +1,41 @@
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "easy-budget-db116",
+          "appId": "1:397307832524:android:bfbd12c9119e6d52e77a69",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "ios": {
+        "default": {
+          "projectId": "easy-budget-db116",
+          "appId": "1:397307832524:ios:9d8023f71ce0cb61e77a69",
+          "uploadDebugSymbols": false,
+          "fileOutput": "ios/Runner/GoogleService-Info.plist"
+        }
+      },
+      "macos": {
+        "default": {
+          "projectId": "easy-budget-db116",
+          "appId": "1:397307832524:ios:9d8023f71ce0cb61e77a69",
+          "uploadDebugSymbols": false,
+          "fileOutput": "macos/Runner/GoogleService-Info.plist"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "easy-budget-db116",
+          "configurations": {
+            "android": "1:397307832524:android:bfbd12c9119e6d52e77a69",
+            "ios": "1:397307832524:ios:9d8023f71ce0cb61e77a69",
+            "macos": "1:397307832524:ios:9d8023f71ce0cb61e77a69",
+            "web": "1:397307832524:web:fdb6a276193b73f3e77a69",
+            "windows": "1:397307832524:web:a49ca2794229aa09e77a69"
+          }
+        }
+      }
+    }
+  }
+}

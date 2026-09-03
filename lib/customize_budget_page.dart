@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'transaction_provider.dart';
 import 'settings_provider.dart';
 import 'history.dart';
+import 'package:easy_budget/l10n/app_localizations.dart';
 
 class CustomizeBudgetPage extends StatefulWidget {
   const CustomizeBudgetPage({super.key});
@@ -44,7 +45,7 @@ class _CustomizeBudgetPageState extends State<CustomizeBudgetPage> {
 
     if (name.isEmpty || amount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a valid name and amount')),
+        SnackBar(content: Text(AppLocalizations.of(context)!.enterValidNameAndAmount)),
       );
       return;
     }
@@ -73,7 +74,7 @@ class _CustomizeBudgetPageState extends State<CustomizeBudgetPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Add Budget'),
+        title: Text(AppLocalizations.of(context)!.addBudget),
         backgroundColor: headerColor,
         foregroundColor: Colors.white,
       ),
@@ -86,7 +87,7 @@ class _CustomizeBudgetPageState extends State<CustomizeBudgetPage> {
             TextField(
               controller: _nameController,
               decoration: InputDecoration(
-                labelText: "Budget Name",
+                labelText: AppLocalizations.of(context)!.budgetName,
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
               ),
             ),
@@ -97,7 +98,7 @@ class _CustomizeBudgetPageState extends State<CustomizeBudgetPage> {
               controller: _noteController,
               style: const TextStyle(fontSize: 14),
               decoration: InputDecoration(
-                labelText: "Note",
+                labelText: AppLocalizations.of(context)!.note,
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
               ),
             ),
@@ -109,7 +110,7 @@ class _CustomizeBudgetPageState extends State<CustomizeBudgetPage> {
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
               inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*'))],
               decoration: InputDecoration(
-                labelText: "Amount Limit",
+                labelText: AppLocalizations.of(context)!.amountLimit,
                 prefixText: '${settings.currencySymbol} ',
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
               ),
@@ -117,7 +118,7 @@ class _CustomizeBudgetPageState extends State<CustomizeBudgetPage> {
             const SizedBox(height: 32),
 
             // Time Selection
-            const Text("Timeframe", style: TextStyle(fontWeight: FontWeight.w600)),
+            Text(AppLocalizations.of(context)!.timeframe, style: const TextStyle(fontWeight: FontWeight.w600)),
             const SizedBox(height: 8),
             Row(
               children: [
@@ -128,7 +129,7 @@ class _CustomizeBudgetPageState extends State<CustomizeBudgetPage> {
                       foregroundColor: _isFixed ? Colors.white : Colors.black,
                     ),
                     onPressed: () => setState(() => _isFixed = true),
-                    child: const Text('Fixed Date'),
+                    child: Text(AppLocalizations.of(context)!.fixedDate),
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -139,7 +140,7 @@ class _CustomizeBudgetPageState extends State<CustomizeBudgetPage> {
                       foregroundColor: !_isFixed ? Colors.white : Colors.black,
                     ),
                     onPressed: () => setState(() => _isFixed = false),
-                    child: const Text('Period'),
+                    child: Text(AppLocalizations.of(context)!.period),
                   ),
                 ),
               ],
@@ -173,10 +174,10 @@ class _CustomizeBudgetPageState extends State<CustomizeBudgetPage> {
               DropdownButtonFormField<BudgetPeriod>(
                 initialValue: _selectedPeriod,
                 decoration: InputDecoration(border: OutlineInputBorder(borderRadius: BorderRadius.circular(16))),
-                items: const [
-                  DropdownMenuItem(value: BudgetPeriod.weekly, child: Text('Weekly')),
-                  DropdownMenuItem(value: BudgetPeriod.monthly, child: Text('Monthly')),
-                  DropdownMenuItem(value: BudgetPeriod.yearly, child: Text('Yearly')),
+                items: [
+                  DropdownMenuItem(value: BudgetPeriod.weekly, child: Text(AppLocalizations.of(context)!.weekly)),
+                  DropdownMenuItem(value: BudgetPeriod.monthly, child: Text(AppLocalizations.of(context)!.monthly)),
+                  DropdownMenuItem(value: BudgetPeriod.yearly, child: Text(AppLocalizations.of(context)!.yearly)),
                 ],
                 onChanged: (val) {
                   if (val != null) setState(() => _selectedPeriod = val);
@@ -185,7 +186,7 @@ class _CustomizeBudgetPageState extends State<CustomizeBudgetPage> {
             const SizedBox(height: 32),
 
             // Category Selection
-            const Text("Category", style: TextStyle(fontWeight: FontWeight.w600)),
+            Text(AppLocalizations.of(context)!.category, style: const TextStyle(fontWeight: FontWeight.w600)),
             const SizedBox(height: 8),
             Wrap(
               spacing: 12,
@@ -217,7 +218,7 @@ class _CustomizeBudgetPageState extends State<CustomizeBudgetPage> {
                   backgroundColor: headerColor,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 ),
-                child: const Text("Save Budget", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                child: Text(AppLocalizations.of(context)!.saveBudget, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
               ),
             ),
           ],

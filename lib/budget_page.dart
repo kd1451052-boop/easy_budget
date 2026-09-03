@@ -7,6 +7,7 @@ import 'customize_budget_page.dart';
 import 'saving_page.dart';
 import 'b_and_s_history_page.dart';
 import 'shared_bottom_nav.dart';
+import 'package:easy_budget/l10n/app_localizations.dart';
 
 class BudgetPage extends StatelessWidget {
   const BudgetPage({super.key});
@@ -18,7 +19,7 @@ class BudgetPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text('Budget', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(AppLocalizations.of(context)!.budgetPageTitle, style: const TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
@@ -44,25 +45,25 @@ class BudgetPage extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
-                      'Active Budgets',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    Text(
+                      AppLocalizations.of(context)!.activeBudgets,
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                     TextButton.icon(
                       onPressed: () {
                         Navigator.push(context, MaterialPageRoute(builder: (_) => const CustomizeBudgetPage()));
                       },
                       icon: const Icon(Icons.add),
-                      label: const Text('Add Budget'),
+                      label: Text(AppLocalizations.of(context)!.addBudget),
                       style: TextButton.styleFrom(foregroundColor: headerColor),
                     )
                   ],
                 ),
                 const SizedBox(height: 12),
                 if (activeBudgets.isEmpty)
-                  const Center(child: Padding(
-                    padding: EdgeInsets.all(16.0),
-                    child: Text('No active budgets.', style: TextStyle(color: Colors.grey)),
+                  Center(child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Text(AppLocalizations.of(context)!.noActiveBudgets, style: const TextStyle(color: Colors.grey)),
                   ))
                 else
                   ...activeBudgets.map((b) => _buildBudgetCard(context, b, provider, currency)),
@@ -73,25 +74,25 @@ class BudgetPage extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
-                      'Saving Goals',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    Text(
+                      AppLocalizations.of(context)!.savingGoals,
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                     TextButton.icon(
                       onPressed: () {
                         Navigator.push(context, MaterialPageRoute(builder: (_) => const SavingPage()));
                       },
                       icon: const Icon(Icons.add),
-                      label: const Text('New Saving'),
+                      label: Text(AppLocalizations.of(context)!.newSaving),
                       style: TextButton.styleFrom(foregroundColor: const Color(0xFF10B981)),
                     )
                   ],
                 ),
                 const SizedBox(height: 12),
                 if (activeSavings.isEmpty)
-                  const Center(child: Padding(
-                    padding: EdgeInsets.all(16.0),
-                    child: Text('No active savings goals.', style: TextStyle(color: Colors.grey)),
+                  Center(child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Text(AppLocalizations.of(context)!.noActiveSavings, style: const TextStyle(color: Colors.grey)),
                   ))
                 else
                   ...activeSavings.map((s) => _buildSavingCard(context, s, provider, currency)),
@@ -109,7 +110,7 @@ class BudgetPage extends StatelessWidget {
                       padding: const EdgeInsets.all(16),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                     ),
-                    child: const Text('Budget and Saving History'),
+                    child: Text(AppLocalizations.of(context)!.budgetAndSavingHistory),
                   ),
                 ),
                 const SizedBox(height: 100), // padding for bottom nav
@@ -154,8 +155,8 @@ class BudgetPage extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('$currency${spent.toStringAsFixed(0)} spent', style: TextStyle(color: isWarning ? Colors.red : null)),
-              Text('$currency${limit.toStringAsFixed(0)} limit', style: const TextStyle(fontWeight: FontWeight.bold)),
+              Text(AppLocalizations.of(context)!.spentText(currency, spent.toStringAsFixed(0)), style: TextStyle(color: isWarning ? Colors.red : null)),
+              Text(AppLocalizations.of(context)!.limitText(currency, limit.toStringAsFixed(0)), style: const TextStyle(fontWeight: FontWeight.bold)),
             ],
           ),
           const SizedBox(height: 8),
@@ -202,8 +203,8 @@ class BudgetPage extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('$currency${saved.toStringAsFixed(0)} saved'),
-              Text('$currency${target.toStringAsFixed(0)} goal', style: const TextStyle(fontWeight: FontWeight.bold)),
+              Text(AppLocalizations.of(context)!.savedText(currency, saved.toStringAsFixed(0))),
+              Text(AppLocalizations.of(context)!.goalText(currency, target.toStringAsFixed(0)), style: const TextStyle(fontWeight: FontWeight.bold)),
             ],
           ),
           const SizedBox(height: 8),

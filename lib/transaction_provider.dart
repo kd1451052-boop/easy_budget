@@ -1,88 +1,106 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:hive/hive.dart';
 import 'history.dart';
 import 'transaction_repository.dart';
 
 class TransactionProvider extends ChangeNotifier {
-  final Box<Transaction> _box = Hive.box<Transaction>(TransactionRepository.boxName);
-  final Box<Budget> _budgetBox = Hive.box<Budget>(TransactionRepository.budgetBoxName);
-  final Box<SavingsGoal> _savingsBox = Hive.box<SavingsGoal>(TransactionRepository.savingsBoxName);
+  final TransactionRepository _repository = TransactionRepository();
+
+  List<AppTransaction> _transactions = [];
+  List<Budget> _budgets = [];
+  List<SavingsGoal> _savingsGoals = [];
+
+  StreamSubscription? _transactionsSub;
+  StreamSubscription? _budgetsSub;
+  StreamSubscription? _savingsSub;
 
   TransactionProvider() {
-    cleanUpOldHistory();
+    _initStreams();
+  }
+
+  void _initStreams() {
+    _transactionsSub = _repository.getTransactionsStream().listen((data) {
+      _transactions = data;
+      notifyListeners();
+    });
+
+    _budgetsSub = _repository.getBudgetsStream().listen((data) {
+      _budgets = data;
+      notifyListeners();
+    });
+
+    _savingsSub = _repository.getSavingsGoalsStream().listen((data) {
+      _savingsGoals = data;
+      notifyListeners();
+    });
+  }
+
+  @override
+  void dispose() {
+    _transactionsSub?.cancel();
+    _budgetsSub?.cancel();
+    _savingsSub?.cancel();
+    super.dispose();
   }
 
   /// Getter for all transactions sorted by date
-  List<Transaction> get transactions {
-    final list = _box.values.toList();
-    list.sort((a, b) => b.dateTime.compareTo(a.dateTime));
-    return list;
-  }
+  List<AppTransaction> get transactions => _transactions;
+  List<Budget> get budgets => _budgets;
+  List<SavingsGoal> get savingsGoals => _savingsGoals;
 
-  List<Budget> get budgets {
-    final list = _budgetBox.values.toList();
-    list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-    return list;
-  }
-
-  List<SavingsGoal> get savingsGoals {
-    final list = _savingsBox.values.toList();
-    list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-    return list;
-  }
-
-  /// Adds a transaction to Hive and notifies UI
-  Future<void> addTransaction(Transaction t) async {
-    await _box.put(t.id, t);
-    notifyListeners();
+  /// Adds a transaction
+  Future<void> addTransaction(AppTransaction t) async {
+    await _repository.save(t);
   }
 
   /// Deletes a transaction
-  Future<void> deleteTransaction(Transaction t) async {
-    await t.delete();
-    notifyListeners();
+  Future<void> deleteTransaction(AppTransaction t) async {
+    await _repository.delete(t);
   }
 
   Future<void> addBudget(Budget b) async {
-    await _budgetBox.put(b.id, b);
-    notifyListeners();
+    await _repository.saveBudget(b);
   }
 
   Future<void> deleteBudget(Budget b) async {
-    await b.delete();
-    notifyListeners();
+    await _repository.deleteBudget(b);
   }
 
   Future<void> addSavingsGoal(SavingsGoal s) async {
-    await _savingsBox.put(s.id, s);
-    notifyListeners();
+    await _repository.saveSavingsGoal(s);
   }
 
   Future<void> deleteSavingsGoal(SavingsGoal s) async {
-    await s.delete();
-    notifyListeners();
+    await _repository.deleteSavingsGoal(s);
   }
 
   /// Permanently deletes all transactions from storage and refreshes the UI
   Future<void> clearAllData() async {
-    await _box.clear();
-    notifyListeners();
+    for (var t in _transactions) {
+      await _repository.delete(t);
+    }
+    for (var b in _budgets) {
+      await _repository.deleteBudget(b);
+    }
+    for (var s in _savingsGoals) {
+      await _repository.deleteSavingsGoal(s);
+    }
   }
 
   // Logic for calculations
-  double get totalIncome => _box.values
+  double get totalIncome => _transactions
       .where((t) => t.type == TransactionType.income)
       .fold(0.0, (sum, item) => sum + item.amount);
 
-  double get totalExpense => _box.values
+  double get totalExpense => _transactions
       .where((t) => t.type == TransactionType.expense)
       .fold(0.0, (sum, item) => sum + item.amount);
 
   double get totalBalance => totalIncome - totalExpense;
 
   // Filters transactions by a specific date (ignoring time)
-  List<Transaction> getTransactionsForDate(DateTime date) {
-    return _box.values.where((t) =>
+  List<AppTransaction> getTransactionsForDate(DateTime date) {
+    return _transactions.where((t) =>
         t.dateTime.year == date.year &&
         t.dateTime.month == date.month &&
         t.dateTime.day == date.day).toList();
@@ -91,7 +109,7 @@ class TransactionProvider extends ChangeNotifier {
   /// Calculates the amount spent towards a specific budget based on its period/fixed date
   double getSpentAmountForBudget(Budget budget) {
     final now = DateTime.now();
-    return _box.values.where((t) {
+    return _transactions.where((t) {
       if (t.type != TransactionType.expense || t.category != budget.category) return false;
       
       if (budget.isFixed && budget.targetDate != null) {
@@ -116,7 +134,7 @@ class TransactionProvider extends ChangeNotifier {
   /// Assumes we track "expense" transactions into the savings category as money put towards savings.
   double getSavedAmountForGoal(SavingsGoal goal) {
     final now = DateTime.now();
-    return _box.values.where((t) {
+    return _transactions.where((t) {
       if (t.type != TransactionType.expense || t.category != goal.category) return false;
       
       if (goal.isFixed && goal.targetDate != null) {
@@ -140,18 +158,14 @@ class TransactionProvider extends ChangeNotifier {
   Future<void> cleanUpOldHistory() async {
     final oneYearAgo = DateTime.now().subtract(const Duration(days: 365));
     
-    final oldBudgets = _budgetBox.values.where((b) => b.createdAt.isBefore(oneYearAgo)).toList();
+    final oldBudgets = _budgets.where((b) => b.createdAt.isBefore(oneYearAgo)).toList();
     for (var b in oldBudgets) {
-      await b.delete();
+      await deleteBudget(b);
     }
     
-    final oldSavings = _savingsBox.values.where((s) => s.createdAt.isBefore(oneYearAgo)).toList();
+    final oldSavings = _savingsGoals.where((s) => s.createdAt.isBefore(oneYearAgo)).toList();
     for (var s in oldSavings) {
-      await s.delete();
-    }
-    
-    if (oldBudgets.isNotEmpty || oldSavings.isNotEmpty) {
-      notifyListeners();
+      await deleteSavingsGoal(s);
     }
   }
 }

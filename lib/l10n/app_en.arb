@@ -1,0 +1,245 @@
+{
+  "appTitle": "Easy Budget",
+  "selectLanguage": "Select Language",
+  "chooseLanguageDesc": "Choose your preferred language to get started.",
+  "continueButton": "Continue",
+  "languageEnglish": "English",
+  "languageSpanish": "Spanish",
+  "languageFrench": "French",
+  "languageGerman": "German",
+  "languageJapanese": "Japanese",
+  "languageKorean": "Korean",
+  "welcomeBack": "Welcome back",
+  "createAccount": "Create an account",
+  "email": "Email",
+  "password": "Password",
+  "rememberMe": "Remember me",
+  "forgotPassword": "Forgot password?",
+  "login": "Login",
+  "signUp": "Sign Up",
+  "dontHaveAccount": "Don''t have an account? Sign up",
+  "alreadyHaveAccount": "Already have an account? Login",
+  "enterEmailReset": "Please enter your email to reset password.",
+  "resetEmailSent": "Password reset email sent. Please check your inbox.",
+  "failedResetEmail": "Failed to send password reset email.",
+  "unexpectedError": "An unexpected error occurred.",
+  "authFailed": "Authentication failed. Please try again.",
+  "monthJan": "Jan",
+  "monthFeb": "Feb",
+  "monthMar": "Mar",
+  "monthApr": "Apr",
+  "monthMay": "May",
+  "monthJun": "Jun",
+  "monthJul": "Jul",
+  "monthAug": "Aug",
+  "monthSep": "Sep",
+  "monthOct": "Oct",
+  "monthNov": "Nov",
+  "monthDec": "Dec",
+  "thisWeek": "This Week",
+  "expenseAnalytics": "Expense Analytics",
+  "totalSpent": "Total Spent",
+  "noExpensesYet": "No expenses yet!",
+  "recentTransactions": "Recent Transactions",
+  "yearly": "Yearly",
+  "monthly": "Monthly",
+  "weekly": "Weekly",
+  "income": "Income",
+  "expense": "Expense",
+  "noRecentTransactions": "No recent transactions.",
+  "budgetAlert": "Budget Alert: {budgetName}",
+  "budgetSpentWarning": "You have spent {currency}{spent} of your {currency}{limit} limit.",
+  "savingsFallingBehind": "Savings Falling Behind: {goalName}",
+  "savingsWarning": "You have only saved {currency}{saved} of your {currency}{limit} goal.",
+  "alertsInsights": "Alerts & Insights",
+  "@budgetAlert": {
+    "placeholders": {
+      "budgetName": {
+        "type": "String"
+      }
+    }
+  },
+  "@budgetSpentWarning": {
+    "placeholders": {
+      "currency": {
+        "type": "String"
+      },
+      "spent": {
+        "type": "String"
+      },
+      "limit": {
+        "type": "String"
+      }
+    }
+  },
+  "@savingsFallingBehind": {
+    "placeholders": {
+      "goalName": {
+        "type": "String"
+      }
+    }
+  },
+  "@savingsWarning": {
+    "placeholders": {
+      "currency": {
+        "type": "String"
+      },
+      "saved": {
+        "type": "String"
+      },
+      "limit": {
+        "type": "String"
+      }
+    }
+  },
+  "settings": "Settings",
+  "preferences": "Preferences",
+  "currency": "Currency",
+  "language": "Language",
+  "darkMode": "Dark Mode",
+  "dataManagement": "Data Management",
+  "exportDataCSV": "Export Data (CSV)",
+  "clearAllData": "Clear All Data",
+  "cancel": "Cancel",
+  "confirm": "Confirm",
+  "changesApplied": "Changes applied successfully!",
+  "editProfileName": "Edit Profile Name",
+  "enterYourName": "Enter your name",
+  "confirmNameChange": "Confirm Name Change",
+  "confirmNameChangeDesc": "Are you sure you want to change your profile name to {newName}?",
+  "save": "Save",
+  "selectCurrency": "Select Currency",
+  "confirmCurrency": "Confirm Currency",
+  "confirmCurrencyDesc": "Are you sure you want to change your default currency to {currency}?",
+  "confirmLanguage": "Confirm Language",
+  "confirmLanguageDesc": "Are you sure you want to change the app language to {lang}?",
+  "exportData": "Export Data",
+  "exportDataDesc": "Are you sure you want to generate and export all your transaction data as a CSV file?",
+  "noDataToExport": "No data to export!",
+  "clearAllDataPrompt": "Clear All Data?",
+  "clearAllDataDesc": "Are you absolutely sure? This will permanently delete all your transactions. This action cannot be undone.",
+  "deleteAll": "Delete All",
+  "allDataCleared": "All data cleared successfully",
+  "proMember": "Pro Member",
+  "confirmThemeChange": "Confirm Theme Change",
+  "confirmThemeChangeDesc": "Are you sure you want to turn {on_off} Dark Mode?",
+  "on": "on",
+  "off": "off",
+  "@confirmNameChangeDesc": {
+    "placeholders": {
+      "newName": {
+        "type": "String"
+      }
+    }
+  },
+  "@confirmCurrencyDesc": {
+    "placeholders": {
+      "currency": {
+        "type": "String"
+      }
+    }
+  },
+  "@confirmLanguageDesc": {
+    "placeholders": {
+      "lang": {
+        "type": "String"
+      }
+    }
+  },
+  "@confirmThemeChangeDesc": {
+    "placeholders": {
+      "on_off": {
+        "type": "String"
+      }
+    }
+  },
+  "budgetPageTitle": "Budget",
+  "activeBudgets": "Active Budgets",
+  "addBudget": "Add Budget",
+  "noActiveBudgets": "No active budgets.",
+  "savingGoals": "Saving Goals",
+  "newSaving": "New Saving",
+  "noActiveSavings": "No active savings goals.",
+  "budgetAndSavingHistory": "Budget and Saving History",
+  "spentText": "{currency}{amount} spent",
+  "limitText": "{currency}{amount} limit",
+  "savedText": "{currency}{amount} saved",
+  "goalText": "{currency}{amount} goal",
+  "@spentText": {
+    "placeholders": {
+      "currency": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "@limitText": {
+    "placeholders": {
+      "currency": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "@savedText": {
+    "placeholders": {
+      "currency": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "@goalText": {
+    "placeholders": {
+      "currency": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "newSavingGoal": "New Saving Goal",
+  "goalName": "Goal Name",
+  "note": "Note",
+  "targetAmount": "Target Amount",
+  "timeframe": "Timeframe",
+  "fixedDate": "Fixed Date",
+  "period": "Period",
+  "category": "Category",
+  "saveGoal": "Save Goal",
+  "enterValidNameAndGoalAmount": "Please enter a valid name and goal amount",
+  "budgetName": "Budget Name",
+  "amountLimit": "Amount Limit",
+  "saveBudget": "Save Budget",
+  "enterValidNameAndAmount": "Please enter a valid name and amount",
+  "customizeCategory": "Customize Category",
+  "categoryName": "Category Name",
+  "selectIcon": "Select Icon",
+  "saveCustomCategory": "Save Custom Category",
+  "customExpenseLimitReached": "Custom expense limit reached (10 max).",
+  "customIncomeLimitReached": "Custom income limit reached (10 max).",
+  "customExpenseLimitReachedDeleteFirst": "Custom expense limit reached (10 max). Please delete a category first.",
+  "customIncomeLimitReachedDeleteFirst": "Custom income limit reached (10 max). Please delete a category first.",
+  "addExpense": "Add Expense",
+  "addIncome": "Add Income",
+  "customPlus": "Custom +",
+  "dateTime": "Date & Time",
+  "whatWasThisFor": "What was this for?",
+  "saveTransaction": "Save Transaction",
+  "transactionHistory": "Transaction History",
+  "noTransactionsOnDate": "No transactions on this date",
+  "history": "History",
+  "pastBudgets": "Past Budgets",
+  "noPastBudgets": "No past budgets.",
+  "pastSavingGoals": "Past Saving Goals",
+  "noPastSavingsGoals": "No past savings goals.",
+  "noNote": "No note",
+  "enterValidAmount": "Please enter a valid amount"
+}

@@ -22,6 +22,7 @@ import 'history.dart'; // Assuming your model is here
 import 'add_transaction_screen.dart';
 import 'settings_provider.dart';
 import 'shared_bottom_nav.dart';
+import 'package:easy_budget/l10n/app_localizations.dart';
 
 enum FilterPeriod { year, month, week }
 
@@ -40,31 +41,23 @@ class _HomePageState extends State<HomePage> {
 
   String _getPeriodLabel() {
     final now = DateTime.now();
+    final l10n = AppLocalizations.of(context)!;
     switch (_selectedPeriod) {
       case FilterPeriod.year:
         return '${now.year}';
       case FilterPeriod.month:
         final months = [
-          'Jan',
-          'Feb',
-          'Mar',
-          'Apr',
-          'May',
-          'Jun',
-          'Jul',
-          'Aug',
-          'Sep',
-          'Oct',
-          'Nov',
-          'Dec',
+          l10n.monthJan, l10n.monthFeb, l10n.monthMar, l10n.monthApr,
+          l10n.monthMay, l10n.monthJun, l10n.monthJul, l10n.monthAug,
+          l10n.monthSep, l10n.monthOct, l10n.monthNov, l10n.monthDec,
         ];
         return months[now.month - 1];
       case FilterPeriod.week:
-        return 'This Week';
+        return l10n.thisWeek;
     }
   }
 
-  List<Transaction> _getFilteredTransactions(List<Transaction> all) {
+  List<AppTransaction> _getFilteredTransactions(List<AppTransaction> all) {
     final now = DateTime.now();
     return all.where((t) {
       if (_selectedPeriod == FilterPeriod.year) {
@@ -88,7 +81,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   List<PieChartSectionData> _getPieChartData(
-    List<Transaction> transactions,
+    List<AppTransaction> transactions,
     String currencySymbol,
   ) {
     final expenses = transactions
@@ -164,7 +157,7 @@ class _HomePageState extends State<HomePage> {
               Padding(
                 padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
                 child: Text(
-                  'Expense Analytics',
+                  AppLocalizations.of(context)!.expenseAnalytics,
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -207,7 +200,7 @@ class _HomePageState extends State<HomePage> {
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Text(
-                                  "Total Spent",
+                                  AppLocalizations.of(context)!.totalSpent,
                                   style: TextStyle(
                                     color: Theme.of(context)
                                         .colorScheme
@@ -232,7 +225,7 @@ class _HomePageState extends State<HomePage> {
                         )
                       : Center(
                           child: Text(
-                            'No expenses yet!',
+                            AppLocalizations.of(context)!.noExpensesYet,
                             style: TextStyle(
                               color: Theme.of(
                                 context,
@@ -250,7 +243,7 @@ class _HomePageState extends State<HomePage> {
               Padding(
                 padding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
                 child: Text(
-                  'Recent Transactions',
+                  AppLocalizations.of(context)!.recentTransactions,
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -306,17 +299,17 @@ class _HomePageState extends State<HomePage> {
             ),
             itemBuilder: (BuildContext context) =>
                 <PopupMenuEntry<FilterPeriod>>[
-                  const PopupMenuItem<FilterPeriod>(
+                  PopupMenuItem<FilterPeriod>(
                     value: FilterPeriod.year,
-                    child: Text('Yearly'),
+                    child: Text(AppLocalizations.of(context)!.yearly),
                   ),
-                  const PopupMenuItem<FilterPeriod>(
+                  PopupMenuItem<FilterPeriod>(
                     value: FilterPeriod.month,
-                    child: Text('Monthly'),
+                    child: Text(AppLocalizations.of(context)!.monthly),
                   ),
-                  const PopupMenuItem<FilterPeriod>(
+                  PopupMenuItem<FilterPeriod>(
                     value: FilterPeriod.week,
-                    child: Text('Weekly'),
+                    child: Text(AppLocalizations.of(context)!.weekly),
                   ),
                 ],
             child: Container(
@@ -358,7 +351,7 @@ class _HomePageState extends State<HomePage> {
             children: [
               Expanded(
                 child: _buildGlassCard(
-                  'Income',
+                  AppLocalizations.of(context)!.income,
                   income,
                   Icons.arrow_upward,
                   const Color(0xFF10B981),
@@ -367,7 +360,7 @@ class _HomePageState extends State<HomePage> {
               const SizedBox(width: 16),
               Expanded(
                 child: _buildGlassCard(
-                  'Expense',
+                  AppLocalizations.of(context)!.expense,
                   expense,
                   Icons.arrow_downward,
                   const Color(0xFFEF4444),
@@ -433,13 +426,13 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildTransactionList(List<Transaction> allFilteredTransactions) {
+  Widget _buildTransactionList(List<AppTransaction> allFilteredTransactions) {
     final transactions = allFilteredTransactions.take(5).toList();
 
     if (transactions.isEmpty) {
       return Center(
         child: Text(
-          "No recent transactions.",
+          AppLocalizations.of(context)!.noRecentTransactions,
           style: TextStyle(
             color: Theme.of(
               context,
@@ -529,8 +522,8 @@ class _HomePageState extends State<HomePage> {
         warnings.add(_buildWarningTile(
           icon: Icons.warning_amber_rounded,
           color: Colors.red,
-          title: 'Budget Alert: ${budget.name}',
-          subtitle: 'You have spent $currency${spent.toStringAsFixed(0)} of your $currency${budget.amount.toStringAsFixed(0)} limit.',
+          title: AppLocalizations.of(context)!.budgetAlert(budget.name),
+          subtitle: AppLocalizations.of(context)!.budgetSpentWarning(currency, spent.toStringAsFixed(0), budget.amount.toStringAsFixed(0)),
         ));
       }
     }
@@ -559,8 +552,8 @@ class _HomePageState extends State<HomePage> {
           warnings.add(_buildWarningTile(
             icon: Icons.track_changes,
             color: Colors.orange,
-            title: 'Savings Falling Behind: ${goal.name}',
-            subtitle: 'You have only saved $currency${saved.toStringAsFixed(0)} of your $currency${goal.amount.toStringAsFixed(0)} goal.',
+            title: AppLocalizations.of(context)!.savingsFallingBehind(goal.name),
+            subtitle: AppLocalizations.of(context)!.savingsWarning(currency, saved.toStringAsFixed(0), goal.amount.toStringAsFixed(0)),
           ));
         }
       }
@@ -574,7 +567,7 @@ class _HomePageState extends State<HomePage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Alerts & Insights',
+            AppLocalizations.of(context)!.alertsInsights,
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,

@@ -1,82 +1,90 @@
-import 'package:hive/hive.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'history.dart';
 
-/// A central class to handle all database interactions.
-/// This keeps the UI logic separate from data storage logic (Separation of Concerns).
+/// A central class to handle all database interactions using Cloud Firestore.
+/// This keeps the UI logic separate from data storage logic.
 class TransactionRepository {
-  static const String boxName = 'transactions';
-  static const String budgetBoxName = 'budgets';
-  static const String savingsBoxName = 'savings_goals';
+  static const String transactionsCol = 'transactions';
+  static const String budgetsCol = 'budgets';
+  static const String savingsGoalsCol = 'savings_goals';
 
-  /// Registers adapters and opens the Hive box. Called once in main.dart.
-  static Future<void> init() async {
-    if (!Hive.isAdapterRegistered(0)) Hive.registerAdapter(TransactionAdapter());
-    if (!Hive.isAdapterRegistered(1)) Hive.registerAdapter(TransactionTypeAdapter());
-    if (!Hive.isAdapterRegistered(2)) Hive.registerAdapter(BudgetPeriodAdapter());
-    if (!Hive.isAdapterRegistered(3)) Hive.registerAdapter(BudgetAdapter());
-    if (!Hive.isAdapterRegistered(4)) Hive.registerAdapter(SavingsGoalAdapter());
-    await Hive.openBox<Transaction>(boxName);
-    await Hive.openBox<Budget>(budgetBoxName);
-    await Hive.openBox<SavingsGoal>(savingsBoxName);
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  String? get _uid => FirebaseAuth.instance.currentUser?.uid;
+
+  DocumentReference? get _userDoc {
+    final uid = _uid;
+    if (uid == null) return null;
+    return _firestore.collection('users').doc(uid);
   }
 
-  /// Getter for the opened Hive box.
-  Box<Transaction> get _box => Hive.box<Transaction>(boxName);
-  Box<Budget> get _budgetBox => Hive.box<Budget>(budgetBoxName);
-  Box<SavingsGoal> get _savingsBox => Hive.box<SavingsGoal>(savingsBoxName);
-
-  List<Transaction> getAll() {
-    return _box.values.toList()..sort((a, b) => b.dateTime.compareTo(a.dateTime));
+  Stream<List<AppTransaction>> getTransactionsStream() {
+    final userDoc = _userDoc;
+    if (userDoc == null) return Stream.value([]);
+    return userDoc.collection(transactionsCol).snapshots().map((snapshot) {
+      return snapshot.docs.map((doc) => AppTransaction.fromMap(doc.data(), doc.id)).toList()
+        ..sort((a, b) => b.dateTime.compareTo(a.dateTime));
+    });
   }
 
-  List<Budget> getAllBudgets() {
-    return _budgetBox.values.toList()..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+  Stream<List<Budget>> getBudgetsStream() {
+    final userDoc = _userDoc;
+    if (userDoc == null) return Stream.value([]);
+    return userDoc.collection(budgetsCol).snapshots().map((snapshot) {
+      return snapshot.docs.map((doc) => Budget.fromMap(doc.data(), doc.id)).toList()
+        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    });
   }
 
-  List<SavingsGoal> getAllSavingsGoals() {
-    return _savingsBox.values.toList()..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+  Stream<List<SavingsGoal>> getSavingsGoalsStream() {
+    final userDoc = _userDoc;
+    if (userDoc == null) return Stream.value([]);
+    return userDoc.collection(savingsGoalsCol).snapshots().map((snapshot) {
+      return snapshot.docs.map((doc) => SavingsGoal.fromMap(doc.data(), doc.id)).toList()
+        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    });
   }
 
-  /// Creates a new entry in the database.
-  Future<void> save(Transaction transaction) async {
-    await _box.put(transaction.id, transaction);
+  Future<void> save(AppTransaction transaction) async {
+    final userDoc = _userDoc;
+    if (userDoc == null) return;
+    await userDoc.collection(transactionsCol).doc(transaction.id).set(transaction.toMap());
   }
 
-  /// Updates an existing entry.
-  Future<void> update(Transaction transaction) async {
-    await transaction.save();
+  Future<void> update(AppTransaction transaction) async {
+    final userDoc = _userDoc;
+    if (userDoc == null) return;
+    await userDoc.collection(transactionsCol).doc(transaction.id).update(transaction.toMap());
   }
 
-  Future<void> delete(Transaction transaction) async {
-    await transaction.delete();
+  Future<void> delete(AppTransaction transaction) async {
+    final userDoc = _userDoc;
+    if (userDoc == null) return;
+    await userDoc.collection(transactionsCol).doc(transaction.id).delete();
   }
 
   Future<void> saveBudget(Budget budget) async {
-    await _budgetBox.put(budget.id, budget);
+    final userDoc = _userDoc;
+    if (userDoc == null) return;
+    await userDoc.collection(budgetsCol).doc(budget.id).set(budget.toMap());
   }
 
   Future<void> deleteBudget(Budget budget) async {
-    await budget.delete();
+    final userDoc = _userDoc;
+    if (userDoc == null) return;
+    await userDoc.collection(budgetsCol).doc(budget.id).delete();
   }
 
   Future<void> saveSavingsGoal(SavingsGoal goal) async {
-    await _savingsBox.put(goal.id, goal);
+    final userDoc = _userDoc;
+    if (userDoc == null) return;
+    await userDoc.collection(savingsGoalsCol).doc(goal.id).set(goal.toMap());
   }
 
   Future<void> deleteSavingsGoal(SavingsGoal goal) async {
-    await goal.delete();
-  }
-
-  /// Aggregates all transactions to calculate the current wallet balance.
-  double getTotalBalance() {
-    return _box.values.fold(0.0, (sum, item) => sum + (item.type == TransactionType.income ? item.amount : -item.amount));
-  }
-
-  double getTotalIncome() {
-    return _box.values.where((tx) => tx.type == TransactionType.income).fold(0.0, (sum, item) => sum + item.amount);
-  }
-
-  double getTotalExpense() {
-    return _box.values.where((tx) => tx.type == TransactionType.expense).fold(0.0, (sum, item) => sum + item.amount);
+    final userDoc = _userDoc;
+    if (userDoc == null) return;
+    await userDoc.collection(savingsGoalsCol).doc(goal.id).delete();
   }
 }

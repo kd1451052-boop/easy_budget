@@ -1,52 +1,40 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:hive_flutter/hive_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SettingsProvider extends ChangeNotifier {
-  static const String boxName = 'settingsBox';
-  late Box _box;
-
-  SettingsProvider() {
-    _box = Hive.box(boxName);
-  }
+  static late SharedPreferences prefs;
 
   static Future<void> init() async {
-    await Hive.openBox(boxName);
+    prefs = await SharedPreferences.getInstance();
   }
 
   // --- Theme Mode ---
   ThemeMode get themeMode {
-    final isDark = _box.get('isDarkMode', defaultValue: false);
+    final isDark = prefs.getBool('isDarkMode') ?? false;
     return isDark ? ThemeMode.dark : ThemeMode.light;
   }
 
-  bool get isDarkMode => _box.get('isDarkMode', defaultValue: false);
+  bool get isDarkMode => prefs.getBool('isDarkMode') ?? false;
 
   void toggleTheme(bool isDark) {
-    _box.put('isDarkMode', isDark);
+    prefs.setBool('isDarkMode', isDark);
     notifyListeners();
   }
 
   // --- Profile Name ---
-  String get userName => _box.get('userName', defaultValue: 'John Doe');
+  String get userName => prefs.getString('userName') ?? 'John Doe';
 
   void updateUserName(String newName) {
-    _box.put('userName', newName);
-    notifyListeners();
-  }
-
-  // --- Gemini API Key ---
-  String get geminiApiKey => _box.get('geminiApiKey', defaultValue: '');
-
-  void updateGeminiApiKey(String newKey) {
-    _box.put('geminiApiKey', newKey);
+    prefs.setString('userName', newName);
     notifyListeners();
   }
 
   // --- Currency ---
-  String get selectedCurrency => _box.get('selectedCurrency', defaultValue: 'USD');
+  String get selectedCurrency => prefs.getString('selectedCurrency') ?? 'USD';
 
   void updateCurrency(String newCurrency) {
-    _box.put('selectedCurrency', newCurrency);
+    prefs.setString('selectedCurrency', newCurrency);
     notifyListeners();
   }
 
@@ -63,49 +51,80 @@ class SettingsProvider extends ChangeNotifier {
   }
 
   // --- Language ---
-  String get selectedLanguage => _box.get('selectedLanguage', defaultValue: 'English');
+  String get selectedLanguage => prefs.getString('selectedLanguage') ?? 'English';
+
+  Locale get locale {
+    switch (selectedLanguage) {
+      case 'Spanish': return const Locale('es');
+      case 'French': return const Locale('fr');
+      case 'German': return const Locale('de');
+      case 'Japanese': return const Locale('ja');
+      case 'Korean': return const Locale('ko');
+      case 'English':
+      default: return const Locale('en');
+    }
+  }
 
   void updateLanguage(String newLanguage) {
-    _box.put('selectedLanguage', newLanguage);
+    prefs.setString('selectedLanguage', newLanguage);
+    notifyListeners();
+  }
+
+  // --- Onboarding & Auth ---
+  bool get hasCompletedOnboarding => prefs.getBool('hasCompletedOnboarding') ?? false;
+
+  void updateHasCompletedOnboarding(bool completed) {
+    prefs.setBool('hasCompletedOnboarding', completed);
+    notifyListeners();
+  }
+
+  bool get rememberMe => prefs.getBool('rememberMe') ?? false;
+
+  void updateRememberMe(bool remember) {
+    prefs.setBool('rememberMe', remember);
     notifyListeners();
   }
 
   // --- Custom Categories ---
   Map<String, int> get customExpenseCategories {
-    final map = _box.get('customExpenseCategories', defaultValue: {});
-    return Map<String, int>.from(map);
+    final String? jsonStr = prefs.getString('customExpenseCategories');
+    if (jsonStr == null) return {};
+    final Map<String, dynamic> decoded = jsonDecode(jsonStr);
+    return decoded.map((key, value) => MapEntry(key, value as int));
   }
 
   void addCustomExpenseCategory(String name, int iconCodePoint) {
     final map = customExpenseCategories;
     map[name] = iconCodePoint;
-    _box.put('customExpenseCategories', map);
+    prefs.setString('customExpenseCategories', jsonEncode(map));
     notifyListeners();
   }
 
   void removeCustomExpenseCategory(String name) {
     final map = customExpenseCategories;
     map.remove(name);
-    _box.put('customExpenseCategories', map);
+    prefs.setString('customExpenseCategories', jsonEncode(map));
     notifyListeners();
   }
 
   Map<String, int> get customIncomeCategories {
-    final map = _box.get('customIncomeCategories', defaultValue: {});
-    return Map<String, int>.from(map);
+    final String? jsonStr = prefs.getString('customIncomeCategories');
+    if (jsonStr == null) return {};
+    final Map<String, dynamic> decoded = jsonDecode(jsonStr);
+    return decoded.map((key, value) => MapEntry(key, value as int));
   }
 
   void addCustomIncomeCategory(String name, int iconCodePoint) {
     final map = customIncomeCategories;
     map[name] = iconCodePoint;
-    _box.put('customIncomeCategories', map);
+    prefs.setString('customIncomeCategories', jsonEncode(map));
     notifyListeners();
   }
 
   void removeCustomIncomeCategory(String name) {
     final map = customIncomeCategories;
     map.remove(name);
-    _box.put('customIncomeCategories', map);
+    prefs.setString('customIncomeCategories', jsonEncode(map));
     notifyListeners();
   }
 }
