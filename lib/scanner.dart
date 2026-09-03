@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_ai/firebase_ai.dart';
+import 'package:intl/intl.dart';
 
 import 'settings_provider.dart';
 import 'transaction_provider.dart';
@@ -54,6 +55,7 @@ Extract receipt data as JSON. Return a JSON object with this exact structure:
   "merchant": "name", 
   "date": "yyyy-MM-dd", 
   "total": 12.34, 
+  "currency": "JPY",
   "items": [{"name": "item 1", "price": 1.23}]
 }
 Output ONLY valid JSON without any markdown formatting.
@@ -74,6 +76,23 @@ Output ONLY valid JSON without any markdown formatting.
           .trim();
 
       final data = jsonDecode(jsonString);
+
+      final String? scannedCurrency = data['currency']?.toString();
+      final settings = Provider.of<SettingsProvider>(context, listen: false);
+      if (scannedCurrency != null &&
+          scannedCurrency != settings.selectedCurrency) {
+        // If the parsed currency is valid and different, update it
+        if ([
+          'USD',
+          'EUR',
+          'GBP',
+          'JPY',
+          'AUD',
+          'CAD',
+        ].contains(scannedCurrency)) {
+          settings.updateCurrency(scannedCurrency);
+        }
+      }
 
       _showResultBottomSheet(
         merchant: data['merchant']?.toString() ?? 'Unknown Merchant',
@@ -129,7 +148,7 @@ Output ONLY valid JSON without any markdown formatting.
             _buildResultRow('Merchant', merchant),
             _buildResultRow(
               'Total Amount',
-              '${Provider.of<SettingsProvider>(context, listen: false).currencySymbol}${total.toStringAsFixed(2)}',
+              '${Provider.of<SettingsProvider>(context, listen: false).currencySymbol}${NumberFormat("#,##0.00", "en_US").format(total)}',
             ),
             _buildResultRow('Date', dateString),
 
@@ -160,7 +179,7 @@ Output ONLY valid JSON without any markdown formatting.
                           ),
                         ),
                         Text(
-                          '${Provider.of<SettingsProvider>(context, listen: false).currencySymbol}${price.toStringAsFixed(2)}',
+                          '${Provider.of<SettingsProvider>(context, listen: false).currencySymbol}${NumberFormat("#,##0.00", "en_US").format(price)}',
                         ),
                       ],
                     ),

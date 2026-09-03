@@ -15,6 +15,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:table_calendar/table_calendar.dart';
+import 'package:intl/intl.dart';
 import 'transaction_provider.dart';
 import 'history.dart';
 import 'settings_provider.dart';
@@ -109,6 +110,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
           ),
           headerStyle: const HeaderStyle(
             formatButtonVisible: true,
+            formatButtonShowsNext: false,
             titleCentered: true,
           ),
         );
@@ -171,7 +173,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 ),
                 subtitle: Text(tx.description),
                 trailing: Text(
-                  '${isIncome ? '+' : '-'}${Provider.of<SettingsProvider>(context).currencySymbol}${tx.amount.toStringAsFixed(2)}',
+                  '${isIncome ? '+' : '-'}${Provider.of<SettingsProvider>(context).currencySymbol}${NumberFormat("#,##0.00", "en_US").format(tx.amount)}',
                   style: TextStyle(
                     color: isIncome
                         ? Colors.green

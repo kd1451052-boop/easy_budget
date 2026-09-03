@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class SettingsProvider extends ChangeNotifier {
   static late SharedPreferences prefs;
@@ -22,11 +23,38 @@ class SettingsProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // --- Profile Name ---
-  String get userName => prefs.getString('userName') ?? 'John Doe';
+  // --- Profile Details ---
+  String get userName {
+    final name = prefs.getString('userName');
+    if (name != null && name.isNotEmpty) return name;
+    
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        return user.email ?? user.phoneNumber ?? 'User';
+      }
+    } catch (e) {
+      // Ignore auth errors during init
+    }
+    return 'John Doe';
+  }
 
   void updateUserName(String newName) {
     prefs.setString('userName', newName);
+    notifyListeners();
+  }
+
+  String get profilePicture => prefs.getString('profilePicture') ?? 'https://i.pravatar.cc/150?u=a042581f4e29026704d';
+
+  void updateProfilePicture(String url) {
+    prefs.setString('profilePicture', url);
+    notifyListeners();
+  }
+
+  String get profileFrame => prefs.getString('profileFrame') ?? 'none';
+
+  void updateProfileFrame(String frame) {
+    prefs.setString('profileFrame', frame);
     notifyListeners();
   }
 

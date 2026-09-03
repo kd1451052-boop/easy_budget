@@ -14,6 +14,9 @@
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:fl_chart/fl_chart.dart';
+import 'package:intl/intl.dart';
+import 'transaction_provider.dart';
 import 'settings_provider.dart';
 
 enum TransactionType { income, expense }
@@ -511,7 +514,7 @@ class TransactionHistoryScreen extends StatelessWidget {
             ),
           ),
           Text(
-            '${isIncome ? '+' : '-'}${Provider.of<SettingsProvider>(context).currencySymbol}${transaction.amount.abs().toStringAsFixed(2)}',
+            '${isIncome ? '+' : '-'}${Provider.of<SettingsProvider>(context).currencySymbol}${NumberFormat("#,##0.00", "en_US").format(transaction.amount.abs())}',
             style: TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 16,

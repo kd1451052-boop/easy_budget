@@ -19,11 +19,11 @@ import 'dart:ui'; // Required for the glassmorphism backdrop filter
 
 import 'transaction_provider.dart';
 import 'history.dart'; // Assuming your model is here
-import 'add_transaction_screen.dart';
 import 'settings_provider.dart';
 import 'shared_bottom_nav.dart';
 import 'scanner.dart';
 import 'package:easy_budget/l10n/app_localizations.dart';
+import 'package:intl/intl.dart';
 
 enum FilterPeriod { year, month, week }
 
@@ -48,9 +48,18 @@ class _HomePageState extends State<HomePage> {
         return '${now.year}';
       case FilterPeriod.month:
         final months = [
-          l10n.monthJan, l10n.monthFeb, l10n.monthMar, l10n.monthApr,
-          l10n.monthMay, l10n.monthJun, l10n.monthJul, l10n.monthAug,
-          l10n.monthSep, l10n.monthOct, l10n.monthNov, l10n.monthDec,
+          l10n.monthJan,
+          l10n.monthFeb,
+          l10n.monthMar,
+          l10n.monthApr,
+          l10n.monthMay,
+          l10n.monthJun,
+          l10n.monthJul,
+          l10n.monthAug,
+          l10n.monthSep,
+          l10n.monthOct,
+          l10n.monthNov,
+          l10n.monthDec,
         ];
         return months[now.month - 1];
       case FilterPeriod.week:
@@ -111,7 +120,7 @@ class _HomePageState extends State<HomePage> {
       return PieChartSectionData(
         color: color,
         value: entry.value,
-        title: '${entry.key}\n$currencySymbol${entry.value.toStringAsFixed(0)}',
+        title: '${entry.key}\n$currencySymbol${NumberFormat("#,##0", "en_US").format(entry.value)}',
         radius: 24, // Thinner radius for a modern donut look
         titleStyle: const TextStyle(
           fontSize: 10,
@@ -211,7 +220,7 @@ class _HomePageState extends State<HomePage> {
                                   ),
                                 ),
                                 Text(
-                                  "$currencySymbol${filteredExpense.toStringAsFixed(0)}",
+                                  "$currencySymbol${NumberFormat("#,##0", "en_US").format(filteredExpense)}",
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 20,
@@ -338,7 +347,7 @@ class _HomePageState extends State<HomePage> {
           ),
           const SizedBox(height: 8),
           Text(
-            '${Provider.of<SettingsProvider>(context).currencySymbol}${balance.toStringAsFixed(2)}',
+            '${Provider.of<SettingsProvider>(context).currencySymbol}${NumberFormat("#,##0.00", "en_US").format(balance)}',
             style: const TextStyle(
               color: Colors.white,
               fontSize: 40,
@@ -413,7 +422,7 @@ class _HomePageState extends State<HomePage> {
               ),
               const SizedBox(height: 12),
               Text(
-                '${Provider.of<SettingsProvider>(context).currencySymbol}${amount.toStringAsFixed(2)}',
+                '${Provider.of<SettingsProvider>(context).currencySymbol}${NumberFormat("#,##0.00", "en_US").format(amount)}',
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 18,
@@ -495,7 +504,7 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
             trailing: Text(
-              '${isIncome ? '+' : '-'}${Provider.of<SettingsProvider>(context).currencySymbol}${tx.amount.toStringAsFixed(2)}',
+              '${isIncome ? '+' : '-'}${Provider.of<SettingsProvider>(context).currencySymbol}${NumberFormat("#,##0.00", "en_US").format(tx.amount)}',
               style: TextStyle(
                 color: isIncome
                     ? const Color(0xFF10B981)
@@ -516,46 +525,79 @@ class _HomePageState extends State<HomePage> {
 
     // Check Budgets
     for (var budget in provider.budgets) {
-      if (budget.isFixed && budget.targetDate != null && budget.targetDate!.isBefore(now)) continue; // Expired
-      
+      if (budget.isFixed &&
+          budget.targetDate != null &&
+          budget.targetDate!.isBefore(now))
+        continue; // Expired
+
       final spent = provider.getSpentAmountForBudget(budget);
       if (budget.amount > 0 && spent >= budget.amount * 0.9) {
-        warnings.add(_buildWarningTile(
-          icon: Icons.warning_amber_rounded,
-          color: Colors.red,
-          title: AppLocalizations.of(context)!.budgetAlert(budget.name),
-          subtitle: AppLocalizations.of(context)!.budgetSpentWarning(currency, spent.toStringAsFixed(0), budget.amount.toStringAsFixed(0)),
-        ));
+        warnings.add(
+          _buildWarningTile(
+            icon: Icons.warning_amber_rounded,
+            color: Colors.red,
+            title: AppLocalizations.of(context)!.budgetAlert(budget.name),
+            subtitle: AppLocalizations.of(context)!.budgetSpentWarning(
+              currency,
+              NumberFormat("#,##0", "en_US").format(spent),
+              NumberFormat("#,##0", "en_US").format(budget.amount),
+            ),
+          ),
+        );
       }
     }
 
     // Check Savings
     for (var goal in provider.savingsGoals) {
-      if (goal.isFixed && goal.targetDate != null && goal.targetDate!.isBefore(now)) continue; // Expired
+      if (goal.isFixed &&
+          goal.targetDate != null &&
+          goal.targetDate!.isBefore(now))
+        continue; // Expired
 
       final saved = provider.getSavedAmountForGoal(goal);
       if (goal.amount > 0) {
         bool showWarning = false;
-        
+
         if (goal.isFixed && goal.targetDate != null) {
-          final totalDuration = goal.targetDate!.difference(goal.createdAt).inDays;
+          final totalDuration = goal.targetDate!
+              .difference(goal.createdAt)
+              .inDays;
           final elapsedDuration = now.difference(goal.createdAt).inDays;
-          if (totalDuration > 0 && (elapsedDuration / totalDuration) >= 0.5 && (saved / goal.amount) < 0.5) {
+          if (totalDuration > 0 &&
+              (elapsedDuration / totalDuration) >= 0.5 &&
+              (saved / goal.amount) < 0.5) {
             showWarning = true;
           }
         } else if (!goal.isFixed && goal.period != null) {
-          if (goal.period == BudgetPeriod.monthly && now.day >= 24 && saved < goal.amount) showWarning = true;
-          if (goal.period == BudgetPeriod.weekly && now.weekday >= 6 && saved < goal.amount) showWarning = true;
-          if (goal.period == BudgetPeriod.yearly && now.month >= 11 && saved < goal.amount) showWarning = true;
+          if (goal.period == BudgetPeriod.monthly &&
+              now.day >= 24 &&
+              saved < goal.amount)
+            showWarning = true;
+          if (goal.period == BudgetPeriod.weekly &&
+              now.weekday >= 6 &&
+              saved < goal.amount)
+            showWarning = true;
+          if (goal.period == BudgetPeriod.yearly &&
+              now.month >= 11 &&
+              saved < goal.amount)
+            showWarning = true;
         }
 
         if (showWarning) {
-          warnings.add(_buildWarningTile(
-            icon: Icons.track_changes,
-            color: Colors.orange,
-            title: AppLocalizations.of(context)!.savingsFallingBehind(goal.name),
-            subtitle: AppLocalizations.of(context)!.savingsWarning(currency, saved.toStringAsFixed(0), goal.amount.toStringAsFixed(0)),
-          ));
+          warnings.add(
+            _buildWarningTile(
+              icon: Icons.track_changes,
+              color: Colors.orange,
+              title: AppLocalizations.of(
+                context,
+              )!.savingsFallingBehind(goal.name),
+              subtitle: AppLocalizations.of(context)!.savingsWarning(
+                currency,
+                NumberFormat("#,##0", "en_US").format(saved),
+                NumberFormat("#,##0", "en_US").format(goal.amount),
+              ),
+            ),
+          );
         }
       }
     }
@@ -582,7 +624,12 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildWarningTile({required IconData icon, required Color color, required String title, required String subtitle}) {
+  Widget _buildWarningTile({
+    required IconData icon,
+    required Color color,
+    required String title,
+    required String subtitle,
+  }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
@@ -599,9 +646,18 @@ class _HomePageState extends State<HomePage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: TextStyle(fontWeight: FontWeight.bold, color: color)),
+                Text(
+                  title,
+                  style: TextStyle(fontWeight: FontWeight.bold, color: color),
+                ),
                 const SizedBox(height: 4),
-                Text(subtitle, style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurface)),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                ),
               ],
             ),
           ),

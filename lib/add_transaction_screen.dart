@@ -19,6 +19,7 @@ import 'home_page.dart';
 import 'transaction_provider.dart';
 import 'history.dart';
 import 'settings_provider.dart';
+import 'currency_input_formatter.dart';
 import 'shared_bottom_nav.dart';
 import 'package:easy_budget/l10n/app_localizations.dart';
 import 'scanner.dart';
@@ -82,7 +83,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   }
 
   void _handleSave() {
-    final amount = double.tryParse(_amountController.text) ?? 0.0;
+    final amount = double.tryParse(_amountController.text.replaceAll(',', '')) ?? 0.0;
     if (amount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(AppLocalizations.of(context)!.enterValidAmount)),
@@ -250,7 +251,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                             ),
                             child: Icon(
                               icon,
-                              color: isSelected ? Colors.white : Colors.black87,
+                              color: isSelected ? Colors.white : Theme.of(context).colorScheme.onSurface,
                             ),
                           ),
                         );
@@ -509,7 +510,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                       decimal: true,
                     ),
                     inputFormatters: [
-                      FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
+                      CurrencyInputFormatter(),
                     ],
                     textAlign: TextAlign.center,
                     style: const TextStyle(
@@ -544,7 +545,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: Colors.black87,
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -594,7 +595,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                                   style: TextStyle(
                                     color: isSelected
                                         ? headerColor
-                                        : Colors.black54,
+                                        : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                                     fontWeight: isSelected
                                         ? FontWeight.w600
                                         : FontWeight.normal,
@@ -665,7 +666,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                           ),
                           child: Text(
                             AppLocalizations.of(context)!.customPlus,
-                            style: TextStyle(color: Colors.black54),
+                            style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)),
                           ),
                         ),
                       ),
@@ -679,7 +680,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: Colors.black87,
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -724,14 +725,14 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                         children: [
                           Text(
                             _formatDate(_selectedDate),
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 16,
-                              color: Colors.black87,
+                              color: Theme.of(context).colorScheme.onSurface,
                             ),
                           ),
-                          const Icon(
+                          Icon(
                             Icons.calendar_today_outlined,
-                            color: Colors.black45,
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
                             size: 20,
                           ),
                         ],
@@ -745,7 +746,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: Colors.black87,
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -753,7 +754,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                     controller: _noteController,
                     decoration: InputDecoration(
                       hintText: AppLocalizations.of(context)!.whatWasThisFor,
-                      hintStyle: const TextStyle(color: Colors.black38),
+                      hintStyle: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4)),
                       contentPadding: const EdgeInsets.symmetric(
                         horizontal: 16,
                         vertical: 16,

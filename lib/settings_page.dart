@@ -4,6 +4,8 @@ import 'transaction_provider.dart'; // Make sure this import matches your file s
 import 'settings_provider.dart';
 import 'shared_bottom_nav.dart';
 import 'package:easy_budget/l10n/app_localizations.dart';
+import 'profile_page.dart';
+import 'profile_avatar.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -117,68 +119,6 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   // --- FEATURE LOGIC ---
-
-  void _editProfileName() {
-    final userName = Provider.of<SettingsProvider>(
-      context,
-      listen: false,
-    ).userName;
-    final TextEditingController nameController = TextEditingController(
-      text: userName,
-    );
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(
-          AppLocalizations.of(context)!.editProfileName,
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
-        content: TextField(
-          controller: nameController,
-          decoration: InputDecoration(
-            hintText: AppLocalizations.of(context)!.enterYourName,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(
-              AppLocalizations.of(context)!.cancel,
-              style: const TextStyle(color: Colors.black54),
-            ),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.black,
-              elevation: 0,
-            ),
-            onPressed: () {
-              final newName = nameController.text.trim();
-              if (newName.isNotEmpty && newName != userName) {
-                Navigator.pop(ctx); // Close input dialog
-                // Trigger Confirmation
-                _confirmChange(
-                  AppLocalizations.of(context)!.confirmNameChange,
-                  AppLocalizations.of(context)!.confirmNameChangeDesc(newName),
-                  () {
-                    Provider.of<SettingsProvider>(
-                      context,
-                      listen: false,
-                    ).updateUserName(newName);
-                  },
-                );
-              } else {
-                Navigator.pop(ctx);
-              }
-            },
-            child: Text(AppLocalizations.of(context)!.save, style: const TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-  }
 
 
 
@@ -354,9 +294,10 @@ class _SettingsPageState extends State<SettingsPage> {
   // --- ORIGINAL UI WIDGET EXTRACTS ---
 
   Widget _buildProfileSection() {
-    final userName = Provider.of<SettingsProvider>(context).userName;
+    final settings = Provider.of<SettingsProvider>(context);
+    final userName = settings.userName;
     return GestureDetector(
-      onTap: _editProfileName,
+      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ProfilePage())),
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
@@ -365,43 +306,48 @@ class _SettingsPageState extends State<SettingsPage> {
         ),
         child: Row(
           children: [
-            const CircleAvatar(
+            ProfileAvatar(
+              imageUrl: settings.profilePicture,
+              frame: settings.profileFrame,
               radius: 35,
-              backgroundImage: NetworkImage(
-                'https://i.pravatar.cc/150?u=a042581f4e29026704d',
-              ),
             ),
             const SizedBox(width: 16),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  userName,
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.amber.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    AppLocalizations.of(context)!.proMember,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    userName,
                     style: const TextStyle(
-                      color: Colors.amber,
+                      fontSize: 20,
                       fontWeight: FontWeight.bold,
-                      fontSize: 10,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.amber.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        AppLocalizations.of(context)!.proMember,
+                        style: const TextStyle(
+                          color: Colors.amber,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 10,
+                        ),
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ],
         ),
@@ -490,17 +436,10 @@ class _SettingsPageState extends State<SettingsPage> {
         trailing: Switch(
           value: isDarkMode,
           onChanged: (v) {
-            // Trigger Confirmation when flipping the switch
-            _confirmChange(
-              AppLocalizations.of(context)!.confirmThemeChange,
-              AppLocalizations.of(context)!.confirmThemeChangeDesc(v ? AppLocalizations.of(context)!.on : AppLocalizations.of(context)!.off),
-              () {
-                Provider.of<SettingsProvider>(
-                  context,
-                  listen: false,
-                ).toggleTheme(v);
-              },
-            );
+            Provider.of<SettingsProvider>(
+              context,
+              listen: false,
+            ).toggleTheme(v);
           },
           activeThumbColor: const Color(0xFF6366F1),
         ),

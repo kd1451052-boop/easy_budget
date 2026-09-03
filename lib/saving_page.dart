@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'transaction_provider.dart';
 import 'settings_provider.dart';
 import 'history.dart';
+import 'currency_input_formatter.dart';
 import 'package:easy_budget/l10n/app_localizations.dart';
 
 class SavingPage extends StatefulWidget {
@@ -40,7 +41,7 @@ class _SavingPageState extends State<SavingPage> {
 
   void _handleSave() {
     final name = _nameController.text.trim();
-    final amount = double.tryParse(_amountController.text) ?? 0.0;
+    final amount = double.tryParse(_amountController.text.replaceAll(',', '')) ?? 0.0;
 
     if (name.isEmpty || amount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -108,7 +109,7 @@ class _SavingPageState extends State<SavingPage> {
             TextField(
               controller: _amountController,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*'))],
+              inputFormatters: [CurrencyInputFormatter()],
               decoration: InputDecoration(
                 labelText: AppLocalizations.of(context)!.targetAmount,
                 prefixText: '${settings.currencySymbol} ',

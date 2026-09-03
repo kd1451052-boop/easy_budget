@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:easy_budget/l10n/app_localizations.dart';
+import 'package:intl/intl.dart';
 import 'transaction_provider.dart';
 import 'settings_provider.dart';
 import 'history.dart';
@@ -7,11 +9,40 @@ import 'customize_budget_page.dart';
 import 'saving_page.dart';
 import 'b_and_s_history_page.dart';
 import 'shared_bottom_nav.dart';
-import 'package:easy_budget/l10n/app_localizations.dart';
 import 'scanner.dart';
 
-class BudgetPage extends StatelessWidget {
+class BudgetPage extends StatefulWidget {
   const BudgetPage({super.key});
+
+  @override
+  State<BudgetPage> createState() => _BudgetPageState();
+}
+
+class _BudgetPageState extends State<BudgetPage> {
+  // Add a helper for delete confirmation
+  void _showDeleteConfirmation(BuildContext context, String title, VoidCallback onConfirm) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Delete $title?'),
+        content: Text('Are you sure you want to delete this $title? This action cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(AppLocalizations.of(context)!.cancel),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () {
+              Navigator.pop(ctx);
+              onConfirm();
+            },
+            child: const Text('Delete', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -157,7 +188,9 @@ class BudgetPage extends StatelessWidget {
               Text(budget.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
               IconButton(
                 icon: const Icon(Icons.delete_outline, color: Colors.red),
-                onPressed: () => provider.deleteBudget(budget),
+                onPressed: () => _showDeleteConfirmation(context, 'Budget', () {
+                  provider.deleteBudget(budget);
+                }),
               )
             ],
           ),
@@ -166,8 +199,8 @@ class BudgetPage extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(AppLocalizations.of(context)!.spentText(currency, spent.toStringAsFixed(0)), style: TextStyle(color: isWarning ? Colors.red : null)),
-              Text(AppLocalizations.of(context)!.limitText(currency, limit.toStringAsFixed(0)), style: const TextStyle(fontWeight: FontWeight.bold)),
+              Text(AppLocalizations.of(context)!.spentText(currency, NumberFormat("#,##0", "en_US").format(spent)), style: TextStyle(color: isWarning ? Colors.red : null)),
+              Text(AppLocalizations.of(context)!.limitText(currency, NumberFormat("#,##0", "en_US").format(limit)), style: const TextStyle(fontWeight: FontWeight.bold)),
             ],
           ),
           const SizedBox(height: 8),
@@ -205,7 +238,9 @@ class BudgetPage extends StatelessWidget {
               Text(goal.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
               IconButton(
                 icon: const Icon(Icons.delete_outline, color: Colors.red),
-                onPressed: () => provider.deleteSavingsGoal(goal),
+                onPressed: () => _showDeleteConfirmation(context, 'Saving Goal', () {
+                  provider.deleteSavingsGoal(goal);
+                }),
               )
             ],
           ),
@@ -214,8 +249,8 @@ class BudgetPage extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(AppLocalizations.of(context)!.savedText(currency, saved.toStringAsFixed(0))),
-              Text(AppLocalizations.of(context)!.goalText(currency, target.toStringAsFixed(0)), style: const TextStyle(fontWeight: FontWeight.bold)),
+              Text(AppLocalizations.of(context)!.savedText(currency, NumberFormat("#,##0", "en_US").format(saved))),
+              Text(AppLocalizations.of(context)!.goalText(currency, NumberFormat("#,##0", "en_US").format(target)), style: const TextStyle(fontWeight: FontWeight.bold)),
             ],
           ),
           const SizedBox(height: 8),
