@@ -445,4 +445,117 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get enterValidAmount => 'Please enter a valid amount';
+
+  @override
+  String get categoryFood => 'Food';
+
+  @override
+  String get categoryTransport => 'Transport';
+
+  @override
+  String get categoryShopping => 'Shopping';
+
+  @override
+  String get categoryEntertainment => 'Entertainment';
+
+  @override
+  String get categoryUtilities => 'Utilities';
+
+  @override
+  String get categoryHealth => 'Health';
+
+  @override
+  String get categoryOther => 'Other';
+
+  @override
+  String get categoryBill => 'Bill';
+
+  @override
+  String get categoryRent => 'Rent';
+
+  @override
+  String get categorySalary => 'Salary';
+
+  @override
+  String get categoryGift => 'Gift';
+
+  @override
+  String get categoryInvestment => 'Investment';
+
+  @override
+  String get categoryBonus => 'Bonus';
+
+  @override
+  String get achTitleFirstStep => 'First Step';
+
+  @override
+  String get achDescFirstStep => 'Log your very first transaction.';
+
+  @override
+  String get achRewardBronzeStarter => 'Avatar Frame: Bronze Starter';
+
+  @override
+  String get achTitleReceiptMaster => 'Receipt Master';
+
+  @override
+  String get achDescReceiptMaster => 'Scan 10 receipts using AI.';
+
+  @override
+  String get achRewardSilverScanner => 'Avatar Frame: Silver Scanner';
+
+  @override
+  String get achTitleConsistency => 'Consistency is Key';
+
+  @override
+  String get achDescConsistency => 'Reach a 7-day streak.';
+
+  @override
+  String get achRewardGoldenFlame => 'Avatar Frame: Golden Flame';
+
+  @override
+  String get reward => 'Reward';
+
+  @override
+  String get scanWithCamera => 'Scan with Camera';
+
+  @override
+  String get chooseFromGallery => 'Choose from Gallery';
+
+  @override
+  String errorScanningReceipt(String error) {
+    return 'Error scanning receipt: $error';
+  }
+
+  @override
+  String get scanResult => 'Scan Result';
+
+  @override
+  String get merchant => 'Merchant';
+
+  @override
+  String get totalAmount => 'Total Amount';
+
+  @override
+  String get date => 'Date';
+
+  @override
+  String get items => 'Items:';
+
+  @override
+  String get unknownItem => 'Unknown item';
+
+  @override
+  String get confirmAndSave => 'Confirm & Save';
+
+  @override
+  String get retake => 'Retake';
+
+  @override
+  String get scanningReceipt => 'Scanning Receipt...';
+
+  @override
+  String get takePhoto => 'Take Photo';
+
+  @override
+  String get useGallery => 'Use Gallery';
 }

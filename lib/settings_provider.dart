@@ -23,8 +23,17 @@ class SettingsProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  bool get isGuestUser => prefs.getBool('isGuestUser') ?? false;
+
+  void setGuestUser(bool isGuest) {
+    prefs.setBool('isGuestUser', isGuest);
+    notifyListeners();
+  }
+
   // --- Profile Details ---
   String get userName {
+    if (isGuestUser) return 'Guest';
+    
     final name = prefs.getString('userName');
     if (name != null && name.isNotEmpty) return name;
     
@@ -44,7 +53,7 @@ class SettingsProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  String get profilePicture => prefs.getString('profilePicture') ?? 'https://i.pravatar.cc/150?u=a042581f4e29026704d';
+  String get profilePicture => prefs.getString('profilePicture') ?? '';
 
   void updateProfilePicture(String url) {
     prefs.setString('profilePicture', url);
@@ -113,6 +122,13 @@ class SettingsProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  String get rememberedEmail => prefs.getString('rememberedEmail') ?? '';
+
+  void updateRememberedEmail(String email) {
+    prefs.setString('rememberedEmail', email);
+    notifyListeners();
+  }
+
   // --- Custom Categories ---
   Map<String, int> get customExpenseCategories {
     final String? jsonStr = prefs.getString('customExpenseCategories');
@@ -153,6 +169,35 @@ class SettingsProvider extends ChangeNotifier {
     final map = customIncomeCategories;
     map.remove(name);
     prefs.setString('customIncomeCategories', jsonEncode(map));
+    notifyListeners();
+  }
+
+  // --- Guest Scan Limits ---
+  bool get canGuestScan {
+    if (!isGuestUser) return true;
+    final today = DateTime.now().toIso8601String().substring(0, 10);
+    final lastScanDate = prefs.getString('lastScanDate') ?? '';
+    final count = prefs.getInt('guestScanCount') ?? 0;
+    
+    if (lastScanDate != today) {
+      return true; // New day, can scan
+    }
+    return count < 10;
+  }
+
+  void incrementGuestScanCount() {
+    if (!isGuestUser) return;
+    
+    final today = DateTime.now().toIso8601String().substring(0, 10);
+    final lastScanDate = prefs.getString('lastScanDate') ?? '';
+    
+    if (lastScanDate != today) {
+      prefs.setString('lastScanDate', today);
+      prefs.setInt('guestScanCount', 1);
+    } else {
+      final count = prefs.getInt('guestScanCount') ?? 0;
+      prefs.setInt('guestScanCount', count + 1);
+    }
     notifyListeners();
   }
 }

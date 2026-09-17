@@ -1,11 +1,19 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'transaction_provider.dart'; // Make sure this import matches your file structure
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
+import 'transaction_provider.dart';
+import 'b_and_s_history_page.dart';
+import 'achievements_page.dart';
 import 'settings_provider.dart';
-import 'shared_bottom_nav.dart';
 import 'package:easy_budget/l10n/app_localizations.dart';
 import 'profile_page.dart';
 import 'profile_avatar.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:archive/archive.dart';
+import 'login_page.dart';
+import 'dart:convert';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -43,6 +51,17 @@ class _SettingsPageState extends State<SettingsPage> {
         children: [
           _buildProfileSection(),
           const SizedBox(height: 16),
+          _buildSettingTile(
+            Icons.emoji_events,
+            'Achievements & Badges',
+            null,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const AchievementsPage()),
+              );
+            },
+          ),
 
           _buildSectionHeader(AppLocalizations.of(context)!.preferences),
           _buildSettingTile(
@@ -69,15 +88,35 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
 
           _buildSettingTile(
+            Icons.backup_outlined,
+            'Backup Data (ZIP)',
+            null,
+            onTap: () => _backupDataToZip(context),
+          ),
+          _buildSettingTile(
             Icons.delete_outline,
             AppLocalizations.of(context)!.clearAllData,
             null,
             isDestructive: true,
             onTap: () => _showClearDataDialog(context),
           ),
+          const SizedBox(height: 16),
+          _buildSectionHeader('Account'),
+          _buildSettingTile(
+            Icons.switch_account_outlined,
+            'Switch Account',
+            null,
+            onTap: () => _handleSignOut(context, isSwitchAccount: true),
+          ),
+          _buildSettingTile(
+            Icons.logout,
+            'Log Out',
+            null,
+            isDestructive: true,
+            onTap: () => _handleSignOut(context, isSwitchAccount: false),
+          ),
         ],
       ),
-      bottomNavigationBar: const SharedBottomNav(currentIndex: 4),
     );
   }
 
@@ -171,11 +210,7 @@ class _SettingsPageState extends State<SettingsPage> {
     ).selectedLanguage;
     final languages = [
       'English',
-      'Spanish',
-      'French',
-      'German',
       'Japanese',
-      'Korean',
     ];
     showDialog(
       context: context,
@@ -217,7 +252,7 @@ class _SettingsPageState extends State<SettingsPage> {
     _confirmChange(
       AppLocalizations.of(context)!.exportData,
       AppLocalizations.of(context)!.exportDataDesc,
-      () {
+      () async {
         final provider = Provider.of<TransactionProvider>(
           context,
           listen: false,
@@ -240,8 +275,119 @@ class _SettingsPageState extends State<SettingsPage> {
           );
         }
 
-        debugPrint("--- EXPORTED CSV DATA ---");
-        debugPrint(csv.toString());
+        try {
+          final directory = await getTemporaryDirectory();
+          final file = File('${directory.path}/transactions.csv');
+          await file.writeAsString(csv.toString());
+          
+          await Share.shareXFiles(
+            [XFile(file.path)],
+            text: 'Easy Budget Transactions Export',
+          );
+        } catch (e) {
+          debugPrint("Export failed: $e");
+        }
+      },
+    );
+  }
+
+  void _backupDataToZip(BuildContext context) {
+    _confirmChange(
+      'Backup Data',
+      'Are you sure you want to backup all your data? The file will be saved on your device.',
+      () async {
+        final provider = Provider.of<TransactionProvider>(context, listen: false);
+        final transactions = provider.transactions;
+        
+        if (transactions.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('No data to backup!'))
+          );
+          return;
+        }
+
+        try {
+          final archive = Archive();
+          
+          final txJsonList = transactions.map((t) => {
+            'id': t.id,
+            'amount': t.amount,
+            'type': t.type.toString(),
+            'category': t.category,
+            'description': t.description,
+            'dateTime': t.dateTime.toIso8601String(),
+          }).toList();
+          
+          final jsonString = jsonEncode(txJsonList);
+          final jsonBytes = utf8.encode(jsonString);
+          
+          archive.addFile(ArchiveFile('transactions_backup.json', jsonBytes.length, jsonBytes));
+          
+          final zipData = ZipEncoder().encode(archive);
+
+          final directory = await getApplicationDocumentsDirectory();
+          final dateStr = DateTime.now().toIso8601String().replaceAll(':', '-').split('.')[0];
+          final zipFile = File('${directory.path}/EasyBudget_Backup_$dateStr.zip');
+          
+          await zipFile.writeAsBytes(zipData);
+          
+          if (!context.mounted) return;
+          showDialog(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              title: const Text('Backup Successful', style: TextStyle(fontWeight: FontWeight.bold)),
+              content: Text('Your backup has been saved to:\n\n${zipFile.path}'),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    Share.shareXFiles([XFile(zipFile.path)], text: 'My Easy Budget Backup');
+                  },
+                  child: const Text('Share/Export'),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.black,
+                  ),
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('OK', style: TextStyle(color: Colors.white)),
+                ),
+              ],
+            ),
+          );
+        } catch (e) {
+          debugPrint("Backup failed: $e");
+          if (!context.mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Backup failed: $e'))
+          );
+        }
+      },
+    );
+  }
+
+  void _handleSignOut(BuildContext context, {required bool isSwitchAccount}) {
+    final title = isSwitchAccount ? 'Switch Account' : 'Log Out';
+    final desc = isSwitchAccount 
+      ? 'Are you sure you want to switch accounts?' 
+      : 'Are you sure you want to log out?';
+
+    _confirmChange(
+      title,
+      desc,
+      () async {
+        final settings = Provider.of<SettingsProvider>(context, listen: false);
+        if (!isSwitchAccount) {
+          settings.updateRememberMe(false);
+          settings.updateRememberedEmail('');
+        }
+        await FirebaseAuth.instance.signOut();
+        if (!context.mounted) return;
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const LoginPage()),
+          (route) => false,
+        );
       },
     );
   }

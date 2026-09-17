@@ -5,12 +5,8 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/intl.dart' as intl;
 
-import 'app_localizations_de.dart';
 import 'app_localizations_en.dart';
-import 'app_localizations_es.dart';
-import 'app_localizations_fr.dart';
 import 'app_localizations_ja.dart';
-import 'app_localizations_ko.dart';
 
 // ignore_for_file: type=lint
 
@@ -98,12 +94,8 @@ abstract class AppLocalizations {
 
   /// A list of this localizations delegate's supported locales.
   static const List<Locale> supportedLocales = <Locale>[
-    Locale('de'),
     Locale('en'),
-    Locale('es'),
-    Locale('fr'),
     Locale('ja'),
-    Locale('ko'),
   ];
 
   /// No description provided for @appTitle.
@@ -915,6 +907,228 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Please enter a valid amount'**
   String get enterValidAmount;
+
+  /// No description provided for @categoryFood.
+  ///
+  /// In en, this message translates to:
+  /// **'Food'**
+  String get categoryFood;
+
+  /// No description provided for @categoryTransport.
+  ///
+  /// In en, this message translates to:
+  /// **'Transport'**
+  String get categoryTransport;
+
+  /// No description provided for @categoryShopping.
+  ///
+  /// In en, this message translates to:
+  /// **'Shopping'**
+  String get categoryShopping;
+
+  /// No description provided for @categoryEntertainment.
+  ///
+  /// In en, this message translates to:
+  /// **'Entertainment'**
+  String get categoryEntertainment;
+
+  /// No description provided for @categoryUtilities.
+  ///
+  /// In en, this message translates to:
+  /// **'Utilities'**
+  String get categoryUtilities;
+
+  /// No description provided for @categoryHealth.
+  ///
+  /// In en, this message translates to:
+  /// **'Health'**
+  String get categoryHealth;
+
+  /// No description provided for @categoryOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Other'**
+  String get categoryOther;
+
+  /// No description provided for @categoryBill.
+  ///
+  /// In en, this message translates to:
+  /// **'Bill'**
+  String get categoryBill;
+
+  /// No description provided for @categoryRent.
+  ///
+  /// In en, this message translates to:
+  /// **'Rent'**
+  String get categoryRent;
+
+  /// No description provided for @categorySalary.
+  ///
+  /// In en, this message translates to:
+  /// **'Salary'**
+  String get categorySalary;
+
+  /// No description provided for @categoryGift.
+  ///
+  /// In en, this message translates to:
+  /// **'Gift'**
+  String get categoryGift;
+
+  /// No description provided for @categoryInvestment.
+  ///
+  /// In en, this message translates to:
+  /// **'Investment'**
+  String get categoryInvestment;
+
+  /// No description provided for @categoryBonus.
+  ///
+  /// In en, this message translates to:
+  /// **'Bonus'**
+  String get categoryBonus;
+
+  /// No description provided for @achTitleFirstStep.
+  ///
+  /// In en, this message translates to:
+  /// **'First Step'**
+  String get achTitleFirstStep;
+
+  /// No description provided for @achDescFirstStep.
+  ///
+  /// In en, this message translates to:
+  /// **'Log your very first transaction.'**
+  String get achDescFirstStep;
+
+  /// No description provided for @achRewardBronzeStarter.
+  ///
+  /// In en, this message translates to:
+  /// **'Avatar Frame: Bronze Starter'**
+  String get achRewardBronzeStarter;
+
+  /// No description provided for @achTitleReceiptMaster.
+  ///
+  /// In en, this message translates to:
+  /// **'Receipt Master'**
+  String get achTitleReceiptMaster;
+
+  /// No description provided for @achDescReceiptMaster.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan 10 receipts using AI.'**
+  String get achDescReceiptMaster;
+
+  /// No description provided for @achRewardSilverScanner.
+  ///
+  /// In en, this message translates to:
+  /// **'Avatar Frame: Silver Scanner'**
+  String get achRewardSilverScanner;
+
+  /// No description provided for @achTitleConsistency.
+  ///
+  /// In en, this message translates to:
+  /// **'Consistency is Key'**
+  String get achTitleConsistency;
+
+  /// No description provided for @achDescConsistency.
+  ///
+  /// In en, this message translates to:
+  /// **'Reach a 7-day streak.'**
+  String get achDescConsistency;
+
+  /// No description provided for @achRewardGoldenFlame.
+  ///
+  /// In en, this message translates to:
+  /// **'Avatar Frame: Golden Flame'**
+  String get achRewardGoldenFlame;
+
+  /// No description provided for @reward.
+  ///
+  /// In en, this message translates to:
+  /// **'Reward'**
+  String get reward;
+
+  /// No description provided for @scanWithCamera.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan with Camera'**
+  String get scanWithCamera;
+
+  /// No description provided for @chooseFromGallery.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose from Gallery'**
+  String get chooseFromGallery;
+
+  /// No description provided for @errorScanningReceipt.
+  ///
+  /// In en, this message translates to:
+  /// **'Error scanning receipt: {error}'**
+  String errorScanningReceipt(String error);
+
+  /// No description provided for @scanResult.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan Result'**
+  String get scanResult;
+
+  /// No description provided for @merchant.
+  ///
+  /// In en, this message translates to:
+  /// **'Merchant'**
+  String get merchant;
+
+  /// No description provided for @totalAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'Total Amount'**
+  String get totalAmount;
+
+  /// No description provided for @date.
+  ///
+  /// In en, this message translates to:
+  /// **'Date'**
+  String get date;
+
+  /// No description provided for @items.
+  ///
+  /// In en, this message translates to:
+  /// **'Items:'**
+  String get items;
+
+  /// No description provided for @unknownItem.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown item'**
+  String get unknownItem;
+
+  /// No description provided for @confirmAndSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm & Save'**
+  String get confirmAndSave;
+
+  /// No description provided for @retake.
+  ///
+  /// In en, this message translates to:
+  /// **'Retake'**
+  String get retake;
+
+  /// No description provided for @scanningReceipt.
+  ///
+  /// In en, this message translates to:
+  /// **'Scanning Receipt...'**
+  String get scanningReceipt;
+
+  /// No description provided for @takePhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Take Photo'**
+  String get takePhoto;
+
+  /// No description provided for @useGallery.
+  ///
+  /// In en, this message translates to:
+  /// **'Use Gallery'**
+  String get useGallery;
 }
 
 class _AppLocalizationsDelegate
@@ -927,14 +1141,8 @@ class _AppLocalizationsDelegate
   }
 
   @override
-  bool isSupported(Locale locale) => <String>[
-    'de',
-    'en',
-    'es',
-    'fr',
-    'ja',
-    'ko',
-  ].contains(locale.languageCode);
+  bool isSupported(Locale locale) =>
+      <String>['en', 'ja'].contains(locale.languageCode);
 
   @override
   bool shouldReload(_AppLocalizationsDelegate old) => false;
@@ -943,18 +1151,10 @@ class _AppLocalizationsDelegate
 AppLocalizations lookupAppLocalizations(Locale locale) {
   // Lookup logic when only language code is specified.
   switch (locale.languageCode) {
-    case 'de':
-      return AppLocalizationsDe();
     case 'en':
       return AppLocalizationsEn();
-    case 'es':
-      return AppLocalizationsEs();
-    case 'fr':
-      return AppLocalizationsFr();
     case 'ja':
       return AppLocalizationsJa();
-    case 'ko':
-      return AppLocalizationsKo();
   }
 
   throw FlutterError(

@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:easy_budget/l10n/app_localizations.dart';
 
 import 'settings_provider.dart';
-import 'home_page.dart';
+import 'main_navigation_screen.dart';
 
 class LanguageSelectionPage extends StatefulWidget {
   const LanguageSelectionPage({super.key});
@@ -17,21 +17,13 @@ class _LanguageSelectionPageState extends State<LanguageSelectionPage> {
   
   final List<String> _languages = [
     'English',
-    'Spanish',
-    'French',
-    'German',
     'Japanese',
-    'Korean',
   ];
 
   String _getLanguageDisplayName(BuildContext context, String langCode) {
     final l10n = AppLocalizations.of(context)!;
     switch (langCode) {
-      case 'Spanish': return l10n.languageSpanish;
-      case 'French': return l10n.languageFrench;
-      case 'German': return l10n.languageGerman;
       case 'Japanese': return l10n.languageJapanese;
-      case 'Korean': return l10n.languageKorean;
       case 'English':
       default: return l10n.languageEnglish;
     }
@@ -61,7 +53,7 @@ class _LanguageSelectionPageState extends State<LanguageSelectionPage> {
     settings.updateHasCompletedOnboarding(true);
 
     Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => const HomePage()),
+      MaterialPageRoute(builder: (_) => const MainNavigationScreen()),
     );
   }
 

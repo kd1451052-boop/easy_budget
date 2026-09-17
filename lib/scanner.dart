@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:easy_budget/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
@@ -7,11 +8,60 @@ import 'package:intl/intl.dart';
 
 import 'settings_provider.dart';
 import 'transaction_provider.dart';
+import 'gamification_provider.dart';
 import 'history.dart';
 import 'home_page.dart';
 
 class Scanner extends StatefulWidget {
-  const Scanner({super.key});
+  final ImageSource? initialSource;
+  const Scanner({super.key, this.initialSource});
+
+  static void showScannerOptions(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.camera_alt, color: Color(0xFF6366F1)),
+              title: Text(AppLocalizations.of(context)!.scanWithCamera),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) =>
+                        const Scanner(initialSource: ImageSource.camera),
+                  ),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(
+                Icons.photo_library,
+                color: Color(0xFF6366F1),
+              ),
+              title: Text(AppLocalizations.of(context)!.chooseFromGallery),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) =>
+                        const Scanner(initialSource: ImageSource.gallery),
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   @override
   State<Scanner> createState() => _ScannerState();
@@ -21,6 +71,7 @@ class _ScannerState extends State<Scanner> with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
   bool _isScanning = false;
   final ImagePicker _picker = ImagePicker();
+  bool _initialPickDone = false;
 
   @override
   void initState() {
@@ -29,6 +80,12 @@ class _ScannerState extends State<Scanner> with SingleTickerProviderStateMixin {
       vsync: this,
       duration: const Duration(seconds: 2),
     )..repeat(reverse: true);
+
+    if (widget.initialSource != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _scanReceipt(widget.initialSource!);
+      });
+    }
   }
 
   @override
@@ -38,28 +95,37 @@ class _ScannerState extends State<Scanner> with SingleTickerProviderStateMixin {
   }
 
   Future<void> _scanReceipt(ImageSource source) async {
-    final XFile? image = await _picker.pickImage(source: source);
-    if (image == null) return;
+    final XFile? image = await _picker.pickImage(
+      source: source,
+      maxWidth: 800,
+      maxHeight: 800,
+      imageQuality: 30,
+    );
+    if (image == null) {
+      if (widget.initialSource != null && !_initialPickDone) {
+        _initialPickDone = true;
+        if (mounted) Navigator.pop(context);
+      }
+      return;
+    }
+    _initialPickDone = true;
     if (!mounted) return;
 
     setState(() => _isScanning = true);
 
     try {
       final googleAI = FirebaseAI.googleAI();
-      final model = googleAI.generativeModel(model: 'gemini-flash-latest');
+      final model = googleAI.generativeModel(
+        model: 'gemini-3.6-flash',
+        generationConfig: GenerationConfig(
+          responseMimeType: 'application/json',
+        ),
+      );
       final bytes = await image.readAsBytes();
 
-      final prompt = TextPart('''
-Extract receipt data as JSON. Return a JSON object with this exact structure: 
-{
-  "merchant": "name", 
-  "date": "yyyy-MM-dd", 
-  "total": 12.34, 
-  "currency": "JPY",
-  "items": [{"name": "item 1", "price": 1.23}]
-}
-Output ONLY valid JSON without any markdown formatting.
-''');
+      final prompt = TextPart(
+        'Return JSON: {"merchant":"name","date":"yyyy-MM-dd","total":12.34,"currency":"USD","items":[{"name":"item","price":1.23}]}',
+      );
       final imagePart = InlineDataPart('image/jpeg', bytes);
 
       final response = await model.generateContent([
@@ -94,6 +160,8 @@ Output ONLY valid JSON without any markdown formatting.
         }
       }
 
+      settings.incrementGuestScanCount();
+
       _showResultBottomSheet(
         merchant: data['merchant']?.toString() ?? 'Unknown Merchant',
         total: double.tryParse(data['total']?.toString() ?? '0') ?? 0.0,
@@ -106,7 +174,7 @@ Output ONLY valid JSON without any markdown formatting.
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Error scanning receipt: $e')));
+      ).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.errorScanningReceipt(e.toString()))));
     } finally {
       if (mounted) {
         setState(() => _isScanning = false);
@@ -140,21 +208,21 @@ Output ONLY valid JSON without any markdown formatting.
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Scan Result',
+            Text(
+              AppLocalizations.of(context)!.scanResult,
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 24),
-            _buildResultRow('Merchant', merchant),
+            _buildResultRow(AppLocalizations.of(context)!.merchant, merchant),
             _buildResultRow(
-              'Total Amount',
+              AppLocalizations.of(context)!.totalAmount,
               '${Provider.of<SettingsProvider>(context, listen: false).currencySymbol}${NumberFormat("#,##0.00", "en_US").format(total)}',
             ),
-            _buildResultRow('Date', dateString),
+            _buildResultRow(AppLocalizations.of(context)!.date, dateString),
 
             const SizedBox(height: 16),
-            const Text(
-              'Items:',
+            Text(
+              AppLocalizations.of(context)!.items,
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
             ),
             const SizedBox(height: 8),
@@ -174,7 +242,7 @@ Output ONLY valid JSON without any markdown formatting.
                       children: [
                         Expanded(
                           child: Text(
-                            item['name']?.toString() ?? 'Unknown item',
+                            item['name']?.toString() ?? AppLocalizations.of(context)!.unknownItem,
                             style: TextStyle(color: Colors.grey.shade700),
                           ),
                         ),
@@ -192,15 +260,7 @@ Output ONLY valid JSON without any markdown formatting.
             ElevatedButton(
               onPressed: () {
                 _saveTransaction(merchant, total, dateString, items);
-                Navigator.of(context).pushAndRemoveUntil(
-                  PageRouteBuilder(
-                    pageBuilder: (context, animation1, animation2) =>
-                        const HomePage(),
-                    transitionDuration: Duration.zero,
-                    reverseTransitionDuration: Duration.zero,
-                  ),
-                  (route) => false,
-                );
+                Navigator.of(context).popUntil((route) => route.isFirst);
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF6366F1),
@@ -209,8 +269,8 @@ Output ONLY valid JSON without any markdown formatting.
                   borderRadius: BorderRadius.circular(16),
                 ),
               ),
-              child: const Text(
-                'Confirm & Save',
+              child: Text(
+                AppLocalizations.of(context)!.confirmAndSave,
                 style: TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
@@ -220,8 +280,8 @@ Output ONLY valid JSON without any markdown formatting.
             const SizedBox(height: 12),
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Center(
-                child: Text('Retake', style: TextStyle(color: Colors.grey)),
+              child: Center(
+                child: Text(AppLocalizations.of(context)!.retake, style: const TextStyle(color: Colors.grey)),
               ),
             ),
           ],
@@ -267,6 +327,11 @@ Output ONLY valid JSON without any markdown formatting.
       context,
       listen: false,
     ).addTransaction(transaction);
+
+    Provider.of<GamificationProvider>(
+      context,
+      listen: false,
+    ).addReceiptScannedEvent();
   }
 
   Widget _buildResultRow(String label, String value) {
@@ -285,138 +350,25 @@ Output ONLY valid JSON without any markdown formatting.
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
-      body: Stack(
-        children: [
-          // Viewfinder
-          Center(
-            child: Container(
-              width: MediaQuery.of(context).size.width * 0.8,
-              height: MediaQuery.of(context).size.height * 0.5,
-              decoration: BoxDecoration(
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.5),
-                  width: 2,
-                ),
-                borderRadius: BorderRadius.circular(24),
-              ),
-              child: Stack(
+      backgroundColor: Colors.black87,
+      body: Center(
+        child: _isScanning
+            ? Column(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  if (_isScanning)
-                    AnimatedBuilder(
-                      animation: _animationController,
-                      builder: (context, child) {
-                        return Positioned(
-                          top:
-                              _animationController.value *
-                              (MediaQuery.of(context).size.height * 0.5 - 2),
-                          left: 0,
-                          right: 0,
-                          child: Container(
-                            height: 2,
-                            decoration: BoxDecoration(
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.cyanAccent.withValues(
-                                    alpha: 0.5,
-                                  ),
-                                  blurRadius: 10,
-                                  spreadRadius: 2,
-                                ),
-                              ],
-                              color: Colors.cyanAccent,
-                            ),
-                          ),
-                        );
-                      },
+                  const CircularProgressIndicator(color: Colors.cyanAccent),
+                  const SizedBox(height: 24),
+                  Text(
+                    AppLocalizations.of(context)!.scanningReceipt,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
                     ),
+                  ),
                 ],
-              ),
-            ),
-          ),
-          // Top Controls
-          Positioned(
-            top: 60,
-            left: 20,
-            child: IconButton(
-              onPressed: () {
-                Navigator.of(context).pushAndRemoveUntil(
-                  PageRouteBuilder(
-                    pageBuilder: (context, animation1, animation2) =>
-                        const HomePage(),
-                    transitionDuration: Duration.zero,
-                    reverseTransitionDuration: Duration.zero,
-                  ),
-                  (route) => false,
-                );
-              },
-              icon: const Icon(Icons.close, color: Colors.white, size: 30),
-            ),
-          ),
-          // Bottom Controls
-          Positioned(
-            bottom: 60,
-            left: 0,
-            right: 0,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                IconButton(
-                  onPressed: () => _scanReceipt(ImageSource.gallery),
-                  icon: const Icon(
-                    Icons.photo_library_outlined,
-                    color: Colors.white,
-                    size: 28,
-                  ),
-                ),
-                const SizedBox(width: 40),
-                GestureDetector(
-                  onTap: _isScanning
-                      ? null
-                      : () => _scanReceipt(ImageSource.camera),
-                  child: Container(
-                    width: 80,
-                    height: 80,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 4),
-                    ),
-                    padding: const EdgeInsets.all(4),
-                    child: Container(
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 40),
-                IconButton(
-                  onPressed: () {},
-                  icon: const Icon(
-                    Icons.flash_on_outlined,
-                    color: Colors.white,
-                    size: 28,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          if (_isScanning)
-            const Center(
-              child: Padding(
-                padding: EdgeInsets.only(top: 300),
-                child: Text(
-                  'Scanning Receipt...',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
-                ),
-              ),
-            ),
-        ],
+              )
+            : const SizedBox.shrink(),
       ),
     );
   }

@@ -74,7 +74,6 @@ class TransactionProvider extends ChangeNotifier {
     await _repository.deleteSavingsGoal(s);
   }
 
-  /// Permanently deletes all transactions from storage and refreshes the UI
   Future<void> clearAllData() async {
     for (var t in _transactions) {
       await _repository.delete(t);
@@ -85,6 +84,10 @@ class TransactionProvider extends ChangeNotifier {
     for (var s in _savingsGoals) {
       await _repository.deleteSavingsGoal(s);
     }
+    _transactions.clear();
+    _budgets.clear();
+    _savingsGoals.clear();
+    notifyListeners();
   }
 
   // Logic for calculations

@@ -241,5 +241,49 @@
   "pastSavingGoals": "Past Saving Goals",
   "noPastSavingsGoals": "No past savings goals.",
   "noNote": "No note",
-  "enterValidAmount": "Please enter a valid amount"
+  "enterValidAmount": "Please enter a valid amount",
+  "categoryFood": "Food",
+  "categoryTransport": "Transport",
+  "categoryShopping": "Shopping",
+  "categoryEntertainment": "Entertainment",
+  "categoryUtilities": "Utilities",
+  "categoryHealth": "Health",
+  "categoryOther": "Other",
+  "categoryBill": "Bill",
+  "categoryRent": "Rent",
+  "categorySalary": "Salary",
+  "categoryGift": "Gift",
+  "categoryInvestment": "Investment",
+  "categoryBonus": "Bonus",
+  "achTitleFirstStep": "First Step",
+  "achDescFirstStep": "Log your very first transaction.",
+  "achRewardBronzeStarter": "Avatar Frame: Bronze Starter",
+  "achTitleReceiptMaster": "Receipt Master",
+  "achDescReceiptMaster": "Scan 10 receipts using AI.",
+  "achRewardSilverScanner": "Avatar Frame: Silver Scanner",
+  "achTitleConsistency": "Consistency is Key",
+  "achDescConsistency": "Reach a 7-day streak.",
+  "achRewardGoldenFlame": "Avatar Frame: Golden Flame",
+  "reward": "Reward",
+  "scanWithCamera": "Scan with Camera",
+  "chooseFromGallery": "Choose from Gallery",
+  "errorScanningReceipt": "Error scanning receipt: {error}",
+  "@errorScanningReceipt": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "scanResult": "Scan Result",
+  "merchant": "Merchant",
+  "totalAmount": "Total Amount",
+  "date": "Date",
+  "items": "Items:",
+  "unknownItem": "Unknown item",
+  "confirmAndSave": "Confirm & Save",
+  "retake": "Retake",
+  "scanningReceipt": "Scanning Receipt...",
+  "takePhoto": "Take Photo",
+  "useGallery": "Use Gallery"
 }

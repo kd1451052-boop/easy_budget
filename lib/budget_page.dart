@@ -8,7 +8,6 @@ import 'history.dart';
 import 'customize_budget_page.dart';
 import 'saving_page.dart';
 import 'b_and_s_history_page.dart';
-import 'shared_bottom_nav.dart';
 import 'scanner.dart';
 
 class BudgetPage extends StatefulWidget {
@@ -151,17 +150,6 @@ class _BudgetPageState extends State<BudgetPage> {
           );
         },
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => Navigator.of(
-          context,
-        ).push(MaterialPageRoute(builder: (_) => const Scanner())),
-        backgroundColor: const Color(0xFF5442F5),
-        elevation: 4,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: const Icon(Icons.qr_code_scanner, color: Colors.white, size: 32),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-      bottomNavigationBar: const SharedBottomNav(currentIndex: 3), // Index 3 for Budget
     );
   }
 

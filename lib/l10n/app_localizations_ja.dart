@@ -439,4 +439,117 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get enterValidAmount => '有効な金額を入力してください';
+
+  @override
+  String get categoryFood => '食費';
+
+  @override
+  String get categoryTransport => '交通費';
+
+  @override
+  String get categoryShopping => '買い物';
+
+  @override
+  String get categoryEntertainment => 'エンタメ';
+
+  @override
+  String get categoryUtilities => '光熱費';
+
+  @override
+  String get categoryHealth => '医療・健康';
+
+  @override
+  String get categoryOther => 'その他';
+
+  @override
+  String get categoryBill => '支払い';
+
+  @override
+  String get categoryRent => '家賃';
+
+  @override
+  String get categorySalary => '給与';
+
+  @override
+  String get categoryGift => 'お小遣い';
+
+  @override
+  String get categoryInvestment => '投資';
+
+  @override
+  String get categoryBonus => 'ボーナス';
+
+  @override
+  String get achTitleFirstStep => '最初の一歩';
+
+  @override
+  String get achDescFirstStep => '最初の取引を記録する。';
+
+  @override
+  String get achRewardBronzeStarter => 'アバターフレーム: ブロンズスターター';
+
+  @override
+  String get achTitleReceiptMaster => 'レシートマスター';
+
+  @override
+  String get achDescReceiptMaster => 'AIを使って10枚のレシートをスキャンする。';
+
+  @override
+  String get achRewardSilverScanner => 'アバターフレーム: シルバースキャナー';
+
+  @override
+  String get achTitleConsistency => '継続は力なり';
+
+  @override
+  String get achDescConsistency => '7日間の連続記録を達成する。';
+
+  @override
+  String get achRewardGoldenFlame => 'アバターフレーム: ゴールデンフレーム';
+
+  @override
+  String get reward => '報酬';
+
+  @override
+  String get scanWithCamera => 'カメラでスキャン';
+
+  @override
+  String get chooseFromGallery => 'ギャラリーから選択';
+
+  @override
+  String errorScanningReceipt(String error) {
+    return 'レシートのスキャンエラー: $error';
+  }
+
+  @override
+  String get scanResult => 'スキャン結果';
+
+  @override
+  String get merchant => '店舗';
+
+  @override
+  String get totalAmount => '合計金額';
+
+  @override
+  String get date => '日付';
+
+  @override
+  String get items => '商品:';
+
+  @override
+  String get unknownItem => '不明な商品';
+
+  @override
+  String get confirmAndSave => '確認して保存';
+
+  @override
+  String get retake => '再撮影';
+
+  @override
+  String get scanningReceipt => 'レシートをスキャン中...';
+
+  @override
+  String get takePhoto => '写真を撮る';
+
+  @override
+  String get useGallery => 'ギャラリーを使用';
 }

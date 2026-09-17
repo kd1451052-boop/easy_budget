@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:image_cropper/image_cropper.dart';
 import 'settings_provider.dart';
 import 'profile_avatar.dart';
-import 'package:easy_budget/l10n/app_localizations.dart';
+import 'guest_registration_dialog.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -79,11 +80,37 @@ class _ProfilePageState extends State<ProfilePage> {
                   ),
                   GestureDetector(
                     onTap: () async {
-                      final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+                      if (settings.isGuestUser) {
+                        showGuestRegistrationDialog(context, featureName: 'profile picture changes');
+                        return;
+                      }
+                      final XFile? image = await _picker.pickImage(
+                        source: ImageSource.gallery,
+                      );
                       if (image != null) {
-                        setState(() {
-                          _newImagePath = image.path;
-                        });
+                        final croppedFile = await ImageCropper().cropImage(
+                          sourcePath: image.path,
+                          aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
+                          uiSettings: [
+                            AndroidUiSettings(
+                                toolbarTitle: 'Adjust Profile Picture',
+                                toolbarColor: const Color(0xFF5442F5),
+                                toolbarWidgetColor: Colors.white,
+                                initAspectRatio: CropAspectRatioPreset.square,
+                                lockAspectRatio: true),
+                            IOSUiSettings(
+                              title: 'Adjust Profile Picture',
+                              aspectRatioLockEnabled: true,
+                              resetButtonHidden: true,
+                            ),
+                          ],
+                        );
+
+                        if (croppedFile != null) {
+                          setState(() {
+                            _newImagePath = croppedFile.path;
+                          });
+                        }
                       }
                     },
                     child: Container(
@@ -92,7 +119,11 @@ class _ProfilePageState extends State<ProfilePage> {
                         color: Color(0xFF5442F5),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.camera_alt, color: Colors.white, size: 20),
+                      child: const Icon(
+                        Icons.camera_alt,
+                        color: Colors.white,
+                        size: 20,
+                      ),
                     ),
                   ),
                 ],
@@ -110,9 +141,17 @@ class _ProfilePageState extends State<ProfilePage> {
             const SizedBox(height: 8),
             TextField(
               controller: _nameController,
+              enabled: !settings.isGuestUser,
+              onTap: () {
+                if (settings.isGuestUser) {
+                  showGuestRegistrationDialog(context, featureName: 'name changes');
+                }
+              },
               decoration: InputDecoration(
                 hintText: 'Enter your name',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
             ),
             const SizedBox(height: 32),
@@ -135,6 +174,10 @@ class _ProfilePageState extends State<ProfilePage> {
                   final isSelected = _tempFrame == frame['id'];
                   return GestureDetector(
                     onTap: () {
+                      if (settings.isGuestUser) {
+                        showGuestRegistrationDialog(context, featureName: 'frame changes');
+                        return;
+                      }
                       setState(() {
                         _tempFrame = frame['id']!;
                       });
@@ -148,14 +191,18 @@ class _ProfilePageState extends State<ProfilePage> {
                             : Theme.of(context).cardColor,
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
-                          color: isSelected ? const Color(0xFF5442F5) : Colors.grey.shade300,
+                          color: isSelected
+                              ? const Color(0xFF5442F5)
+                              : Colors.grey.shade300,
                         ),
                       ),
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           ProfileAvatar(
-                            imageUrl: _newImagePath ?? settings.profilePicture, // Use current pic
+                            imageUrl:
+                                _newImagePath ??
+                                settings.profilePicture, // Use current pic
                             frame: frame['id']!,
                             radius: 25,
                           ),
@@ -163,7 +210,9 @@ class _ProfilePageState extends State<ProfilePage> {
                           Text(
                             frame['label']!,
                             style: TextStyle(
-                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                              fontWeight: isSelected
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
                               color: Theme.of(context).colorScheme.onSurface,
                             ),
                           ),
@@ -186,7 +235,10 @@ class _ProfilePageState extends State<ProfilePage> {
                   ),
                 ),
                 onPressed: () {
-                  final settings = Provider.of<SettingsProvider>(context, listen: false);
+                  final settings = Provider.of<SettingsProvider>(
+                    context,
+                    listen: false,
+                  );
                   if (_nameController.text.trim().isNotEmpty) {
                     settings.updateUserName(_nameController.text.trim());
                   }
@@ -196,7 +248,14 @@ class _ProfilePageState extends State<ProfilePage> {
                   settings.updateProfileFrame(_tempFrame);
                   Navigator.pop(context);
                 },
-                child: const Text('Save', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                child: const Text(
+                  'Save',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
             ),
           ],

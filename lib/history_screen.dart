@@ -17,9 +17,9 @@ import 'package:provider/provider.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:intl/intl.dart';
 import 'transaction_provider.dart';
-import 'history.dart';
 import 'settings_provider.dart';
-import 'shared_bottom_nav.dart';
+import 'category_localization.dart';
+import 'history.dart';
 import 'package:easy_budget/l10n/app_localizations.dart';
 import 'scanner.dart';
 
@@ -55,17 +55,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
           Expanded(child: _buildFilteredList()),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => Navigator.of(
-          context,
-        ).push(MaterialPageRoute(builder: (_) => const Scanner())),
-        backgroundColor: const Color(0xFF5442F5),
-        elevation: 4,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: const Icon(Icons.qr_code_scanner, color: Colors.white, size: 32),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-      bottomNavigationBar: const SharedBottomNav(currentIndex: 1),
     );
   }
 
@@ -150,43 +139,95 @@ class _HistoryScreenState extends State<HistoryScreen> {
             final tx = filteredTransactions[index];
             final isIncome = tx.type == TransactionType.income;
 
-            return Card(
-              margin: const EdgeInsets.only(bottom: 10),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              elevation: 2,
-              child: ListTile(
-                leading: CircleAvatar(
-                  backgroundColor: isIncome
-                      ? Colors.green.withValues(alpha: 0.1)
-                      : Colors.red.withValues(alpha: 0.1),
-                  child: Icon(
-                    isIncome ? Icons.arrow_upward : Icons.arrow_downward,
-                    color: isIncome ? Colors.green : Colors.red,
-                    size: 20,
+            return GestureDetector(
+              onLongPress: () => _showDeleteConfirmation(context, tx),
+              child: Stack(
+                children: [
+                  Card(
+                    margin: const EdgeInsets.only(bottom: 10),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 2,
+                    child: ListTile(
+                      leading: CircleAvatar(
+                        backgroundColor: tx.iconColor.withValues(alpha: 0.1),
+                        child: Icon(
+                          tx.icon,
+                          color: tx.iconColor,
+                          size: 20,
+                        ),
+                      ),
+                      title: Text(
+                        getLocalizedCategory(context, tx.category),
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      subtitle: Text(tx.description),
+                      trailing: Padding(
+                        padding: const EdgeInsets.only(right: 16.0),
+                        child: Text(
+                          '${isIncome ? '+' : '-'}${Provider.of<SettingsProvider>(context).currencySymbol}${NumberFormat("#,##0.00", "en_US").format(tx.amount)}',
+                          style: TextStyle(
+                            color: isIncome
+                                ? Colors.green
+                                : Theme.of(context).colorScheme.onSurface,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
-                ),
-                title: Text(
-                  tx.category,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-                subtitle: Text(tx.description),
-                trailing: Text(
-                  '${isIncome ? '+' : '-'}${Provider.of<SettingsProvider>(context).currencySymbol}${NumberFormat("#,##0.00", "en_US").format(tx.amount)}',
-                  style: TextStyle(
-                    color: isIncome
-                        ? Colors.green
-                        : Theme.of(context).colorScheme.onSurface,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
+                  Positioned(
+                    top: 0,
+                    right: 0,
+                    child: IconButton(
+                      icon: const Icon(Icons.close, size: 16, color: Color(0xFFBCAAA4)), // greyreddish
+                      onPressed: () => _showDeleteConfirmation(context, tx),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
                   ),
-                ),
+                ],
               ),
             );
           },
         );
       },
+    );
+  }
+
+  void _showDeleteConfirmation(BuildContext context, AppTransaction tx) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(AppLocalizations.of(context)!.confirm, style: const TextStyle(fontWeight: FontWeight.bold)),
+        content: const Text("Are you sure you want to delete this transaction?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(
+              AppLocalizations.of(context)!.cancel,
+              style: const TextStyle(color: Colors.black54),
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              elevation: 0,
+            ),
+            onPressed: () {
+              Provider.of<TransactionProvider>(context, listen: false).deleteTransaction(tx);
+              Navigator.pop(ctx);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("Transaction deleted.")),
+              );
+            },
+            child: const Text("Delete", style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
     );
   }
 }

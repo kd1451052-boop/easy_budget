@@ -20,12 +20,17 @@ import 'dart:ui'; // Required for the glassmorphism backdrop filter
 import 'transaction_provider.dart';
 import 'history.dart'; // Assuming your model is here
 import 'settings_provider.dart';
-import 'shared_bottom_nav.dart';
-import 'scanner.dart';
+import 'gamification_provider.dart';
 import 'package:easy_budget/l10n/app_localizations.dart';
 import 'package:intl/intl.dart';
 
 enum FilterPeriod { year, month, week }
+
+class TimeBucketData {
+  double income = 0;
+  double expense = 0;
+  double get netBalance => income - expense;
+}
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -67,6 +72,51 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  String _getBucketLabel(int index, AppLocalizations l10n) {
+    if (_selectedPeriod == FilterPeriod.week) {
+      const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+      return days[index % 7];
+    } else if (_selectedPeriod == FilterPeriod.month) {
+      return 'W${index + 1}';
+    } else {
+      final months = [
+        l10n.monthJan, l10n.monthFeb, l10n.monthMar, l10n.monthApr,
+        l10n.monthMay, l10n.monthJun, l10n.monthJul, l10n.monthAug,
+        l10n.monthSep, l10n.monthOct, l10n.monthNov, l10n.monthDec,
+      ];
+      return months[index % 12];
+    }
+  }
+
+  Map<int, TimeBucketData> _getComboChartBuckets(List<AppTransaction> filteredTransactions) {
+    Map<int, TimeBucketData> buckets = {};
+    int nBuckets = _selectedPeriod == FilterPeriod.week ? 7 : (_selectedPeriod == FilterPeriod.month ? 5 : 12);
+    
+    for (int i = 0; i < nBuckets; i++) {
+      buckets[i] = TimeBucketData();
+    }
+
+    for (var t in filteredTransactions) {
+      int bucketKey;
+      if (_selectedPeriod == FilterPeriod.week) {
+        bucketKey = t.dateTime.weekday - 1; // 0 to 6
+      } else if (_selectedPeriod == FilterPeriod.month) {
+        bucketKey = (t.dateTime.day - 1) ~/ 7; // 0 to 4
+        if (bucketKey > 4) bucketKey = 4; // cap at 4 (Week 5)
+      } else {
+        bucketKey = t.dateTime.month - 1; // 0 to 11
+      }
+
+      if (t.type == TransactionType.income) {
+        buckets[bucketKey]!.income += t.amount;
+      } else {
+        buckets[bucketKey]!.expense += t.amount;
+      }
+    }
+
+    return buckets;
+  }
+
   List<AppTransaction> _getFilteredTransactions(List<AppTransaction> all) {
     final now = DateTime.now();
     return all.where((t) {
@@ -97,10 +147,14 @@ class _HomePageState extends State<HomePage> {
     final expenses = transactions
         .where((t) => t.type == TransactionType.expense)
         .toList();
-    final Map<String, double> categoryMap = {};
+    final Map<String, double> categoryAmounts = {};
+    final Map<String, IconData> categoryIcons = {};
+    final Map<String, Color> categoryColors = {};
 
     for (var t in expenses) {
-      categoryMap[t.category] = (categoryMap[t.category] ?? 0) + t.amount;
+      categoryAmounts[t.category] = (categoryAmounts[t.category] ?? 0) + t.amount;
+      categoryIcons[t.category] = t.icon;
+      categoryColors[t.category] = t.iconColor;
     }
 
     final List<Color> sectionColors = [
@@ -113,21 +167,38 @@ class _HomePageState extends State<HomePage> {
     ];
 
     int index = 0;
-    return categoryMap.entries.map((entry) {
-      final color = sectionColors[index % sectionColors.length];
+    return categoryAmounts.entries.map((entry) {
+      final color = categoryColors[entry.key] ?? sectionColors[index % sectionColors.length];
+      final icon = categoryIcons[entry.key] ?? Icons.category;
       index++;
 
       return PieChartSectionData(
         color: color,
         value: entry.value,
         title: '${entry.key}\n$currencySymbol${NumberFormat("#,##0", "en_US").format(entry.value)}',
-        radius: 24, // Thinner radius for a modern donut look
+        radius: 80, // Solid pie chart
         titleStyle: const TextStyle(
           fontSize: 10,
           fontWeight: FontWeight.bold,
           color: Colors.transparent,
         ), // Hide raw text for cleaner look
         showTitle: false, // Turn off titles to keep the minimalist vibe
+        badgeWidget: Container(
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.1),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              )
+            ]
+          ),
+          child: Icon(icon, color: color, size: 20),
+        ),
+        badgePositionPercentageOffset: 0.7,
       );
     }).toList();
   }
@@ -154,6 +225,19 @@ class _HomePageState extends State<HomePage> {
           }
           double filteredBalance = filteredIncome - filteredExpense;
 
+          final buckets = _getComboChartBuckets(filteredTransactions);
+          double comboMaxY = 0;
+          double comboMinY = 0;
+          for (var bucket in buckets.values) {
+            if (bucket.income > comboMaxY) comboMaxY = bucket.income;
+            if (bucket.expense > comboMaxY) comboMaxY = bucket.expense;
+            if (bucket.netBalance > comboMaxY) comboMaxY = bucket.netBalance;
+            if (bucket.netBalance < comboMinY) comboMinY = bucket.netBalance;
+          }
+          comboMaxY = comboMaxY * 1.2;
+          if (comboMinY < 0) comboMinY = comboMinY * 1.2;
+          if (comboMaxY == 0) comboMaxY = 100;
+
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -163,120 +247,184 @@ class _HomePageState extends State<HomePage> {
                 filteredExpense,
               ),
 
-              // Analytics Section
-              Padding(
-                padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
-                child: Text(
-                  AppLocalizations.of(context)!.expenseAnalytics,
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).colorScheme.onSurface,
-                  ),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Container(
-                  height: 220,
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).cardColor,
-                    borderRadius: BorderRadius.circular(24),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.03),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Analytics Section
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
+                        child: Text(
+                          AppLocalizations.of(context)!.expenseAnalytics,
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        child: Container(
+                          height: 220,
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).cardColor,
+                            borderRadius: BorderRadius.circular(24),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.03),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: filteredExpense > 0
+                              ? Stack(
+                                  alignment: Alignment.center,
+                                  children: [
+                                    PieChart(
+                                      PieChartData(
+                                        sections: _getPieChartData(
+                                          filteredTransactions,
+                                          currencySymbol,
+                                        ),
+                                        centerSpaceRadius: 0,
+                                        sectionsSpace: 2,
+                                      ),
+                                    ),
+                                  ],
+                                )
+                              : Center(
+                                  child: Text(
+                                    AppLocalizations.of(context)!.noExpensesYet,
+                                    style: TextStyle(
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurface.withValues(alpha: 0.5),
+                                    ),
+                                  ),
+                                ),
+                        ),
+                      ),
+
+                      // Warnings Section
+                      _buildWarnings(provider, currencySymbol),
+
+                      // Income & Expense Comparison Section (Bar Chart)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
+                        child: Text(
+                          'Income vs Expense',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        child: Container(
+                          height: 220,
+                          margin: const EdgeInsets.only(bottom: 100), // To make room for FAB
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).cardColor,
+                            borderRadius: BorderRadius.circular(24),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.03),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Stack(
+                            children: [
+                              BarChart(
+                                BarChartData(
+                                  alignment: BarChartAlignment.spaceAround,
+                                  maxY: comboMaxY,
+                                  minY: comboMinY,
+                                  barTouchData: BarTouchData(enabled: false),
+                                  titlesData: FlTitlesData(
+                                    show: true,
+                                    bottomTitles: AxisTitles(
+                                      sideTitles: SideTitles(
+                                        showTitles: true,
+                                        getTitlesWidget: (value, meta) {
+                                          return Padding(
+                                            padding: const EdgeInsets.only(top: 8.0),
+                                            child: Text(
+                                              _getBucketLabel(value.toInt(), AppLocalizations.of(context)!),
+                                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 10),
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                    ),
+                                    leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                                    topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                                    rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                                  ),
+                                  gridData: FlGridData(show: true, drawVerticalLine: false),
+                                  borderData: FlBorderData(show: false),
+                                  barGroups: buckets.entries.map((e) {
+                                    return BarChartGroupData(
+                                      x: e.key,
+                                      barRods: [
+                                        BarChartRodData(
+                                          toY: e.value.income,
+                                          color: const Color(0xFF10B981),
+                                          width: 8,
+                                          borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+                                        ),
+                                        BarChartRodData(
+                                          toY: e.value.expense,
+                                          color: const Color(0xFFEF4444),
+                                          width: 8,
+                                          borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+                                        ),
+                                      ],
+                                    );
+                                  }).toList(),
+                                ),
+                              ),
+                              LineChart(
+                                LineChartData(
+                                  minX: -0.5,
+                                  maxX: buckets.length - 0.5,
+                                  minY: comboMinY,
+                                  maxY: comboMaxY,
+                                  titlesData: const FlTitlesData(show: false),
+                                  gridData: const FlGridData(show: false),
+                                  borderData: FlBorderData(show: false),
+                                  lineTouchData: LineTouchData(enabled: false),
+                                  lineBarsData: [
+                                    LineChartBarData(
+                                      spots: buckets.entries.map((e) => FlSpot(e.key.toDouble(), e.value.netBalance)).toList(),
+                                      color: const Color(0xFF3B82F6), // Blue line for net balance
+                                      isCurved: true,
+                                      barWidth: 3,
+                                      dotData: const FlDotData(show: true),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                     ],
                   ),
-                  child: filteredExpense > 0
-                      ? Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            PieChart(
-                              PieChartData(
-                                sections: _getPieChartData(
-                                  filteredTransactions,
-                                  currencySymbol,
-                                ),
-                                centerSpaceRadius:
-                                    60, // Wide center for donut chart
-                                sectionsSpace: 4,
-                              ),
-                            ),
-                            Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  AppLocalizations.of(context)!.totalSpent,
-                                  style: TextStyle(
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onSurface
-                                        .withValues(alpha: 0.6),
-                                    fontSize: 12,
-                                  ),
-                                ),
-                                Text(
-                                  "$currencySymbol${NumberFormat("#,##0", "en_US").format(filteredExpense)}",
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 20,
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.onSurface,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        )
-                      : Center(
-                          child: Text(
-                            AppLocalizations.of(context)!.noExpensesYet,
-                            style: TextStyle(
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.onSurface.withValues(alpha: 0.5),
-                            ),
-                          ),
-                        ),
                 ),
               ),
-
-              // Warnings Section
-              _buildWarnings(provider, currencySymbol),
-
-              // Recent Transactions List
-              Padding(
-                padding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
-                child: Text(
-                  AppLocalizations.of(context)!.recentTransactions,
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).colorScheme.onSurface,
-                  ),
-                ),
-              ),
-              Expanded(child: _buildTransactionList(filteredTransactions)),
             ],
           );
         },
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => Navigator.of(
-          context,
-        ).push(MaterialPageRoute(builder: (_) => const Scanner())),
-        backgroundColor: _primaryIndigo,
-        elevation: 4,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: const Icon(Icons.qr_code_scanner, color: Colors.white, size: 32),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-      bottomNavigationBar: const SharedBottomNav(currentIndex: 0),
     );
   }
 
@@ -295,6 +443,35 @@ class _HomePageState extends State<HomePage> {
       ),
       child: Column(
         children: [
+          // Streak Banner
+          Consumer<GamificationProvider>(
+            builder: (context, gamification, child) {
+              if (gamification.currentStreak > 0) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 16.0),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.local_fire_department, color: Colors.orangeAccent, size: 20),
+                        const SizedBox(width: 8),
+                        Text(
+                          '${gamification.currentStreak} Day Streak!',
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }
+              return const SizedBox.shrink();
+            },
+          ),
           PopupMenuButton<FilterPeriod>(
             initialValue: _selectedPeriod,
             onSelected: (FilterPeriod result) {
@@ -347,11 +524,27 @@ class _HomePageState extends State<HomePage> {
           ),
           const SizedBox(height: 8),
           Text(
-            '${Provider.of<SettingsProvider>(context).currencySymbol}${NumberFormat("#,##0.00", "en_US").format(balance)}',
+            '${Provider.of<SettingsProvider>(context).currencySymbol}${NumberFormat("#,##0.00", "en_US").format(balance.abs())}',
             style: const TextStyle(
               color: Colors.white,
               fontSize: 40,
               fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            decoration: BoxDecoration(
+              color: balance >= 0 ? Colors.green.withValues(alpha: 0.2) : Colors.red.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              balance >= 0 ? 'Positive Balance' : 'Negative Balance',
+              style: TextStyle(
+                color: balance >= 0 ? Colors.greenAccent : Colors.redAccent,
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+              )
             ),
           ),
           const SizedBox(height: 32),
@@ -436,88 +629,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildTransactionList(List<AppTransaction> allFilteredTransactions) {
-    final transactions = allFilteredTransactions.take(5).toList();
 
-    if (transactions.isEmpty) {
-      return Center(
-        child: Text(
-          AppLocalizations.of(context)!.noRecentTransactions,
-          style: TextStyle(
-            color: Theme.of(
-              context,
-            ).colorScheme.onSurface.withValues(alpha: 0.5),
-          ),
-        ),
-      );
-    }
-
-    return ListView.builder(
-      itemCount: transactions.length,
-      padding: const EdgeInsets.only(left: 24, right: 24, bottom: 100),
-      itemBuilder: (context, index) {
-        final tx = transactions[index];
-        final isIncome = tx.type == TransactionType.income;
-
-        // Reuse model helpers to rebuild icon and color.
-        final txIcon = tx.icon;
-        final txColor = tx.iconColor;
-
-        return Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          decoration: BoxDecoration(
-            color: Theme.of(context).cardColor,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
-            ),
-          ),
-          child: ListTile(
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 8,
-            ),
-            leading: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: txColor.withAlpha((0.1 * 255).round()),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(txIcon, color: txColor),
-            ),
-            title: Text(
-              tx.category,
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-                color: Theme.of(context).colorScheme.onSurface,
-              ),
-            ),
-            subtitle: Text(
-              tx.description,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: Theme.of(
-                  context,
-                ).colorScheme.onSurface.withValues(alpha: 0.6),
-              ),
-            ),
-            trailing: Text(
-              '${isIncome ? '+' : '-'}${Provider.of<SettingsProvider>(context).currencySymbol}${NumberFormat("#,##0.00", "en_US").format(tx.amount)}',
-              style: TextStyle(
-                color: isIncome
-                    ? const Color(0xFF10B981)
-                    : Theme.of(context).colorScheme.onSurface,
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
 
   Widget _buildWarnings(TransactionProvider provider, String currency) {
     final now = DateTime.now();

@@ -16,19 +16,28 @@ class ProfileAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    ImageProvider imageProvider;
-    if (kIsWeb) {
-      imageProvider = NetworkImage(imageUrl);
-    } else if (imageUrl.startsWith('http')) {
-      imageProvider = NetworkImage(imageUrl);
+    Widget avatar;
+    if (imageUrl.isEmpty) {
+      avatar = CircleAvatar(
+        radius: radius,
+        backgroundColor: Colors.grey.shade200,
+        child: Icon(Icons.person, size: radius, color: Colors.grey.shade400),
+      );
     } else {
-      imageProvider = FileImage(File(imageUrl));
-    }
+      ImageProvider imageProvider;
+      if (kIsWeb) {
+        imageProvider = NetworkImage(imageUrl);
+      } else if (imageUrl.startsWith('http')) {
+        imageProvider = NetworkImage(imageUrl);
+      } else {
+        imageProvider = FileImage(File(imageUrl));
+      }
 
-    Widget avatar = CircleAvatar(
-      radius: radius,
-      backgroundImage: imageProvider,
-    );
+      avatar = CircleAvatar(
+        radius: radius,
+        backgroundImage: imageProvider,
+      );
+    }
 
     if (frame == 'gold') {
       return Container(
@@ -40,31 +49,39 @@ class ProfileAvatar extends StatelessWidget {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
-        ),
-        child: avatar,
-      );
-    } else if (frame == 'neon') {
-      return Container(
-        padding: const EdgeInsets.all(4),
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
           boxShadow: [
             BoxShadow(
-              color: Colors.cyanAccent.withValues(alpha: 0.8),
-              blurRadius: 10,
-              spreadRadius: 2,
+              color: Colors.orangeAccent,
+              blurRadius: 8,
+              spreadRadius: 1,
             ),
           ],
-          border: Border.all(color: Colors.cyanAccent, width: 2),
         ),
         child: avatar,
       );
-    } else if (frame == 'minimal') {
+    } else if (frame == 'silver') {
       return Container(
         padding: const EdgeInsets.all(4),
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           shape: BoxShape.circle,
-          border: Border.all(color: Colors.grey.shade400, width: 2),
+          gradient: LinearGradient(
+            colors: [Color(0xFFE0E0E0), Color(0xFFBDBDBD), Color(0xFF9E9E9E)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: avatar,
+      );
+    } else if (frame == 'bronze') {
+      return Container(
+        padding: const EdgeInsets.all(4),
+        decoration: const BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: LinearGradient(
+            colors: [Color(0xFFCD7F32), Color(0xFFA0522D), Color(0xFF8B4513)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
         ),
         child: avatar,
       );

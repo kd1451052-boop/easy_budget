@@ -5,7 +5,7 @@ import 'package:easy_budget/l10n/app_localizations.dart';
 
 import 'settings_provider.dart';
 import 'language_selection_page.dart';
-import 'home_page.dart';
+import 'main_navigation_screen.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -34,6 +34,9 @@ class _LoginPageState extends State<LoginPage> {
       final settings = Provider.of<SettingsProvider>(context, listen: false);
       setState(() {
         _rememberMe = settings.rememberMe;
+        if (_rememberMe) {
+          _emailController.text = settings.rememberedEmail;
+        }
       });
     });
   }
@@ -52,22 +55,40 @@ class _LoginPageState extends State<LoginPage> {
     });
 
     try {
+      final settings = Provider.of<SettingsProvider>(context, listen: false);
+
       if (_isLogin) {
         await _auth.signInWithEmailAndPassword(
           email: _emailController.text.trim(),
           password: _passwordController.text,
         );
+        settings.setGuestUser(false);
       } else {
-        await _auth.createUserWithEmailAndPassword(
-          email: _emailController.text.trim(),
-          password: _passwordController.text,
-        );
+        if (settings.isGuestUser && _auth.currentUser != null) {
+          final credential = EmailAuthProvider.credential(
+            email: _emailController.text.trim(),
+            password: _passwordController.text,
+          );
+          await _auth.currentUser!.linkWithCredential(credential);
+          settings.setGuestUser(false);
+        } else {
+          await _auth.createUserWithEmailAndPassword(
+            email: _emailController.text.trim(),
+            password: _passwordController.text,
+          );
+          settings.setGuestUser(false);
+        }
       }
 
       // Save remember me choice
       if (mounted) {
         final settings = Provider.of<SettingsProvider>(context, listen: false);
         settings.updateRememberMe(_rememberMe);
+        if (_rememberMe) {
+          settings.updateRememberedEmail(_emailController.text.trim());
+        } else {
+          settings.updateRememberedEmail('');
+        }
 
         // Navigation
         if (!settings.hasCompletedOnboarding) {
@@ -76,7 +97,7 @@ class _LoginPageState extends State<LoginPage> {
           );
         } else {
           Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (_) => const HomePage()),
+            MaterialPageRoute(builder: (_) => const MainNavigationScreen()),
           );
         }
       }
@@ -305,6 +326,54 @@ class _LoginPageState extends State<LoginPage> {
                     style: TextStyle(color: _primaryIndigo),
                   ),
                 ),
+                if (_isLogin && !Provider.of<SettingsProvider>(context).isGuestUser)
+                  TextButton(
+                    onPressed: _isLoading
+                        ? null
+                        : () async {
+                            setState(() {
+                              _isLoading = true;
+                              _errorMessage = null;
+                            });
+                            try {
+                              final randomNum = DateTime.now().millisecondsSinceEpoch.toString();
+                              final fakeEmail = 'guest_$randomNum@easybudget.local';
+                              final fakePassword = 'guest_$randomNum';
+                              
+                              await _auth.createUserWithEmailAndPassword(
+                                email: fakeEmail, 
+                                password: fakePassword
+                              );
+                              
+                              if (mounted) {
+                                final settings = Provider.of<SettingsProvider>(context, listen: false);
+                                settings.setGuestUser(true);
+                                
+                                if (!settings.hasCompletedOnboarding) {
+                                  Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const LanguageSelectionPage()));
+                                } else {
+                                  Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const MainNavigationScreen()));
+                                }
+                              }
+                            } on FirebaseAuthException catch (e) {
+                              setState(() {
+                                _errorMessage = "Guest Login Error: ${e.code} - ${e.message}";
+                              });
+                            } catch (e) {
+                              setState(() {
+                                _errorMessage = "Could not sign in as guest: $e";
+                              });
+                            } finally {
+                              if (mounted) {
+                                setState(() => _isLoading = false);
+                              }
+                            }
+                          },
+                    child: Text(
+                      'Continue as Guest',
+                      style: TextStyle(color: Colors.grey.shade600, fontWeight: FontWeight.bold),
+                    ),
+                  ),
               ],
             ),
           ),
