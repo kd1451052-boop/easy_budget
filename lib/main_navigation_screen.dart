@@ -47,6 +47,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         listen: false,
       );
       gamification.onAchievementUnlocked = () {
+        if (!mounted) return;
         _confettiController.play();
         _audioPlayer.play(AssetSource('sounds/tada.wav'));
       };

@@ -51,10 +51,6 @@ class _LanguageSelectionPageState extends State<LanguageSelectionPage> {
     final settings = Provider.of<SettingsProvider>(context, listen: false);
     settings.updateLanguage(_selectedLanguage);
     settings.updateHasCompletedOnboarding(true);
-
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => const MainNavigationScreen()),
-    );
   }
 
   @override

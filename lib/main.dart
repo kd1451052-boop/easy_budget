@@ -125,16 +125,22 @@ class RootWrapper extends StatelessWidget {
         }
 
         final user = snapshot.data;
-        if (user == null) {
-          return const LoginPage();
-        }
-
+        
         return Consumer<SettingsProvider>(
           builder: (context, settings, child) {
+            Widget currentScreen;
             if (!settings.hasCompletedOnboarding) {
-              return const LanguageSelectionPage();
+              currentScreen = const LanguageSelectionPage();
+            } else if (user == null) {
+              currentScreen = const LoginPage();
+            } else {
+              currentScreen = const MainNavigationScreen();
             }
-            return const MainNavigationScreen();
+
+            return AnimatedSwitcher(
+              duration: const Duration(milliseconds: 300),
+              child: currentScreen,
+            );
           },
         );
       },
