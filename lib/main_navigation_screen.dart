@@ -20,7 +20,6 @@ class MainNavigationScreen extends StatefulWidget {
 
 class _MainNavigationScreenState extends State<MainNavigationScreen> {
   int _currentIndex = 0;
-  late PageController _pageController;
   late ConfettiController _confettiController;
   late AudioPlayer _audioPlayer;
 
@@ -35,7 +34,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   @override
   void initState() {
     super.initState();
-    _pageController = PageController(initialPage: _currentIndex);
     _confettiController = ConfettiController(
       duration: const Duration(seconds: 2),
     );
@@ -56,24 +54,15 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
   @override
   void dispose() {
-    _pageController.dispose();
     _confettiController.dispose();
     _audioPlayer.dispose();
     super.dispose();
   }
 
-  void _onPageChanged(int index) {
+  void _onBottomNavTapped(int index) {
     setState(() {
       _currentIndex = index;
     });
-  }
-
-  void _onBottomNavTapped(int index) {
-    _pageController.animateToPage(
-      index,
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeInOut,
-    );
   }
 
   @override
@@ -81,9 +70,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     return Stack(
       children: [
         Scaffold(
-          body: PageView(
-            controller: _pageController,
-            onPageChanged: _onPageChanged,
+          body: IndexedStack(
+            index: _currentIndex,
             children: _screens,
           ),
           floatingActionButton: _currentIndex != 4
