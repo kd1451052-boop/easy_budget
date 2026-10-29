@@ -552,4 +552,22 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get useGallery => 'ギャラリーを使用';
+
+  @override
+  String get merchantShopName => '店舗名';
+
+  @override
+  String get merchantHint => '例: セブンイレブン、スターバックス';
+
+  @override
+  String get itemsOptional => '商品（任意）';
+
+  @override
+  String get itemNameHint => '商品名';
+
+  @override
+  String get itemPriceHint => '価格';
+
+  @override
+  String get addItem => '商品を追加';
 }

@@ -21,7 +21,6 @@ import 'settings_provider.dart';
 import 'category_localization.dart';
 import 'history.dart';
 import 'package:easy_budget/l10n/app_localizations.dart';
-import 'scanner.dart';
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
@@ -31,10 +30,13 @@ class HistoryScreen extends StatefulWidget {
 }
 
 class _HistoryScreenState extends State<HistoryScreen> {
+  // Tracks the currently selected date, visible month/week focus, and calendar view format.
   DateTime _selectedDay = DateTime.now();
   DateTime _focusedDay = DateTime.now();
   CalendarFormat _calendarFormat = CalendarFormat.month;
 
+  // Builds the Transaction History layout with the interactive calendar on top
+  // and the selected day's transaction list below.
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -58,6 +60,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
     );
   }
 
+  // Builds the TableCalendar widget, marking dates that have transactions and
+  // updating _selectedDay whenever the user taps a date.
   Widget _buildCalendar() {
     return Consumer<TransactionProvider>(
       builder: (context, provider, child) {
@@ -107,6 +111,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
     );
   }
 
+  // Queries TransactionProvider for transactions on _selectedDay and renders
+  // either an empty placeholder or a list of transaction cards.
   Widget _buildFilteredList() {
     return Consumer<TransactionProvider>(
       builder: (context, provider, child) {
@@ -152,11 +158,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     child: ListTile(
                       leading: CircleAvatar(
                         backgroundColor: tx.iconColor.withValues(alpha: 0.1),
-                        child: Icon(
-                          tx.icon,
-                          color: tx.iconColor,
-                          size: 20,
-                        ),
+                        child: Icon(tx.icon, color: tx.iconColor, size: 20),
                       ),
                       title: Text(
                         getLocalizedCategory(context, tx.category),
@@ -182,7 +184,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     top: 0,
                     right: 0,
                     child: IconButton(
-                      icon: const Icon(Icons.close, size: 16, color: Color(0xFFBCAAA4)), // greyreddish
+                      icon: const Icon(
+                        Icons.close,
+                        size: 16,
+                        color: Color(0xFFBCAAA4),
+                      ), // greyreddish
                       onPressed: () => _showDeleteConfirmation(context, tx),
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
@@ -197,13 +203,19 @@ class _HistoryScreenState extends State<HistoryScreen> {
     );
   }
 
+  // Prompts the user to confirm before deleting the selected transaction from TransactionProvider.
   void _showDeleteConfirmation(BuildContext context, AppTransaction tx) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(AppLocalizations.of(context)!.confirm, style: const TextStyle(fontWeight: FontWeight.bold)),
-        content: const Text("Are you sure you want to delete this transaction?"),
+        title: Text(
+          AppLocalizations.of(context)!.confirm,
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        content: const Text(
+          "Are you sure you want to delete this transaction?",
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
@@ -218,7 +230,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
               elevation: 0,
             ),
             onPressed: () {
-              Provider.of<TransactionProvider>(context, listen: false).deleteTransaction(tx);
+              Provider.of<TransactionProvider>(
+                context,
+                listen: false,
+              ).deleteTransaction(tx);
               Navigator.pop(ctx);
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text("Transaction deleted.")),

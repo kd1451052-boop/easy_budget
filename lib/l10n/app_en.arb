@@ -285,5 +285,11 @@
   "retake": "Retake",
   "scanningReceipt": "Scanning Receipt...",
   "takePhoto": "Take Photo",
-  "useGallery": "Use Gallery"
+  "useGallery": "Use Gallery",
+  "merchantShopName": "Merchant / Shop name",
+  "merchantHint": "e.g. Walmart, Starbucks",
+  "itemsOptional": "Items (optional)",
+  "itemNameHint": "Item name",
+  "itemPriceHint": "Price",
+  "addItem": "Add item"
 }

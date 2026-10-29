@@ -1,10 +1,9 @@
+import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_app_check/firebase_app_check.dart';
 import 'firebase_options.dart';
-import 'package:flutter/foundation.dart';
 import 'package:quick_actions/quick_actions.dart';
 import 'main_navigation_screen.dart';
 import 'login_page.dart';
@@ -19,12 +18,15 @@ import 'scanner.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  if (!kIsWeb) {
-    await FirebaseAppCheck.instance.activate(
-      providerAndroid: AndroidDebugProvider(),
-      providerApple: AppleDebugProvider(),
-    );
-  }
+  await FirebaseAppCheck.instance.activate(
+    providerWeb: ReCaptchaEnterpriseProvider(
+      '6Ld6zQIuAAAAACinXuT2S9H_BAVrs-X6vifg1eVg',
+    ),
+    providerAndroid: AndroidDebugProvider(
+      debugToken: '293F7BA9-886D-419C-971B-1CDE516EFF37',
+    ),
+    providerApple: AppleDebugProvider(),
+  );
   await SettingsProvider.init();
 
   final rememberMe = SettingsProvider.prefs.getBool('rememberMe') ?? false;
@@ -58,7 +60,10 @@ class _EasyBudgetState extends State<EasyBudget> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<GamificationProvider>(context, listen: false).checkAppOpened();
+      Provider.of<GamificationProvider>(
+        context,
+        listen: false,
+      ).checkAppOpened();
     });
 
     const QuickActions quickActions = QuickActions();
@@ -74,7 +79,8 @@ class _EasyBudgetState extends State<EasyBudget> {
       const ShortcutItem(
         type: 'action_scan',
         localizedTitle: 'Scan Receipt',
-        icon: 'ic_scan', // You'd need an ic_scan drawable, but it falls back gracefully
+        icon:
+            'ic_scan', // You'd need an ic_scan drawable, but it falls back gracefully
       ),
     ]);
   }
@@ -125,7 +131,7 @@ class RootWrapper extends StatelessWidget {
         }
 
         final user = snapshot.data;
-        
+
         return Consumer<SettingsProvider>(
           builder: (context, settings, child) {
             Widget currentScreen;

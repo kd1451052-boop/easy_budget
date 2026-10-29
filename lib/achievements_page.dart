@@ -8,6 +8,8 @@ import 'guest_registration_dialog.dart';
 class AchievementsPage extends StatelessWidget {
   const AchievementsPage({super.key});
 
+  // Builds the main Achievements screen and listens to GamificationProvider
+  // so the list updates automatically whenever achievement progress changes.
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -18,10 +20,12 @@ class AchievementsPage extends StatelessWidget {
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.black87),
       ),
+      // Subscribe to GamificationProvider to get the latest list of achievements.
       body: Consumer<GamificationProvider>(
         builder: (context, provider, child) {
           final achievements = provider.achievements;
           
+          // Render each achievement as a card in a scrollable list.
           return ListView.builder(
             padding: const EdgeInsets.all(16),
             itemCount: achievements.length,
@@ -35,12 +39,16 @@ class AchievementsPage extends StatelessWidget {
     );
   }
 
+  // Builds a single achievement card, mapping its ID to localized strings,
+  // calculating completion percentage, and showing either a progress bar (locked)
+  // or the reward badge and "Equip Frame" button (unlocked).
   Widget _buildAchievementCard(BuildContext context, Achievement ach) {
     final loc = AppLocalizations.of(context)!;
     String title = '';
     String description = '';
     String rewardDescription = '';
 
+    // Map achievement IDs to their localized title, description, and reward text.
     switch (ach.id) {
       case 'first_expense':
         title = loc.achTitleFirstStep;
@@ -63,11 +71,13 @@ class AchievementsPage extends StatelessWidget {
         rewardDescription = '';
     }
 
+    // Determine which avatar frame ID corresponds to this achievement.
     String frameToEquip = '';
     if (ach.id == 'first_expense') frameToEquip = 'bronze';
     if (ach.id == 'receipt_master_10') frameToEquip = 'silver';
     if (ach.id == 'streak_7_days') frameToEquip = 'gold';
 
+    // Calculate progress ratio clamped between 0.0 and 1.0 for the progress bar.
     final double progressPercent = ach.targetProgress > 0 
         ? (ach.currentProgress / ach.targetProgress).clamp(0.0, 1.0) 
         : 0.0;

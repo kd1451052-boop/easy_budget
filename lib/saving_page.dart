@@ -15,10 +15,12 @@ class SavingPage extends StatefulWidget {
 }
 
 class _SavingPageState extends State<SavingPage> {
+  // Controllers for saving goal name, optional note, and target amount fields.
   final _nameController = TextEditingController();
   final _noteController = TextEditingController();
   final _amountController = TextEditingController();
 
+  // State variables for timeframe mode (Fixed Date vs recurring Period) and selected income category.
   bool _isFixed = true;
   DateTime _selectedDate = DateTime.now();
   BudgetPeriod _selectedPeriod = BudgetPeriod.monthly;
@@ -31,6 +33,7 @@ class _SavingPageState extends State<SavingPage> {
     'Bonus',
   ];
 
+  // Disposes text controllers when the screen is closed.
   @override
   void dispose() {
     _nameController.dispose();
@@ -39,6 +42,8 @@ class _SavingPageState extends State<SavingPage> {
     super.dispose();
   }
 
+  // Validates the form inputs, constructs a SavingsGoal object, saves it via
+  // TransactionProvider, and navigates back to BudgetPage.
   void _handleSave() {
     final name = _nameController.text.trim();
     final amount = double.tryParse(_amountController.text.replaceAll(',', '')) ?? 0.0;
@@ -66,6 +71,7 @@ class _SavingPageState extends State<SavingPage> {
     Navigator.pop(context);
   }
 
+  // Builds the Savings Goal creation form, merging default and custom income categories.
   @override
   Widget build(BuildContext context) {
     final headerColor = const Color(0xFF10B981); // Emerald Green for savings

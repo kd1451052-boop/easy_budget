@@ -15,10 +15,12 @@ class CustomizeBudgetPage extends StatefulWidget {
 }
 
 class _CustomizeBudgetPageState extends State<CustomizeBudgetPage> {
+  // Controllers for budget name, optional note, and spending limit input fields.
   final _nameController = TextEditingController();
   final _noteController = TextEditingController();
   final _amountController = TextEditingController();
 
+  // State variables for timeframe mode (Fixed Date vs recurring Period) and selected category.
   bool _isFixed = true;
   DateTime _selectedDate = DateTime.now();
   BudgetPeriod _selectedPeriod = BudgetPeriod.monthly;
@@ -32,6 +34,7 @@ class _CustomizeBudgetPageState extends State<CustomizeBudgetPage> {
     'Shopping',
   ];
 
+  // Disposes text controllers when leaving the page to free resources.
   @override
   void dispose() {
     _nameController.dispose();
@@ -40,6 +43,8 @@ class _CustomizeBudgetPageState extends State<CustomizeBudgetPage> {
     super.dispose();
   }
 
+  // Validates the user's input, builds a new Budget object, saves it via
+  // TransactionProvider, and returns to the previous screen.
   void _handleSave() {
     final name = _nameController.text.trim();
     final amount = double.tryParse(_amountController.text.replaceAll(',', '')) ?? 0.0;
@@ -67,6 +72,8 @@ class _CustomizeBudgetPageState extends State<CustomizeBudgetPage> {
     Navigator.pop(context);
   }
 
+  // Builds the form UI for entering budget details, choosing a fixed deadline or
+  // recurring period, and selecting an expense category.
   @override
   Widget build(BuildContext context) {
     final headerColor = const Color(0xFF5442F5);

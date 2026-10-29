@@ -1129,6 +1129,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Use Gallery'**
   String get useGallery;
+
+  /// No description provided for @merchantShopName.
+  ///
+  /// In en, this message translates to:
+  /// **'Merchant / Shop name'**
+  String get merchantShopName;
+
+  /// No description provided for @merchantHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. Walmart, Starbucks'**
+  String get merchantHint;
+
+  /// No description provided for @itemsOptional.
+  ///
+  /// In en, this message translates to:
+  /// **'Items (optional)'**
+  String get itemsOptional;
+
+  /// No description provided for @itemNameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Item name'**
+  String get itemNameHint;
+
+  /// No description provided for @itemPriceHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Price'**
+  String get itemPriceHint;
+
+  /// No description provided for @addItem.
+  ///
+  /// In en, this message translates to:
+  /// **'Add item'**
+  String get addItem;
 }
 
 class _AppLocalizationsDelegate

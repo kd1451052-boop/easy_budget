@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import 'package:easy_budget/l10n/app_localizations.dart';
 
 import 'settings_provider.dart';
-import 'main_navigation_screen.dart';
 
 class LanguageSelectionPage extends StatefulWidget {
   const LanguageSelectionPage({super.key});
@@ -14,23 +13,24 @@ class LanguageSelectionPage extends StatefulWidget {
 
 class _LanguageSelectionPageState extends State<LanguageSelectionPage> {
   final Color _primaryIndigo = const Color(0xFF5442F5);
-  
-  final List<String> _languages = [
-    'English',
-    'Japanese',
-  ];
 
+  final List<String> _languages = ['English', 'Japanese'];
+
+  // Converts an internal language key ('English' or 'Japanese') into its localized display label.
   String _getLanguageDisplayName(BuildContext context, String langCode) {
     final l10n = AppLocalizations.of(context)!;
     switch (langCode) {
-      case 'Japanese': return l10n.languageJapanese;
+      case 'Japanese':
+        return l10n.languageJapanese;
       case 'English':
-      default: return l10n.languageEnglish;
+      default:
+        return l10n.languageEnglish;
     }
   }
 
   late String _selectedLanguage;
 
+  // Initializes the selected language from SettingsProvider after the first frame.
   @override
   void initState() {
     super.initState();
@@ -47,12 +47,15 @@ class _LanguageSelectionPageState extends State<LanguageSelectionPage> {
     _selectedLanguage = _languages.first;
   }
 
+  // Saves the selected language to SettingsProvider and marks onboarding as completed
+  // so RootWrapper transitions to LoginPage or MainNavigationScreen.
   void _finishOnboarding() {
     final settings = Provider.of<SettingsProvider>(context, listen: false);
     settings.updateLanguage(_selectedLanguage);
     settings.updateHasCompletedOnboarding(true);
   }
 
+  // Builds the language selection cards and the Continue button.
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -63,11 +66,7 @@ class _LanguageSelectionPageState extends State<LanguageSelectionPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Icon(
-                Icons.language_rounded,
-                size: 80,
-                color: _primaryIndigo,
-              ),
+              Icon(Icons.language_rounded, size: 80, color: _primaryIndigo),
               const SizedBox(height: 24),
               Text(
                 AppLocalizations.of(context)!.selectLanguage,
@@ -84,7 +83,9 @@ class _LanguageSelectionPageState extends State<LanguageSelectionPage> {
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 16,
-                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withValues(alpha: 0.6),
                 ),
               ),
               const SizedBox(height: 48),
@@ -104,16 +105,21 @@ class _LanguageSelectionPageState extends State<LanguageSelectionPage> {
                       },
                       child: Container(
                         margin: const EdgeInsets.only(bottom: 12),
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 16,
+                        ),
                         decoration: BoxDecoration(
-                          color: isSelected 
-                              ? _primaryIndigo.withValues(alpha: 0.1) 
+                          color: isSelected
+                              ? _primaryIndigo.withValues(alpha: 0.1)
                               : Theme.of(context).cardColor,
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
-                            color: isSelected 
-                                ? _primaryIndigo 
-                                : Theme.of(context).dividerColor.withValues(alpha: 0.1),
+                            color: isSelected
+                                ? _primaryIndigo
+                                : Theme.of(
+                                    context,
+                                  ).dividerColor.withValues(alpha: 0.1),
                             width: 2,
                           ),
                         ),
@@ -124,12 +130,17 @@ class _LanguageSelectionPageState extends State<LanguageSelectionPage> {
                               _getLanguageDisplayName(context, language),
                               style: TextStyle(
                                 fontSize: 18,
-                                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                fontWeight: isSelected
+                                    ? FontWeight.bold
+                                    : FontWeight.normal,
                                 color: Theme.of(context).colorScheme.onSurface,
                               ),
                             ),
                             if (isSelected)
-                              Icon(Icons.check_circle_rounded, color: _primaryIndigo),
+                              Icon(
+                                Icons.check_circle_rounded,
+                                color: _primaryIndigo,
+                              ),
                           ],
                         ),
                       ),
@@ -151,7 +162,10 @@ class _LanguageSelectionPageState extends State<LanguageSelectionPage> {
                 ),
                 child: Text(
                   AppLocalizations.of(context)!.continueButton,
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ],

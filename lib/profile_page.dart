@@ -14,6 +14,7 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
+  // Controller for user display name, temporary selected frame ID, and newly cropped image path.
   final TextEditingController _nameController = TextEditingController();
   late String _tempFrame;
   String? _newImagePath;
@@ -26,6 +27,7 @@ class _ProfilePageState extends State<ProfilePage> {
     {'id': 'minimal', 'label': 'Minimal'},
   ];
 
+  // Loads the user's current name and equipped profile frame from SettingsProvider.
   @override
   void initState() {
     super.initState();
@@ -34,12 +36,15 @@ class _ProfilePageState extends State<ProfilePage> {
     _tempFrame = settings.profileFrame;
   }
 
+  // Disposes the name text controller when leaving the profile editor.
   @override
   void dispose() {
     _nameController.dispose();
     super.dispose();
   }
 
+  // Builds the Profile editing UI: avatar preview with gallery image picker + 1:1 cropper,
+  // name text field, horizontal avatar frame selector, and Save button.
   @override
   Widget build(BuildContext context) {
     final settings = Provider.of<SettingsProvider>(context);

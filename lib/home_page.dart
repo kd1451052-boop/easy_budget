@@ -15,17 +15,18 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'dart:ui'; // Required for the glassmorphism backdrop filter
 
 import 'transaction_provider.dart';
 import 'history.dart'; // Assuming your model is here
 import 'settings_provider.dart';
 import 'gamification_provider.dart';
+import 'streak_page.dart';
 import 'package:easy_budget/l10n/app_localizations.dart';
 import 'package:intl/intl.dart';
 
 enum FilterPeriod { year, month, week }
 
+// Holds aggregated income, expense, and computed netBalance for a single chart time bucket.
 class TimeBucketData {
   double income = 0;
   double expense = 0;
@@ -45,6 +46,20 @@ class _HomePageState extends State<HomePage> {
   ); // Matches the Figma prototype
   FilterPeriod _selectedPeriod = FilterPeriod.year;
 
+  // Checks and updates the user's daily streak in GamificationProvider once HomePage mounts.
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      Provider.of<GamificationProvider>(
+        context,
+        listen: false,
+      ).checkAppOpened();
+    });
+  }
+
+  // Returns the localized display label for the currently selected FilterPeriod (Year, Month, or Week).
   String _getPeriodLabel() {
     final now = DateTime.now();
     final l10n = AppLocalizations.of(context)!;
@@ -72,6 +87,7 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  // Maps a bucket index to its X-axis label on the Income vs Expense chart ('Mon'-'Sun', 'W1'-'W5', or 'Jan'-'Dec').
   String _getBucketLabel(int index, AppLocalizations l10n) {
     if (_selectedPeriod == FilterPeriod.week) {
       const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -88,6 +104,8 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  // Groups filtered transactions into time buckets (7 days, 5 weeks, or 12 months)
+  // and sums each bucket's income and expense for the combo BarChart + LineChart.
   Map<int, TimeBucketData> _getComboChartBuckets(List<AppTransaction> filteredTransactions) {
     Map<int, TimeBucketData> buckets = {};
     int nBuckets = _selectedPeriod == FilterPeriod.week ? 7 : (_selectedPeriod == FilterPeriod.month ? 5 : 12);
@@ -117,6 +135,7 @@ class _HomePageState extends State<HomePage> {
     return buckets;
   }
 
+  // Filters all transactions to only those occurring within the active _selectedPeriod (current year, month, or week).
   List<AppTransaction> _getFilteredTransactions(List<AppTransaction> all) {
     final now = DateTime.now();
     return all.where((t) {
@@ -140,6 +159,7 @@ class _HomePageState extends State<HomePage> {
     }).toList();
   }
 
+  // Aggregates expense transactions by category and builds PieChartSectionData slices with category icon badges.
   List<PieChartSectionData> _getPieChartData(
     List<AppTransaction> transactions,
     String currencySymbol,
@@ -430,6 +450,8 @@ class _HomePageState extends State<HomePage> {
 
   // --- UI WIDGET EXTRACTS ---
 
+  // Builds the top indigo header card containing the tappable Streak pill,
+  // period filter dropdown, net balance display, and Income/Expense summary cards.
   Widget _buildHeroHeader(double balance, double income, double expense) {
     return Container(
       width: double.infinity,
@@ -443,33 +465,57 @@ class _HomePageState extends State<HomePage> {
       ),
       child: Column(
         children: [
-          // Streak Banner
+          // Streak Banner (tappable -> opens Duolingo-style StreakPage)
           Consumer<GamificationProvider>(
             builder: (context, gamification, child) {
-              if (gamification.currentStreak > 0) {
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 16.0),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.local_fire_department, color: Colors.orangeAccent, size: 20),
-                        const SizedBox(width: 8),
-                        Text(
-                          '${gamification.currentStreak} Day Streak!',
-                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 16.0),
+                child: Material(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(20),
+                  clipBehavior: Clip.antiAlias,
+                  child: InkWell(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const StreakPage(),
                         ),
-                      ],
+                      );
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.local_fire_department_rounded,
+                            color: Colors.orangeAccent,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            '${gamification.currentStreak} Day Streak!',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          const Icon(
+                            Icons.chevron_right_rounded,
+                            color: Colors.white70,
+                            size: 18,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                );
-              }
-              return const SizedBox.shrink();
+                ),
+              );
             },
           ),
           PopupMenuButton<FilterPeriod>(
@@ -576,61 +622,58 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  // Builds a semi-transparent summary card inside the hero header for displaying total Income or Expense.
   Widget _buildGlassCard(
     String label,
     double amount,
     IconData icon,
     Color iconColor,
   ) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(20),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.15),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(icon, color: iconColor, size: 16),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    label,
-                    style: const TextStyle(color: Colors.white70, fontSize: 14),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Text(
-                '${Provider.of<SettingsProvider>(context).currencySymbol}${NumberFormat("#,##0.00", "en_US").format(amount)}',
-                style: const TextStyle(
+              Container(
+                padding: const EdgeInsets.all(4),
+                decoration: const BoxDecoration(
                   color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
+                  shape: BoxShape.circle,
                 ),
+                child: Icon(icon, color: iconColor, size: 16),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: const TextStyle(color: Colors.white70, fontSize: 14),
               ),
             ],
           ),
-        ),
+          const SizedBox(height: 12),
+          Text(
+            '${Provider.of<SettingsProvider>(context).currencySymbol}${NumberFormat("#,##0.00", "en_US").format(amount)}',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
       ),
     );
   }
 
 
 
+  // Evaluates active budgets (>= 90% spent) and savings goals (behind schedule)
+  // to generate warning alert tiles on the dashboard.
   Widget _buildWarnings(TransactionProvider provider, String currency) {
     final now = DateTime.now();
     List<Widget> warnings = [];
@@ -736,6 +779,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  // Builds a styled alert banner tile for a budget or savings warning.
   Widget _buildWarningTile({
     required IconData icon,
     required Color color,

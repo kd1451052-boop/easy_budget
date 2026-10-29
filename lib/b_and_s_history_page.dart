@@ -6,6 +6,7 @@ import 'settings_provider.dart';
 import 'history.dart';
 import 'package:easy_budget/l10n/app_localizations.dart';
 
+// Shows a confirmation dialog before permanently deleting an expired budget or saving goal.
 void _showDeleteConfirmation(BuildContext context, String title, VoidCallback onConfirm) {
   showDialog(
     context: context,
@@ -33,6 +34,8 @@ void _showDeleteConfirmation(BuildContext context, String title, VoidCallback on
 class BAndSHistoryPage extends StatelessWidget {
   const BAndSHistoryPage({super.key});
 
+  // Builds the history screen by filtering TransactionProvider for fixed-date
+  // budgets and savings goals whose targetDate has already passed.
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -46,6 +49,7 @@ class BAndSHistoryPage extends StatelessWidget {
         builder: (context, provider, child) {
           final now = DateTime.now();
           
+          // Filter budgets to only include fixed-date budgets with a targetDate before now.
           final expiredBudgets = provider.budgets.where((b) {
             if (b.isFixed && b.targetDate != null) {
               return b.targetDate!.isBefore(now);
@@ -53,6 +57,7 @@ class BAndSHistoryPage extends StatelessWidget {
             return false;
           }).toList();
           
+          // Filter savings goals to only include fixed-date goals with a targetDate before now.
           final expiredSavings = provider.savingsGoals.where((s) {
             if (s.isFixed && s.targetDate != null) {
               return s.targetDate!.isBefore(now);
@@ -62,6 +67,7 @@ class BAndSHistoryPage extends StatelessWidget {
           
           final currency = Provider.of<SettingsProvider>(context).currencySymbol;
 
+          // Render expired budgets section followed by expired savings goals section.
           return SingleChildScrollView(
             padding: const EdgeInsets.all(24.0),
             child: Column(
@@ -104,6 +110,8 @@ class BAndSHistoryPage extends StatelessWidget {
     );
   }
 
+  // Builds a dimmed card for an expired budget, calculating how much was spent
+  // compared to its limit and allowing the user to delete it from history.
   Widget _buildBudgetCard(BuildContext context, Budget budget, TransactionProvider provider, String currency) {
     final spent = provider.getSpentAmountForBudget(budget);
     final limit = budget.amount;
@@ -155,6 +163,8 @@ class BAndSHistoryPage extends StatelessWidget {
     );
   }
 
+  // Builds a dimmed card for an expired savings goal, calculating how much was saved
+  // toward its target amount and allowing the user to delete it from history.
   Widget _buildSavingCard(BuildContext context, SavingsGoal goal, TransactionProvider provider, String currency) {
     final saved = provider.getSavedAmountForGoal(goal);
     final target = goal.amount;

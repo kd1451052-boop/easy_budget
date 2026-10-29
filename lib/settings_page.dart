@@ -4,8 +4,9 @@ import 'package:provider/provider.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'transaction_provider.dart';
-import 'b_and_s_history_page.dart';
 import 'achievements_page.dart';
+import 'streak_page.dart';
+import 'gamification_provider.dart';
 import 'settings_provider.dart';
 import 'package:easy_budget/l10n/app_localizations.dart';
 import 'profile_page.dart';
@@ -23,6 +24,8 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
+  // Builds the Settings list with Profile, Daily Streak, Achievements, Preferences,
+  // Data Export/Backup/Reset, and Account Sign-Out sections.
   @override
   Widget build(BuildContext context) {
     final settings = Provider.of<SettingsProvider>(context);
@@ -51,6 +54,19 @@ class _SettingsPageState extends State<SettingsPage> {
         children: [
           _buildProfileSection(),
           const SizedBox(height: 16),
+          Consumer<GamificationProvider>(
+            builder: (context, gamification, _) => _buildSettingTile(
+              Icons.local_fire_department_rounded,
+              'Daily Streak',
+              '${gamification.currentStreak} Days',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const StreakPage()),
+                );
+              },
+            ),
+          ),
           _buildSettingTile(
             Icons.emoji_events,
             'Achievements & Badges',
@@ -147,10 +163,15 @@ class _SettingsPageState extends State<SettingsPage> {
               Navigator.pop(ctx); // Close the dialog
               onConfirm(); // Execute the actual change
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(AppLocalizations.of(context)!.changesApplied)),
+                SnackBar(
+                  content: Text(AppLocalizations.of(context)!.changesApplied),
+                ),
               );
             },
-            child: Text(AppLocalizations.of(context)!.confirm, style: const TextStyle(color: Colors.white)),
+            child: Text(
+              AppLocalizations.of(context)!.confirm,
+              style: const TextStyle(color: Colors.white),
+            ),
           ),
         ],
       ),
@@ -159,8 +180,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
   // --- FEATURE LOGIC ---
 
-
-
+  // Displays a dialog allowing the user to pick and confirm a new currency in SettingsProvider.
   void _showCurrencyPicker() {
     final selectedCurrency = Provider.of<SettingsProvider>(
       context,
@@ -203,15 +223,13 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
+  // Displays a dialog allowing the user to pick and confirm a new app language in SettingsProvider.
   void _showLanguagePicker() {
     final selectedLanguage = Provider.of<SettingsProvider>(
       context,
       listen: false,
     ).selectedLanguage;
-    final languages = [
-      'English',
-      'Japanese',
-    ];
+    final languages = ['English', 'Japanese'];
     showDialog(
       context: context,
       builder: (ctx) => SimpleDialog(
@@ -248,6 +266,7 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
+  // Exports all transactions from TransactionProvider into a temporary CSV file and opens the native share sheet.
   void _exportToCSV(BuildContext context) {
     _confirmChange(
       AppLocalizations.of(context)!.exportData,
@@ -260,9 +279,11 @@ class _SettingsPageState extends State<SettingsPage> {
         final transactions = provider.transactions;
 
         if (transactions.isEmpty) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.noDataToExport)));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(AppLocalizations.of(context)!.noDataToExport),
+            ),
+          );
           return;
         }
 
@@ -279,11 +300,10 @@ class _SettingsPageState extends State<SettingsPage> {
           final directory = await getTemporaryDirectory();
           final file = File('${directory.path}/transactions.csv');
           await file.writeAsString(csv.toString());
-          
-          await Share.shareXFiles(
-            [XFile(file.path)],
-            text: 'Easy Budget Transactions Export',
-          );
+
+          await Share.shareXFiles([
+            XFile(file.path),
+          ], text: 'Easy Budget Transactions Export');
         } catch (e) {
           debugPrint("Export failed: $e");
         }
@@ -291,58 +311,86 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
+  // Serializes all transactions to JSON, compresses them into a ZIP archive in the app documents folder, and offers sharing.
   void _backupDataToZip(BuildContext context) {
     _confirmChange(
       'Backup Data',
       'Are you sure you want to backup all your data? The file will be saved on your device.',
       () async {
-        final provider = Provider.of<TransactionProvider>(context, listen: false);
+        final provider = Provider.of<TransactionProvider>(
+          context,
+          listen: false,
+        );
         final transactions = provider.transactions;
-        
+
         if (transactions.isEmpty) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('No data to backup!'))
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('No data to backup!')));
           return;
         }
 
         try {
           final archive = Archive();
-          
-          final txJsonList = transactions.map((t) => {
-            'id': t.id,
-            'amount': t.amount,
-            'type': t.type.toString(),
-            'category': t.category,
-            'description': t.description,
-            'dateTime': t.dateTime.toIso8601String(),
-          }).toList();
-          
+
+          final txJsonList = transactions
+              .map(
+                (t) => {
+                  'id': t.id,
+                  'amount': t.amount,
+                  'type': t.type.toString(),
+                  'category': t.category,
+                  'description': t.description,
+                  'dateTime': t.dateTime.toIso8601String(),
+                },
+              )
+              .toList();
+
           final jsonString = jsonEncode(txJsonList);
           final jsonBytes = utf8.encode(jsonString);
-          
-          archive.addFile(ArchiveFile('transactions_backup.json', jsonBytes.length, jsonBytes));
-          
+
+          archive.addFile(
+            ArchiveFile(
+              'transactions_backup.json',
+              jsonBytes.length,
+              jsonBytes,
+            ),
+          );
+
           final zipData = ZipEncoder().encode(archive);
 
           final directory = await getApplicationDocumentsDirectory();
-          final dateStr = DateTime.now().toIso8601String().replaceAll(':', '-').split('.')[0];
-          final zipFile = File('${directory.path}/EasyBudget_Backup_$dateStr.zip');
-          
+          final dateStr = DateTime.now()
+              .toIso8601String()
+              .replaceAll(':', '-')
+              .split('.')[0];
+          final zipFile = File(
+            '${directory.path}/EasyBudget_Backup_$dateStr.zip',
+          );
+
           await zipFile.writeAsBytes(zipData);
-          
+
           if (!context.mounted) return;
           showDialog(
             context: context,
             builder: (ctx) => AlertDialog(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              title: const Text('Backup Successful', style: TextStyle(fontWeight: FontWeight.bold)),
-              content: Text('Your backup has been saved to:\n\n${zipFile.path}'),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              title: const Text(
+                'Backup Successful',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              content: Text(
+                'Your backup has been saved to:\n\n${zipFile.path}',
+              ),
               actions: [
                 TextButton(
                   onPressed: () {
                     Navigator.pop(ctx);
-                    Share.shareXFiles([XFile(zipFile.path)], text: 'My Easy Budget Backup');
+                    Share.shareXFiles([
+                      XFile(zipFile.path),
+                    ], text: 'My Easy Budget Backup');
                   },
                   child: const Text('Share/Export'),
                 ),
@@ -351,7 +399,10 @@ class _SettingsPageState extends State<SettingsPage> {
                     backgroundColor: Colors.black,
                   ),
                   onPressed: () => Navigator.pop(ctx),
-                  child: const Text('OK', style: TextStyle(color: Colors.white)),
+                  child: const Text(
+                    'OK',
+                    style: TextStyle(color: Colors.white),
+                  ),
                 ),
               ],
             ),
@@ -359,39 +410,37 @@ class _SettingsPageState extends State<SettingsPage> {
         } catch (e) {
           debugPrint("Backup failed: $e");
           if (!context.mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Backup failed: $e'))
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Backup failed: $e')));
         }
       },
     );
   }
 
+  // Confirms with the user, signs out from FirebaseAuth, optionally clears Remember Me, and navigates to LoginPage.
   void _handleSignOut(BuildContext context, {required bool isSwitchAccount}) {
     final title = isSwitchAccount ? 'Switch Account' : 'Log Out';
-    final desc = isSwitchAccount 
-      ? 'Are you sure you want to switch accounts?' 
-      : 'Are you sure you want to log out?';
+    final desc = isSwitchAccount
+        ? 'Are you sure you want to switch accounts?'
+        : 'Are you sure you want to log out?';
 
-    _confirmChange(
-      title,
-      desc,
-      () async {
-        final settings = Provider.of<SettingsProvider>(context, listen: false);
-        if (!isSwitchAccount) {
-          settings.updateRememberMe(false);
-          settings.updateRememberedEmail('');
-        }
-        await FirebaseAuth.instance.signOut();
-        if (!context.mounted) return;
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const LoginPage()),
-          (route) => false,
-        );
-      },
-    );
+    _confirmChange(title, desc, () async {
+      final settings = Provider.of<SettingsProvider>(context, listen: false);
+      if (!isSwitchAccount) {
+        settings.updateRememberMe(false);
+        settings.updateRememberedEmail('');
+      }
+      await FirebaseAuth.instance.signOut();
+      if (!context.mounted) return;
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const LoginPage()),
+        (route) => false,
+      );
+    });
   }
 
+  // Prompts for confirmation before wiping all transactions, budgets, and savings goals in TransactionProvider.
   void _showClearDataDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -399,11 +448,12 @@ class _SettingsPageState extends State<SettingsPage> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text(
           AppLocalizations.of(context)!.clearAllDataPrompt,
-          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.red),
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.red,
+          ),
         ),
-        content: Text(
-          AppLocalizations.of(context)!.clearAllDataDesc,
-        ),
+        content: Text(AppLocalizations.of(context)!.clearAllDataDesc),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
@@ -424,12 +474,17 @@ class _SettingsPageState extends State<SettingsPage> {
               ).clearAllData();
               Navigator.pop(ctx);
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(AppLocalizations.of(context)!.allDataCleared)),
+                SnackBar(
+                  content: Text(AppLocalizations.of(context)!.allDataCleared),
+                ),
               );
             },
             child: Text(
               AppLocalizations.of(context)!.deleteAll,
-              style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+              style: const TextStyle(
+                color: Colors.red,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
         ],
@@ -443,7 +498,10 @@ class _SettingsPageState extends State<SettingsPage> {
     final settings = Provider.of<SettingsProvider>(context);
     final userName = settings.userName;
     return GestureDetector(
-      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ProfilePage())),
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const ProfilePage()),
+      ),
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
@@ -523,71 +581,73 @@ class _SettingsPageState extends State<SettingsPage> {
     bool isDestructive = false,
     VoidCallback? onTap,
   }) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      decoration: BoxDecoration(
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Material(
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(12),
-      ),
-      child: ListTile(
-        leading: Icon(
-          icon,
-          color: isDestructive
-              ? Colors.red
-              : Theme.of(context).colorScheme.onSurface,
-        ),
-        title: Text(
-          title,
-          style: TextStyle(
+        clipBehavior: Clip.antiAlias,
+        child: ListTile(
+          leading: Icon(
+            icon,
             color: isDestructive
                 ? Colors.red
                 : Theme.of(context).colorScheme.onSurface,
-            fontWeight: FontWeight.w600,
           ),
+          title: Text(
+            title,
+            style: TextStyle(
+              color: isDestructive
+                  ? Colors.red
+                  : Theme.of(context).colorScheme.onSurface,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (trailing != null)
+                Text(trailing, style: TextStyle(color: Colors.grey.shade500)),
+              const SizedBox(width: 8),
+              Icon(Icons.chevron_right, color: Colors.grey.shade300),
+            ],
+          ),
+          onTap: onTap,
         ),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (trailing != null)
-              Text(trailing, style: TextStyle(color: Colors.grey.shade500)),
-            const SizedBox(width: 8),
-            Icon(Icons.chevron_right, color: Colors.grey.shade300),
-          ],
-        ),
-        onTap: onTap,
       ),
     );
   }
 
   Widget _buildThemeToggle() {
     final isDarkMode = Provider.of<SettingsProvider>(context).isDarkMode;
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      decoration: BoxDecoration(
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Material(
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(12),
-      ),
-      child: ListTile(
-        leading: Icon(
-          Icons.dark_mode_outlined,
-          color: Theme.of(context).colorScheme.onSurface,
-        ),
-        title: Text(
-          AppLocalizations.of(context)!.darkMode,
-          style: TextStyle(
-            fontWeight: FontWeight.w600,
+        clipBehavior: Clip.antiAlias,
+        child: ListTile(
+          leading: Icon(
+            Icons.dark_mode_outlined,
             color: Theme.of(context).colorScheme.onSurface,
           ),
-        ),
-        trailing: Switch(
-          value: isDarkMode,
-          onChanged: (v) {
-            Provider.of<SettingsProvider>(
-              context,
-              listen: false,
-            ).toggleTheme(v);
-          },
-          activeThumbColor: const Color(0xFF6366F1),
+          title: Text(
+            AppLocalizations.of(context)!.darkMode,
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
+          ),
+          trailing: Switch(
+            value: isDarkMode,
+            onChanged: (v) {
+              Provider.of<SettingsProvider>(
+                context,
+                listen: false,
+              ).toggleTheme(v);
+            },
+            activeThumbColor: const Color(0xFF6366F1),
+          ),
         ),
       ),
     );

@@ -15,10 +15,12 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
+  // Controllers for email and password text fields, and FirebaseAuth instance.
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _auth = FirebaseAuth.instance;
   
+  // Tracks whether the form is in Login or Sign-Up mode, loading state, and error display.
   bool _isLogin = true;
   bool _isLoading = false;
   bool _rememberMe = false;
@@ -26,6 +28,7 @@ class _LoginPageState extends State<LoginPage> {
 
   final Color _primaryIndigo = const Color(0xFF5442F5);
 
+  // Loads saved 'Remember Me' state and pre-fills the email input if enabled.
   @override
   void initState() {
     super.initState();
@@ -41,6 +44,7 @@ class _LoginPageState extends State<LoginPage> {
     });
   }
 
+  // Disposes email and password controllers when leaving the login screen.
   @override
   void dispose() {
     _emailController.dispose();
@@ -48,6 +52,8 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
+  // Handles Login and Sign-Up form submission via FirebaseAuth, links credentials
+  // if upgrading a Guest user, saves 'Remember Me' preferences, and navigates into the app.
   Future<void> _submit() async {
     setState(() {
       _isLoading = true;
@@ -118,6 +124,7 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
+  // Sends a Firebase password reset email to the address entered in _emailController.
   Future<void> _resetPassword() async {
     final l10n = AppLocalizations.of(context)!;
     final email = _emailController.text.trim();
@@ -160,6 +167,8 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
+  // Builds the authentication UI with email/password inputs, Remember Me checkbox,
+  // Forgot Password action, Login/Sign-Up toggle, and Continue as Guest option.
   @override
   Widget build(BuildContext context) {
     return Scaffold(

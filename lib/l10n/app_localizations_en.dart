@@ -558,4 +558,22 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get useGallery => 'Use Gallery';
+
+  @override
+  String get merchantShopName => 'Merchant / Shop name';
+
+  @override
+  String get merchantHint => 'e.g. Walmart, Starbucks';
+
+  @override
+  String get itemsOptional => 'Items (optional)';
+
+  @override
+  String get itemNameHint => 'Item name';
+
+  @override
+  String get itemPriceHint => 'Price';
+
+  @override
+  String get addItem => 'Add item';
 }

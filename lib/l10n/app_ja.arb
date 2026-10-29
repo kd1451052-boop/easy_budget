@@ -170,5 +170,11 @@
   "retake": "再撮影",
   "scanningReceipt": "レシートをスキャン中...",
   "takePhoto": "写真を撮る",
-  "useGallery": "ギャラリーを使用"
+  "useGallery": "ギャラリーを使用",
+  "merchantShopName": "店舗名",
+  "merchantHint": "例: セブンイレブン、スターバックス",
+  "itemsOptional": "商品（任意）",
+  "itemNameHint": "商品名",
+  "itemPriceHint": "価格",
+  "addItem": "商品を追加"
 }

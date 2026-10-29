@@ -19,6 +19,10 @@ Easy Budget は、AIの力と直感的なデザインを組み合わせた、Flu
 3. `google_generative_ai` 用のAPIキーを設定してください。
 4. `flutter run` でアプリを起動します！
 
+## 将来のビジョン (Future Vision)
+
+今後、Easy Budget はAIを活用した**財務分析アプリ**へと発展していく可能性があります。蓄積された取引データをもとに、支出パターンの分析、インサイトの提供、将来の予測などを行う方向を目指します。
+
 ---
 
 # Easy Budget 
@@ -40,4 +44,8 @@ Easy Budget is a powerful, user-friendly personal finance and budgeting app buil
 2. Run `flutter pub get` to install dependencies.
 3. Configure your API key for `google_generative_ai` to enable the AI scanner features.
 4. Run `flutter run` to start the app!
+
+## Future Vision
+
+The future of Easy Budget could branch into an **AI-powered financial analysis app**. Building on the transaction data it already collects, the app could analyze spending patterns, surface personalized insights, and forecast future finances.
 

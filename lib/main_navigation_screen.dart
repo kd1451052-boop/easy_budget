@@ -5,7 +5,6 @@ import 'budget_page.dart';
 import 'settings_page.dart';
 import 'shared_scanner_fab.dart';
 import 'add_transaction_screen.dart';
-import 'package:easy_budget/l10n/app_localizations.dart';
 import 'package:confetti/confetti.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:provider/provider.dart';
@@ -19,10 +18,13 @@ class MainNavigationScreen extends StatefulWidget {
 }
 
 class _MainNavigationScreenState extends State<MainNavigationScreen> {
+  // Tracks the active bottom-nav tab index and which tabs have been lazily built.
   int _currentIndex = 0;
+  final Set<int> _visitedTabs = {0};
   late ConfettiController _confettiController;
   late AudioPlayer _audioPlayer;
 
+  // Ordered list of the 5 primary tab screens in the bottom navigation bar.
   final List<Widget> _screens = const [
     HomePage(),
     HistoryScreen(),
@@ -31,6 +33,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     SettingsPage(),
   ];
 
+  // Initializes confetti & audio controllers and registers a callback on
+  // GamificationProvider to play a celebration whenever an achievement unlocks.
   @override
   void initState() {
     super.initState();
@@ -52,6 +56,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     });
   }
 
+  // Disposes confetti and audio player controllers when the screen is destroyed.
   @override
   void dispose() {
     _confettiController.dispose();
@@ -59,12 +64,16 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     super.dispose();
   }
 
+  // Updates the active tab index and marks the tab as visited so IndexedStack builds it.
   void _onBottomNavTapped(int index) {
     setState(() {
       _currentIndex = index;
+      _visitedTabs.add(index);
     });
   }
 
+  // Builds the main app shell with lazy IndexedStack tabs, the receipt-scanner FAB,
+  // the bottom navigation bar, and the top-aligned confetti overlay.
   @override
   Widget build(BuildContext context) {
     return Stack(
@@ -72,7 +81,12 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         Scaffold(
           body: IndexedStack(
             index: _currentIndex,
-            children: _screens,
+            children: List.generate(
+              _screens.length,
+              (i) => _visitedTabs.contains(i)
+                  ? _screens[i]
+                  : const SizedBox.shrink(),
+            ),
           ),
           floatingActionButton: _currentIndex != 4
               ? const SharedScannerFAB()

@@ -1,16 +1,86 @@
 import 'dart:convert';
 import 'package:easy_budget/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http; // ignore: depend_on_referenced_packages
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_ai/firebase_ai.dart';
+import 'package:firebase_app_check/firebase_app_check.dart'; // TEMP debug
+import 'package:firebase_auth/firebase_auth.dart'; // TEMP debug
 import 'package:intl/intl.dart';
 
 import 'settings_provider.dart';
 import 'transaction_provider.dart';
 import 'gamification_provider.dart';
 import 'history.dart';
-import 'home_page.dart';
+
+class _DebugHttpClient extends http.BaseClient {
+  final http.Client _inner = http.Client();
+  final String? overrideAppCheckToken;
+
+  _DebugHttpClient({this.overrideAppCheckToken});
+
+  http.Request _cloneRequest(http.BaseRequest original, List<int> bodyBytes) {
+    final copy = http.Request(original.method, original.url)
+      ..followRedirects = original.followRedirects
+      ..maxRedirects = original.maxRedirects
+      ..persistentConnection = original.persistentConnection
+      ..headers.addAll(original.headers)
+      ..bodyBytes = bodyBytes;
+    return copy;
+  }
+
+  @override
+  Future<http.StreamedResponse> send(http.BaseRequest request) async {
+    final bodyBytes = await request.finalize().toBytes();
+
+    if (overrideAppCheckToken != null) {
+      request.headers['X-Firebase-AppCheck'] = overrideAppCheckToken!;
+    }
+
+    var reqToSend = _cloneRequest(request, bodyBytes);
+    var streamed = await _inner.send(reqToSend);
+    var bytes = await streamed.stream.toBytes();
+
+    // If cached token was rejected (401), retry with a force-refreshed standard token,
+    // and then a limited-use token if Replay Protection is enforced.
+    if (streamed.statusCode == 401) {
+      for (final fetchToken in <Future<String?> Function()>[
+        () => FirebaseAppCheck.instance.getToken(true),
+        () => FirebaseAppCheck.instance.getLimitedUseToken(),
+      ]) {
+        try {
+          final fallbackToken = await fetchToken();
+          if (fallbackToken != null && fallbackToken.isNotEmpty) {
+            final retryReq = _cloneRequest(request, bodyBytes);
+            retryReq.headers['X-Firebase-AppCheck'] = fallbackToken;
+            streamed = await _inner.send(retryReq);
+            bytes = await streamed.stream.toBytes();
+            if (streamed.statusCode != 401) break;
+          }
+        } catch (e) {
+          debugPrint('AppCheck fallback token fetch failed: $e');
+        }
+      }
+    }
+
+    if (streamed.statusCode != 200) {
+      debugPrint(
+        'DBG_HTTP_ERR (${streamed.statusCode}): ${utf8.decode(bytes, allowMalformed: true)}',
+      );
+    }
+    return http.StreamedResponse(
+      Stream.value(bytes),
+      streamed.statusCode,
+      contentLength: bytes.length,
+      request: streamed.request,
+      headers: streamed.headers,
+      isRedirect: streamed.isRedirect,
+      persistentConnection: streamed.persistentConnection,
+      reasonPhrase: streamed.reasonPhrase,
+    );
+  }
+}
 
 class Scanner extends StatefulWidget {
   final ImageSource? initialSource;
@@ -114,23 +184,51 @@ class _ScannerState extends State<Scanner> with SingleTickerProviderStateMixin {
     setState(() => _isScanning = true);
 
     try {
-      final googleAI = FirebaseAI.googleAI();
-      final model = googleAI.generativeModel(
-        model: 'gemini-3.6-flash',
-        generationConfig: GenerationConfig(
-          responseMimeType: 'application/json',
-        ),
+      String? dbgToken;
+      try {
+        // Use standard reusable cached token (valid for the full 1-hour TTL)
+        dbgToken = await FirebaseAppCheck.instance.getToken(false);
+      } catch (err) {
+        debugPrint('DBG_APPCHECK_TOKEN_ERROR: $err');
+      }
+      final googleAI = FirebaseAI.googleAI(
+        appCheck: FirebaseAppCheck.instance,
+        auth: FirebaseAuth.instance,
+        useLimitedUseAppCheckTokens: false,
       );
       final bytes = await image.readAsBytes();
 
       final prompt = TextPart(
-        'Return JSON: {"merchant":"name","date":"yyyy-MM-dd","total":12.34,"currency":"USD","items":[{"name":"item","price":1.23}]}',
+        'Return JSON: {"merchant":"name","date":"yyyy-MM-dd","total":12.34,"currency":"JPY","items":[{"name":"item","price":1.23}]}',
       );
       final imagePart = InlineDataPart('image/jpeg', bytes);
 
-      final response = await model.generateContent([
-        Content.multi([prompt, imagePart]),
-      ]);
+      // Use 'gemini-flash-latest' (auto-updated alias) with 'gemini-3.8-flash' fallback
+      // so future model retirements don't break receipt scanning.
+      const candidateModels = ['gemini-flash-latest', 'gemini-3.8-flash'];
+      GenerateContentResponse? response;
+      Object? lastError;
+      for (final modelName in candidateModels) {
+        try {
+          final model = googleAI.generativeModel(
+            model: modelName,
+            generationConfig: GenerationConfig(
+              responseMimeType: 'application/json',
+            ),
+            httpClient: _DebugHttpClient(overrideAppCheckToken: dbgToken),
+          );
+          response = await model.generateContent([
+            Content.multi([prompt, imagePart]),
+          ]);
+          break;
+        } catch (err) {
+          lastError = err;
+          debugPrint('Model $modelName failed, trying fallback if available: $err');
+        }
+      }
+      if (response == null) {
+        throw lastError ?? Exception('Failed to generate content');
+      }
 
       if (!mounted) return;
 
@@ -170,11 +268,16 @@ class _ScannerState extends State<Scanner> with SingleTickerProviderStateMixin {
             DateTime.now().toIso8601String().split('T')[0],
         items: List<Map<String, dynamic>>.from(data['items'] ?? []),
       );
-    } catch (e) {
+    } catch (e, st) {
+      debugPrint('Receipt scan failed: $e\n$st');
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.errorScanningReceipt(e.toString()))));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(context)!.errorScanningReceipt(e.toString()),
+          ),
+        ),
+      );
     } finally {
       if (mounted) {
         setState(() => _isScanning = false);
@@ -242,7 +345,8 @@ class _ScannerState extends State<Scanner> with SingleTickerProviderStateMixin {
                       children: [
                         Expanded(
                           child: Text(
-                            item['name']?.toString() ?? AppLocalizations.of(context)!.unknownItem,
+                            item['name']?.toString() ??
+                                AppLocalizations.of(context)!.unknownItem,
                             style: TextStyle(color: Colors.grey.shade700),
                           ),
                         ),
@@ -281,7 +385,10 @@ class _ScannerState extends State<Scanner> with SingleTickerProviderStateMixin {
             TextButton(
               onPressed: () => Navigator.pop(context),
               child: Center(
-                child: Text(AppLocalizations.of(context)!.retake, style: const TextStyle(color: Colors.grey)),
+                child: Text(
+                  AppLocalizations.of(context)!.retake,
+                  style: const TextStyle(color: Colors.grey),
+                ),
               ),
             ),
           ],

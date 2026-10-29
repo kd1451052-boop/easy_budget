@@ -13,7 +13,7 @@
 //limitations under the License.
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'gamification_provider.dart';
 import 'main_navigation_screen.dart';
@@ -32,10 +32,30 @@ class AddExpenseScreen extends StatefulWidget {
   State<AddExpenseScreen> createState() => _AddExpenseScreenState();
 }
 
+/// A manually entered receipt line (item name + price).
+class _ItemEntry {
+  final nameController = TextEditingController();
+  final priceController = TextEditingController();
+
+  // Parses the numeric price from the formatted priceController text.
+  double get price =>
+      double.tryParse(priceController.text.replaceAll(',', '')) ?? 0.0;
+
+  // Disposes both item name and item price text controllers.
+  void dispose() {
+    nameController.dispose();
+    priceController.dispose();
+  }
+}
+
 class _AddExpenseScreenState extends State<AddExpenseScreen> {
+  // Controllers for transaction amount, note, merchant name, and dynamic itemized lines.
   final _amountController = TextEditingController();
   final _noteController = TextEditingController();
+  final _merchantController = TextEditingController();
+  final List<_ItemEntry> _items = [];
 
+  // Tracks selected transaction type (Expense/Income), category, icon, and date/time.
   TransactionType _selectedType = TransactionType.expense;
   String _selectedCategory = 'Food';
   IconData _selectedIcon = Icons.fastfood; // Added to track custom icons
@@ -76,15 +96,63 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     Icons.attach_money,
   ];
 
+  // Disposes all main and itemized line text controllers when the screen closes.
   @override
   void dispose() {
     _amountController.dispose();
     _noteController.dispose();
+    _merchantController.dispose();
+    for (final item in _items) {
+      item.dispose();
+    }
     super.dispose();
   }
 
+  // Appends a new blank itemized receipt line to _items.
+  void _addItemRow() {
+    setState(() => _items.add(_ItemEntry()));
+  }
+
+  // Removes an itemized receipt line at [index], disposes its controllers, and recalculates the total.
+  void _removeItemRow(int index) {
+    setState(() => _items.removeAt(index).dispose());
+    _syncTotalFromItems();
+  }
+
+  /// Keeps the total in sync with the item prices (user can still edit it).
+  void _syncTotalFromItems() {
+    final total = _items.fold<double>(0.0, (sum, i) => sum + i.price);
+    _amountController.text = total > 0
+        ? NumberFormat('#,##0.##', 'en_US').format(total)
+        : '';
+  }
+
+  /// Builds the description in the same format the receipt scanner uses.
+  String _buildDescription(String symbol) {
+    final buffer = StringBuffer();
+    final merchant = _merchantController.text.trim();
+    if (_selectedType == TransactionType.expense) {
+      if (merchant.isNotEmpty) buffer.writeln(merchant);
+      for (final item in _items) {
+        final name = item.nameController.text.trim();
+        if (name.isEmpty && item.price <= 0) continue;
+        final price = NumberFormat('#,##0.##', 'en_US').format(item.price);
+        buffer.writeln(
+          '- ${name.isEmpty ? AppLocalizations.of(context)!.unknownItem : name}: $symbol$price',
+        );
+      }
+    }
+    final note = _noteController.text.trim();
+    if (note.isNotEmpty) buffer.writeln(note);
+    final result = buffer.toString().trim();
+    return result.isEmpty ? AppLocalizations.of(context)!.noNote : result;
+  }
+
+  // Validates the entered amount, creates an AppTransaction, saves it to TransactionProvider,
+  // updates GamificationProvider (streak & first_expense badge), and navigates home.
   void _handleSave() {
-    final amount = double.tryParse(_amountController.text.replaceAll(',', '')) ?? 0.0;
+    final amount =
+        double.tryParse(_amountController.text.replaceAll(',', '')) ?? 0.0;
     if (amount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(AppLocalizations.of(context)!.enterValidAmount)),
@@ -96,9 +164,9 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       type: _selectedType,
       category: _selectedCategory,
-      description: _noteController.text.isEmpty
-          ? AppLocalizations.of(context)!.noNote
-          : _noteController.text,
+      description: _buildDescription(
+        Provider.of<SettingsProvider>(context, listen: false).currencySymbol,
+      ),
       amount: amount,
       dateTime: _selectedDate, // Now uses the actual selected date
       iconCodePoint: _selectedIcon.codePoint, // Uses the active icon
@@ -108,11 +176,15 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     );
 
     Provider.of<TransactionProvider>(context, listen: false).addTransaction(tx);
-    Provider.of<GamificationProvider>(context, listen: false).addTransactionEvent();
+    Provider.of<GamificationProvider>(
+      context,
+      listen: false,
+    ).addTransactionEvent();
 
     Navigator.of(context).pushAndRemoveUntil(
       PageRouteBuilder(
-        pageBuilder: (context, animation1, animation2) => const MainNavigationScreen(),
+        pageBuilder: (context, animation1, animation2) =>
+            const MainNavigationScreen(),
         transitionDuration: Duration.zero,
         reverseTransitionDuration: Duration.zero,
       ),
@@ -125,23 +197,47 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     final settings = Provider.of<SettingsProvider>(context, listen: false);
     // For custom icons, we MUST do a constant lookup to allow Flutter to tree-shake icon fonts
     const List<IconData> allKnownIcons = [
-      Icons.star, Icons.bolt, Icons.coffee, Icons.fitness_center, Icons.flight, 
-      Icons.gamepad, Icons.medical_services, Icons.pets, Icons.school, 
-      Icons.local_bar, Icons.build, Icons.card_giftcard, Icons.movie, 
-      Icons.headset, Icons.directions_bike, Icons.attach_money,
-      Icons.fastfood, Icons.directions_car, Icons.receipt_long, Icons.home,
-      Icons.shopping_bag, Icons.trending_up, Icons.restaurant, Icons.more_horiz,
+      Icons.star,
+      Icons.bolt,
+      Icons.coffee,
+      Icons.fitness_center,
+      Icons.flight,
+      Icons.gamepad,
+      Icons.medical_services,
+      Icons.pets,
+      Icons.school,
+      Icons.local_bar,
+      Icons.build,
+      Icons.card_giftcard,
+      Icons.movie,
+      Icons.headset,
+      Icons.directions_bike,
+      Icons.attach_money,
+      Icons.fastfood,
+      Icons.directions_car,
+      Icons.receipt_long,
+      Icons.home,
+      Icons.shopping_bag,
+      Icons.trending_up,
+      Icons.restaurant,
+      Icons.more_horiz,
     ];
 
     if (_selectedType == TransactionType.expense &&
         settings.customExpenseCategories.containsKey(category)) {
       final code = settings.customExpenseCategories[category]!;
-      return allKnownIcons.firstWhere((i) => i.codePoint == code, orElse: () => Icons.more_horiz);
+      return allKnownIcons.firstWhere(
+        (i) => i.codePoint == code,
+        orElse: () => Icons.more_horiz,
+      );
     }
     if (_selectedType == TransactionType.income &&
         settings.customIncomeCategories.containsKey(category)) {
       final code = settings.customIncomeCategories[category]!;
-      return allKnownIcons.firstWhere((i) => i.codePoint == code, orElse: () => Icons.more_horiz);
+      return allKnownIcons.firstWhere(
+        (i) => i.codePoint == code,
+        orElse: () => Icons.more_horiz,
+      );
     }
 
     switch (category) {
@@ -149,8 +245,8 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
         return Icons.fastfood;
       case 'Transport':
         return Icons.directions_car;
-      case 'Bill':
-        return Icons.receipt_long;
+      case 'Debt':
+        return Icons.money;
       case 'Rent':
         return Icons.home;
       case 'Shopping':
@@ -163,11 +259,18 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
         return Icons.card_giftcard;
       case 'Bonus':
         return Icons.star;
+      case 'water_bill':
+        return Icons.water_drop;
+      case 'internet_bill':
+        return Icons.wifi;
+      case 'electricity_bill':
+        return Icons.lightbulb;
       default:
         return Icons.more_horiz;
     }
   }
 
+  // Deletes a user-created custom category from SettingsProvider and resets selection if active.
   void _deleteCustomCategory(String cat) {
     final settings = Provider.of<SettingsProvider>(context, listen: false);
     if (_selectedType == TransactionType.expense) {
@@ -254,7 +357,9 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                             ),
                             child: Icon(
                               icon,
-                              color: isSelected ? Colors.white : Theme.of(context).colorScheme.onSurface,
+                              color: isSelected
+                                  ? Colors.white
+                                  : Theme.of(context).colorScheme.onSurface,
                             ),
                           ),
                         );
@@ -290,7 +395,9 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
                                     content: Text(
-                                      AppLocalizations.of(context)!.customExpenseLimitReached,
+                                      AppLocalizations.of(
+                                        context,
+                                      )!.customExpenseLimitReached,
                                     ),
                                   ),
                                 );
@@ -307,7 +414,9 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
                                     content: Text(
-                                      AppLocalizations.of(context)!.customIncomeLimitReached,
+                                      AppLocalizations.of(
+                                        context,
+                                      )!.customIncomeLimitReached,
                                     ),
                                   ),
                                 );
@@ -364,6 +473,28 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     return "${date.year}/${date.month.toString().padLeft(2, '0')}/${date.day.toString().padLeft(2, '0')}, ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}";
   }
 
+  InputDecoration _fieldDecoration(
+    String hint,
+    Color focusColor, {
+    IconData? icon,
+  }) {
+    OutlineInputBorder border(Color c) => OutlineInputBorder(
+      borderRadius: BorderRadius.circular(16),
+      borderSide: BorderSide(color: c),
+    );
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: TextStyle(
+        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
+      ),
+      prefixIcon: icon == null ? null : Icon(icon, size: 20),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      border: border(Colors.grey.shade300),
+      enabledBorder: border(Colors.grey.shade300),
+      focusedBorder: border(focusColor),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     // FIXED: Dynamic colors and titles based on Expense/Income selection
@@ -375,7 +506,9 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     final headerColor = isExpense
         ? const Color(0xFF5442F5)
         : const Color(0xFF10B981);
-    final headerTitle = isExpense ? AppLocalizations.of(context)!.addExpense : AppLocalizations.of(context)!.addIncome;
+    final headerTitle = isExpense
+        ? AppLocalizations.of(context)!.addExpense
+        : AppLocalizations.of(context)!.addIncome;
 
     return Scaffold(
       body: SingleChildScrollView(
@@ -406,7 +539,8 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                         onPressed: () {
                           Navigator.of(context).pushAndRemoveUntil(
                             PageRouteBuilder(
-                              pageBuilder: (context, animation1, animation2) => const MainNavigationScreen(),
+                              pageBuilder: (context, animation1, animation2) =>
+                                  const MainNavigationScreen(),
                               transitionDuration: Duration.zero,
                               reverseTransitionDuration: Duration.zero,
                             ),
@@ -512,9 +646,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
                     ),
-                    inputFormatters: [
-                      CurrencyInputFormatter(),
-                    ],
+                    inputFormatters: [CurrencyInputFormatter()],
                     textAlign: TextAlign.center,
                     style: const TextStyle(
                       color: Colors.white,
@@ -601,7 +733,10 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                                       size: 16,
                                       color: isSelected
                                           ? headerColor
-                                          : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                                          : Theme.of(context)
+                                                .colorScheme
+                                                .onSurface
+                                                .withValues(alpha: 0.6),
                                     ),
                                     const SizedBox(width: 8),
                                     Text(
@@ -609,7 +744,10 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                                       style: TextStyle(
                                         color: isSelected
                                             ? headerColor
-                                            : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                                            : Theme.of(context)
+                                                  .colorScheme
+                                                  .onSurface
+                                                  .withValues(alpha: 0.6),
                                         fontWeight: isSelected
                                             ? FontWeight.w600
                                             : FontWeight.normal,
@@ -651,7 +789,9 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text(
-                                  AppLocalizations.of(context)!.customExpenseLimitReachedDeleteFirst,
+                                  AppLocalizations.of(
+                                    context,
+                                  )!.customExpenseLimitReachedDeleteFirst,
                                 ),
                               ),
                             );
@@ -662,7 +802,9 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text(
-                                  AppLocalizations.of(context)!.customIncomeLimitReachedDeleteFirst,
+                                  AppLocalizations.of(
+                                    context,
+                                  )!.customIncomeLimitReachedDeleteFirst,
                                 ),
                               ),
                             );
@@ -682,7 +824,11 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                           ),
                           child: Text(
                             AppLocalizations.of(context)!.customPlus,
-                            style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)),
+                            style: TextStyle(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurface.withValues(alpha: 0.6),
+                            ),
                           ),
                         ),
                       ),
@@ -748,7 +894,9 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                           ),
                           Icon(
                             Icons.calendar_today_outlined,
-                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withValues(alpha: 0.5),
                             size: 20,
                           ),
                         ],
@@ -756,6 +904,90 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                     ),
                   ),
                   const SizedBox(height: 32),
+
+                  if (isExpense) ...[
+                    Text(
+                      AppLocalizations.of(context)!.merchantShopName,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _merchantController,
+                      textCapitalization: TextCapitalization.words,
+                      decoration: _fieldDecoration(
+                        AppLocalizations.of(context)!.merchantHint,
+                        headerColor,
+                        icon: Icons.storefront_outlined,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    Text(
+                      AppLocalizations.of(context)!.itemsOptional,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    for (int i = 0; i < _items.length; i++)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              flex: 3,
+                              child: TextField(
+                                controller: _items[i].nameController,
+                                textCapitalization:
+                                    TextCapitalization.sentences,
+                                decoration: _fieldDecoration(
+                                  AppLocalizations.of(context)!.itemNameHint,
+                                  headerColor,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              flex: 2,
+                              child: TextField(
+                                controller: _items[i].priceController,
+                                keyboardType:
+                                    const TextInputType.numberWithOptions(
+                                      decimal: true,
+                                    ),
+                                inputFormatters: [CurrencyInputFormatter()],
+                                onChanged: (_) => _syncTotalFromItems(),
+                                decoration: _fieldDecoration(
+                                  AppLocalizations.of(context)!.itemPriceHint,
+                                  headerColor,
+                                ),
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(
+                                Icons.remove_circle_outline,
+                                color: Colors.red,
+                              ),
+                              onPressed: () => _removeItemRow(i),
+                            ),
+                          ],
+                        ),
+                      ),
+                    TextButton.icon(
+                      onPressed: _addItemRow,
+                      icon: Icon(Icons.add, color: headerColor),
+                      label: Text(
+                        AppLocalizations.of(context)!.addItem,
+                        style: TextStyle(color: headerColor),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                  ],
 
                   Text(
                     AppLocalizations.of(context)!.note,
@@ -770,7 +1002,11 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                     controller: _noteController,
                     decoration: InputDecoration(
                       hintText: AppLocalizations.of(context)!.whatWasThisFor,
-                      hintStyle: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4)),
+                      hintStyle: TextStyle(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.4),
+                      ),
                       contentPadding: const EdgeInsets.symmetric(
                         horizontal: 16,
                         vertical: 16,
