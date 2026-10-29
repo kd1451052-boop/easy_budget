@@ -2,6 +2,27 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'gamification_provider.dart';
 
+// ============================================================================
+// FILE: streak_page.dart
+// PURPOSE: Dedicated Duolingo-style Daily Streak screen showing current streak,
+//          weekly activity calendar (Mon-Sun), Streak Freeze info, and streak
+//          milestone goals with placeholders for future rewards.
+//
+// PROCESS OVERVIEW (For Debugging & Understanding):
+// 1. Initialization (`initState`):
+//    - Starts a repeating scale animation (`_flameController`) for the hero flame.
+//    - Calls `GamificationProvider.checkAppOpened()` after the first frame to
+//      ensure today's streak is recorded and synced with `SharedPreferences`.
+// 2. Weekly Calendar Calculation (`_getCurrentWeekDays`):
+//    - Computes the 7 dates (`Monday` through `Sunday`) of the current week.
+//    - Checks `gamification.isDayActive(day)` for each day to render lit flame
+//      badges for completed days and highlight today's date.
+// 3. Milestone Goals & Future Rewards (`_buildMilestoneCard`):
+//    - Iterates through `gamification.streakMilestones` (3, 7, 14, 30, 60, 100 days).
+//    - Computes completion progress (`currentStreak / targetDays`) and provides
+//      `TODO(reward-system)` hooks for claiming rewards in the future.
+// ============================================================================
+
 class StreakPage extends StatefulWidget {
   const StreakPage({super.key});
 

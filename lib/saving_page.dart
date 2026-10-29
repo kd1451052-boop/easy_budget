@@ -36,7 +36,6 @@ class _SavingPageState extends State<SavingPage> {
   // Disposes text controllers when the screen is closed.
   @override
   void dispose() {
-    _nameController.dispose();
     _noteController.dispose();
     _amountController.dispose();
     super.dispose();
@@ -46,11 +45,16 @@ class _SavingPageState extends State<SavingPage> {
   // TransactionProvider, and navigates back to BudgetPage.
   void _handleSave() {
     final name = _nameController.text.trim();
-    final amount = double.tryParse(_amountController.text.replaceAll(',', '')) ?? 0.0;
+    final amount =
+        double.tryParse(_amountController.text.replaceAll(',', '')) ?? 0.0;
 
     if (name.isEmpty || amount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppLocalizations.of(context)!.enterValidNameAndGoalAmount)),
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(context)!.enterValidNameAndGoalAmount,
+          ),
+        ),
       );
       return;
     }
@@ -67,7 +71,10 @@ class _SavingPageState extends State<SavingPage> {
       createdAt: DateTime.now(),
     );
 
-    Provider.of<TransactionProvider>(context, listen: false).addSavingsGoal(goal);
+    Provider.of<TransactionProvider>(
+      context,
+      listen: false,
+    ).addSavingsGoal(goal);
     Navigator.pop(context);
   }
 
@@ -77,7 +84,10 @@ class _SavingPageState extends State<SavingPage> {
     final headerColor = const Color(0xFF10B981); // Emerald Green for savings
     final settings = Provider.of<SettingsProvider>(context);
     // Assuming savings are tracked against income/savings categories
-    final currentCategories = [..._incomeCategories, ...settings.customIncomeCategories.keys];
+    final currentCategories = [
+      ..._incomeCategories,
+      ...settings.customIncomeCategories.keys,
+    ];
 
     return Scaffold(
       appBar: AppBar(
@@ -95,7 +105,9 @@ class _SavingPageState extends State<SavingPage> {
               controller: _nameController,
               decoration: InputDecoration(
                 labelText: AppLocalizations.of(context)!.goalName,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
               ),
             ),
             const SizedBox(height: 16),
@@ -106,7 +118,9 @@ class _SavingPageState extends State<SavingPage> {
               style: const TextStyle(fontSize: 14),
               decoration: InputDecoration(
                 labelText: AppLocalizations.of(context)!.note,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
               ),
             ),
             const SizedBox(height: 16),
@@ -114,25 +128,34 @@ class _SavingPageState extends State<SavingPage> {
             // Amount
             TextField(
               controller: _amountController,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
               inputFormatters: [CurrencyInputFormatter()],
               decoration: InputDecoration(
                 labelText: AppLocalizations.of(context)!.targetAmount,
                 prefixText: '${settings.currencySymbol} ',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
               ),
             ),
             const SizedBox(height: 32),
 
             // Time Selection
-            Text(AppLocalizations.of(context)!.timeframe, style: const TextStyle(fontWeight: FontWeight.w600)),
+            Text(
+              AppLocalizations.of(context)!.timeframe,
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
             const SizedBox(height: 8),
             Row(
               children: [
                 Expanded(
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: _isFixed ? headerColor : Colors.grey.shade200,
+                      backgroundColor: _isFixed
+                          ? headerColor
+                          : Colors.grey.shade200,
                       foregroundColor: _isFixed ? Colors.white : Colors.black,
                     ),
                     onPressed: () => setState(() => _isFixed = true),
@@ -143,7 +166,9 @@ class _SavingPageState extends State<SavingPage> {
                 Expanded(
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: !_isFixed ? headerColor : Colors.grey.shade200,
+                      backgroundColor: !_isFixed
+                          ? headerColor
+                          : Colors.grey.shade200,
                       foregroundColor: !_isFixed ? Colors.white : Colors.black,
                     ),
                     onPressed: () => setState(() => _isFixed = false),
@@ -163,15 +188,21 @@ class _SavingPageState extends State<SavingPage> {
                     firstDate: DateTime(2020),
                     lastDate: DateTime(2030),
                   );
-                  if (pickedDate != null) setState(() => _selectedDate = pickedDate);
+                  if (pickedDate != null)
+                    setState(() => _selectedDate = pickedDate);
                 },
                 child: Container(
                   padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade300), borderRadius: BorderRadius.circular(16)),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey.shade300),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text("${_selectedDate.year}/${_selectedDate.month.toString().padLeft(2, '0')}/${_selectedDate.day.toString().padLeft(2, '0')}"),
+                      Text(
+                        "${_selectedDate.year}/${_selectedDate.month.toString().padLeft(2, '0')}/${_selectedDate.day.toString().padLeft(2, '0')}",
+                      ),
                       const Icon(Icons.calendar_today),
                     ],
                   ),
@@ -180,11 +211,24 @@ class _SavingPageState extends State<SavingPage> {
             else
               DropdownButtonFormField<BudgetPeriod>(
                 initialValue: _selectedPeriod,
-                decoration: InputDecoration(border: OutlineInputBorder(borderRadius: BorderRadius.circular(16))),
+                decoration: InputDecoration(
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
                 items: [
-                  DropdownMenuItem(value: BudgetPeriod.weekly, child: Text(AppLocalizations.of(context)!.weekly)),
-                  DropdownMenuItem(value: BudgetPeriod.monthly, child: Text(AppLocalizations.of(context)!.monthly)),
-                  DropdownMenuItem(value: BudgetPeriod.yearly, child: Text(AppLocalizations.of(context)!.yearly)),
+                  DropdownMenuItem(
+                    value: BudgetPeriod.weekly,
+                    child: Text(AppLocalizations.of(context)!.weekly),
+                  ),
+                  DropdownMenuItem(
+                    value: BudgetPeriod.monthly,
+                    child: Text(AppLocalizations.of(context)!.monthly),
+                  ),
+                  DropdownMenuItem(
+                    value: BudgetPeriod.yearly,
+                    child: Text(AppLocalizations.of(context)!.yearly),
+                  ),
                 ],
                 onChanged: (val) {
                   if (val != null) setState(() => _selectedPeriod = val);
@@ -193,7 +237,10 @@ class _SavingPageState extends State<SavingPage> {
             const SizedBox(height: 32),
 
             // Category Selection
-            Text(AppLocalizations.of(context)!.category, style: const TextStyle(fontWeight: FontWeight.w600)),
+            Text(
+              AppLocalizations.of(context)!.category,
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
             const SizedBox(height: 8),
             Wrap(
               spacing: 12,
@@ -203,13 +250,28 @@ class _SavingPageState extends State<SavingPage> {
                 return GestureDetector(
                   onTap: () => setState(() => _selectedCategory = cat),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 10,
+                    ),
                     decoration: BoxDecoration(
-                      color: isSelected ? headerColor.withValues(alpha: 0.1) : Colors.white,
-                      border: Border.all(color: isSelected ? headerColor : Colors.grey.shade300),
+                      color: isSelected
+                          ? headerColor.withValues(alpha: 0.1)
+                          : Colors.white,
+                      border: Border.all(
+                        color: isSelected ? headerColor : Colors.grey.shade300,
+                      ),
                       borderRadius: BorderRadius.circular(24),
                     ),
-                    child: Text(cat, style: TextStyle(color: isSelected ? headerColor : Colors.black54, fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal)),
+                    child: Text(
+                      cat,
+                      style: TextStyle(
+                        color: isSelected ? headerColor : Colors.black54,
+                        fontWeight: isSelected
+                            ? FontWeight.w600
+                            : FontWeight.normal,
+                      ),
+                    ),
                   ),
                 );
               }).toList(),
@@ -223,9 +285,18 @@ class _SavingPageState extends State<SavingPage> {
                 onPressed: _handleSave,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: headerColor,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                 ),
-                child: Text(AppLocalizations.of(context)!.saveGoal, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                child: Text(
+                  AppLocalizations.of(context)!.saveGoal,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
             ),
           ],
