@@ -245,6 +245,8 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
         return Icons.fastfood;
       case 'Transport':
         return Icons.directions_car;
+      case 'Bill':
+        return Icons.receipt_long;
       case 'Debt':
         return Icons.money;
       case 'Rent':

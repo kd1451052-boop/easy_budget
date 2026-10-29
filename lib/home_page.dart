@@ -96,9 +96,18 @@ class _HomePageState extends State<HomePage> {
       return 'W${index + 1}';
     } else {
       final months = [
-        l10n.monthJan, l10n.monthFeb, l10n.monthMar, l10n.monthApr,
-        l10n.monthMay, l10n.monthJun, l10n.monthJul, l10n.monthAug,
-        l10n.monthSep, l10n.monthOct, l10n.monthNov, l10n.monthDec,
+        l10n.monthJan,
+        l10n.monthFeb,
+        l10n.monthMar,
+        l10n.monthApr,
+        l10n.monthMay,
+        l10n.monthJun,
+        l10n.monthJul,
+        l10n.monthAug,
+        l10n.monthSep,
+        l10n.monthOct,
+        l10n.monthNov,
+        l10n.monthDec,
       ];
       return months[index % 12];
     }
@@ -106,10 +115,14 @@ class _HomePageState extends State<HomePage> {
 
   // Groups filtered transactions into time buckets (7 days, 5 weeks, or 12 months)
   // and sums each bucket's income and expense for the combo BarChart + LineChart.
-  Map<int, TimeBucketData> _getComboChartBuckets(List<AppTransaction> filteredTransactions) {
+  Map<int, TimeBucketData> _getComboChartBuckets(
+    List<AppTransaction> filteredTransactions,
+  ) {
     Map<int, TimeBucketData> buckets = {};
-    int nBuckets = _selectedPeriod == FilterPeriod.week ? 7 : (_selectedPeriod == FilterPeriod.month ? 5 : 12);
-    
+    int nBuckets = _selectedPeriod == FilterPeriod.week
+        ? 7
+        : (_selectedPeriod == FilterPeriod.month ? 5 : 12);
+
     for (int i = 0; i < nBuckets; i++) {
       buckets[i] = TimeBucketData();
     }
@@ -172,7 +185,8 @@ class _HomePageState extends State<HomePage> {
     final Map<String, Color> categoryColors = {};
 
     for (var t in expenses) {
-      categoryAmounts[t.category] = (categoryAmounts[t.category] ?? 0) + t.amount;
+      categoryAmounts[t.category] =
+          (categoryAmounts[t.category] ?? 0) + t.amount;
       categoryIcons[t.category] = t.icon;
       categoryColors[t.category] = t.iconColor;
     }
@@ -188,14 +202,17 @@ class _HomePageState extends State<HomePage> {
 
     int index = 0;
     return categoryAmounts.entries.map((entry) {
-      final color = categoryColors[entry.key] ?? sectionColors[index % sectionColors.length];
+      final color =
+          categoryColors[entry.key] ??
+          sectionColors[index % sectionColors.length];
       final icon = categoryIcons[entry.key] ?? Icons.category;
       index++;
 
       return PieChartSectionData(
         color: color,
         value: entry.value,
-        title: '${entry.key}\n$currencySymbol${NumberFormat("#,##0", "en_US").format(entry.value)}',
+        title:
+            '${entry.key}\n$currencySymbol${NumberFormat("#,##0", "en_US").format(entry.value)}',
         radius: 80, // Solid pie chart
         titleStyle: const TextStyle(
           fontSize: 10,
@@ -213,8 +230,8 @@ class _HomePageState extends State<HomePage> {
                 color: Colors.black.withValues(alpha: 0.1),
                 blurRadius: 4,
                 offset: const Offset(0, 2),
-              )
-            ]
+              ),
+            ],
           ),
           child: Icon(icon, color: color, size: 20),
         ),
@@ -320,9 +337,10 @@ class _HomePageState extends State<HomePage> {
                                   child: Text(
                                     AppLocalizations.of(context)!.noExpensesYet,
                                     style: TextStyle(
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.onSurface.withValues(alpha: 0.5),
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurface
+                                          .withValues(alpha: 0.5),
                                     ),
                                   ),
                                 ),
@@ -348,7 +366,9 @@ class _HomePageState extends State<HomePage> {
                         padding: const EdgeInsets.symmetric(horizontal: 24),
                         child: Container(
                           height: 220,
-                          margin: const EdgeInsets.only(bottom: 100), // To make room for FAB
+                          margin: const EdgeInsets.only(
+                            bottom: 100,
+                          ), // To make room for FAB
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
                             color: Theme.of(context).cardColor,
@@ -376,20 +396,37 @@ class _HomePageState extends State<HomePage> {
                                         showTitles: true,
                                         getTitlesWidget: (value, meta) {
                                           return Padding(
-                                            padding: const EdgeInsets.only(top: 8.0),
+                                            padding: const EdgeInsets.only(
+                                              top: 8.0,
+                                            ),
                                             child: Text(
-                                              _getBucketLabel(value.toInt(), AppLocalizations.of(context)!),
-                                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 10),
+                                              _getBucketLabel(
+                                                value.toInt(),
+                                                AppLocalizations.of(context)!,
+                                              ),
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 10,
+                                              ),
                                             ),
                                           );
                                         },
                                       ),
                                     ),
-                                    leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                                    topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                                    rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                                    leftTitles: const AxisTitles(
+                                      sideTitles: SideTitles(showTitles: false),
+                                    ),
+                                    topTitles: const AxisTitles(
+                                      sideTitles: SideTitles(showTitles: false),
+                                    ),
+                                    rightTitles: const AxisTitles(
+                                      sideTitles: SideTitles(showTitles: false),
+                                    ),
                                   ),
-                                  gridData: FlGridData(show: true, drawVerticalLine: false),
+                                  gridData: FlGridData(
+                                    show: true,
+                                    drawVerticalLine: false,
+                                  ),
                                   borderData: FlBorderData(show: false),
                                   barGroups: buckets.entries.map((e) {
                                     return BarChartGroupData(
@@ -399,13 +436,19 @@ class _HomePageState extends State<HomePage> {
                                           toY: e.value.income,
                                           color: const Color(0xFF10B981),
                                           width: 8,
-                                          borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+                                          borderRadius:
+                                              const BorderRadius.vertical(
+                                                top: Radius.circular(4),
+                                              ),
                                         ),
                                         BarChartRodData(
                                           toY: e.value.expense,
                                           color: const Color(0xFFEF4444),
                                           width: 8,
-                                          borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+                                          borderRadius:
+                                              const BorderRadius.vertical(
+                                                top: Radius.circular(4),
+                                              ),
                                         ),
                                       ],
                                     );
@@ -424,8 +467,17 @@ class _HomePageState extends State<HomePage> {
                                   lineTouchData: LineTouchData(enabled: false),
                                   lineBarsData: [
                                     LineChartBarData(
-                                      spots: buckets.entries.map((e) => FlSpot(e.key.toDouble(), e.value.netBalance)).toList(),
-                                      color: const Color(0xFF3B82F6), // Blue line for net balance
+                                      spots: buckets.entries
+                                          .map(
+                                            (e) => FlSpot(
+                                              e.key.toDouble(),
+                                              e.value.netBalance,
+                                            ),
+                                          )
+                                          .toList(),
+                                      color: const Color(
+                                        0xFF3B82F6,
+                                      ), // Blue line for net balance
                                       isCurved: true,
                                       barWidth: 3,
                                       dotData: const FlDotData(show: true),
@@ -478,9 +530,7 @@ class _HomePageState extends State<HomePage> {
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(
-                          builder: (_) => const StreakPage(),
-                        ),
+                        MaterialPageRoute(builder: (_) => const StreakPage()),
                       );
                     },
                     child: Padding(
@@ -505,11 +555,6 @@ class _HomePageState extends State<HomePage> {
                             ),
                           ),
                           const SizedBox(width: 4),
-                          const Icon(
-                            Icons.chevron_right_rounded,
-                            color: Colors.white70,
-                            size: 18,
-                          ),
                         ],
                       ),
                     ),
@@ -569,29 +614,21 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
           const SizedBox(height: 8),
-          Text(
-            '${Provider.of<SettingsProvider>(context).currencySymbol}${NumberFormat("#,##0.00", "en_US").format(balance.abs())}',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 40,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-            decoration: BoxDecoration(
-              color: balance >= 0 ? Colors.green.withValues(alpha: 0.2) : Colors.red.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Text(
-              balance >= 0 ? 'Positive Balance' : 'Negative Balance',
-              style: TextStyle(
-                color: balance >= 0 ? Colors.greenAccent : Colors.redAccent,
-                fontWeight: FontWeight.bold,
-                fontSize: 12,
-              )
-            ),
+          Builder(
+            builder: (context) {
+              final settings = Provider.of<SettingsProvider>(context);
+              final sign = balance < 0 ? '-' : '';
+              return Text(
+                '$sign${settings.currencySymbol}${settings.formatAmount(balance.abs())}',
+                style: TextStyle(
+                  color: balance >= 0
+                      ? Colors.greenAccent
+                      : Colors.redAccent,
+                  fontSize: 40,
+                  fontWeight: FontWeight.bold,
+                ),
+              );
+            },
           ),
           const SizedBox(height: 32),
 
@@ -657,20 +694,23 @@ class _HomePageState extends State<HomePage> {
             ],
           ),
           const SizedBox(height: 12),
-          Text(
-            '${Provider.of<SettingsProvider>(context).currencySymbol}${NumberFormat("#,##0.00", "en_US").format(amount)}',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
+          Builder(
+            builder: (context) {
+              final settings = Provider.of<SettingsProvider>(context);
+              return Text(
+                '${settings.currencySymbol}${settings.formatAmount(amount)}',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              );
+            },
           ),
         ],
       ),
     );
   }
-
-
 
   // Evaluates active budgets (>= 90% spent) and savings goals (behind schedule)
   // to generate warning alert tiles on the dashboard.

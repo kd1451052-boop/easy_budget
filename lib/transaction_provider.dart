@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'history.dart';
 import 'transaction_repository.dart';
@@ -10,15 +11,24 @@ class TransactionProvider extends ChangeNotifier {
   List<Budget> _budgets = [];
   List<SavingsGoal> _savingsGoals = [];
 
+  StreamSubscription? _authSub;
   StreamSubscription? _transactionsSub;
   StreamSubscription? _budgetsSub;
   StreamSubscription? _savingsSub;
 
   TransactionProvider() {
     _initStreams();
+    // Re-subscribe to Firestore streams whenever the user signs in, switches accounts, or logs out.
+    _authSub = FirebaseAuth.instance.authStateChanges().listen((_) {
+      _initStreams();
+    });
   }
 
   void _initStreams() {
+    _transactionsSub?.cancel();
+    _budgetsSub?.cancel();
+    _savingsSub?.cancel();
+
     _transactionsSub = _repository.getTransactionsStream().listen((data) {
       _transactions = data..sort((a, b) => b.dateTime.compareTo(a.dateTime));
       notifyListeners();
@@ -37,6 +47,7 @@ class TransactionProvider extends ChangeNotifier {
 
   @override
   void dispose() {
+    _authSub?.cancel();
     _transactionsSub?.cancel();
     _budgetsSub?.cancel();
     _savingsSub?.cancel();
@@ -48,13 +59,23 @@ class TransactionProvider extends ChangeNotifier {
   List<Budget> get budgets => _budgets;
   List<SavingsGoal> get savingsGoals => _savingsGoals;
 
-  /// Adds a transaction
+  /// Adds a transaction (optimistically updates local state and persists to Firestore)
   Future<void> addTransaction(AppTransaction t) async {
+    final existingIdx = _transactions.indexWhere((item) => item.id == t.id);
+    if (existingIdx >= 0) {
+      _transactions[existingIdx] = t;
+    } else {
+      _transactions = [..._transactions, t]
+        ..sort((a, b) => b.dateTime.compareTo(a.dateTime));
+    }
+    notifyListeners();
     await _repository.save(t);
   }
 
   /// Deletes a transaction
   Future<void> deleteTransaction(AppTransaction t) async {
+    _transactions = _transactions.where((item) => item.id != t.id).toList();
+    notifyListeners();
     await _repository.delete(t);
   }
 

@@ -15,7 +15,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:table_calendar/table_calendar.dart';
-import 'package:intl/intl.dart';
 import 'transaction_provider.dart';
 import 'settings_provider.dart';
 import 'category_localization.dart';
@@ -167,15 +166,22 @@ class _HistoryScreenState extends State<HistoryScreen> {
                       subtitle: Text(tx.description),
                       trailing: Padding(
                         padding: const EdgeInsets.only(right: 16.0),
-                        child: Text(
-                          '${isIncome ? '+' : '-'}${Provider.of<SettingsProvider>(context).currencySymbol}${NumberFormat("#,##0.00", "en_US").format(tx.amount)}',
-                          style: TextStyle(
-                            color: isIncome
-                                ? Colors.green
-                                : Theme.of(context).colorScheme.onSurface,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
+                        child: Builder(
+                          builder: (context) {
+                            final settings = Provider.of<SettingsProvider>(
+                              context,
+                            );
+                            return Text(
+                              '${isIncome ? '+' : '-'}${settings.currencySymbol}${settings.formatAmount(tx.amount)}',
+                              style: TextStyle(
+                                color: isIncome
+                                    ? Colors.green
+                                    : Theme.of(context).colorScheme.onSurface,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            );
+                          },
                         ),
                       ),
                     ),

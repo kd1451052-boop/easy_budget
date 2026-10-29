@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -85,6 +86,23 @@ class SettingsProvider extends ChangeNotifier {
       case 'USD':
       default: return '\$';
     }
+  }
+
+  /// Returns false for currencies that do not use decimal subunits (e.g., JPY ¥).
+  bool get currencyHasDecimals {
+    switch (selectedCurrency) {
+      case 'JPY':
+      case 'KRW':
+        return false;
+      default:
+        return true;
+    }
+  }
+
+  /// Formats [amount] with `.00` only if the active currency uses decimals.
+  String formatAmount(double amount) {
+    final pattern = currencyHasDecimals ? '#,##0.00' : '#,##0';
+    return NumberFormat(pattern, 'en_US').format(amount);
   }
 
   // --- Language ---
