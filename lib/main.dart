@@ -18,20 +18,32 @@ import 'scanner.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  await FirebaseAppCheck.instance.activate(
-    providerWeb: ReCaptchaEnterpriseProvider(
-      '6Ld6zQIuAAAAACinXuT2S9H_BAVrs-X6vifg1eVg',
-    ),
-    providerAndroid: AndroidDebugProvider(
-      debugToken: '293F7BA9-886D-419C-971B-1CDE516EFF37',
-    ),
-    providerApple: AppleDebugProvider(),
-  );
+
+  try {
+    await FirebaseAppCheck.instance
+        .activate(
+          providerWeb: ReCaptchaEnterpriseProvider(
+            '6Ld6zQIuAAAAACinXuT2S9H_BAVrs-X6vifg1eVg',
+          ),
+          providerAndroid: AndroidDebugProvider(
+            debugToken: '293F7BA9-886D-419C-971B-1CDE516EFF37',
+          ),
+          providerApple: AppleDebugProvider(),
+        )
+        .timeout(const Duration(seconds: 3));
+  } catch (e) {
+    debugPrint('AppCheck activate error: $e');
+  }
+
   await SettingsProvider.init();
 
-  final rememberMe = SettingsProvider.prefs.getBool('rememberMe') ?? false;
-  if (!rememberMe) {
-    await FirebaseAuth.instance.signOut();
+  try {
+    final rememberMe = SettingsProvider.prefs.getBool('rememberMe') ?? false;
+    if (!rememberMe && FirebaseAuth.instance.currentUser != null) {
+      await FirebaseAuth.instance.signOut().timeout(const Duration(seconds: 2));
+    }
+  } catch (e) {
+    debugPrint('Initial signOut error: $e');
   }
 
   runApp(
@@ -134,19 +146,13 @@ class RootWrapper extends StatelessWidget {
 
         return Consumer<SettingsProvider>(
           builder: (context, settings, child) {
-            Widget currentScreen;
             if (!settings.hasCompletedOnboarding) {
-              currentScreen = const LanguageSelectionPage();
+              return const LanguageSelectionPage();
             } else if (user == null) {
-              currentScreen = const LoginPage();
+              return const LoginPage();
             } else {
-              currentScreen = const MainNavigationScreen();
+              return const MainNavigationScreen();
             }
-
-            return AnimatedSwitcher(
-              duration: const Duration(milliseconds: 300),
-              child: currentScreen,
-            );
           },
         );
       },

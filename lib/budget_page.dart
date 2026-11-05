@@ -74,8 +74,12 @@ class _BudgetPageState extends State<BudgetPage> {
             }
             return true;
           }).toList();
-          // Keep only recurring savings goals, AI product goals, or fixed-date goals whose targetDate has not passed.
+          // Keep only non-completed savings goals that have not yet met their target amount.
           final activeSavings = provider.savingsGoals.where((s) {
+            if (s.isCompleted) return false;
+            if (s.amount > 0 && provider.getSavedAmountForGoal(s) >= s.amount) {
+              return false;
+            }
             if (s.isFixed && s.targetDate != null) {
               return !s.targetDate!.isBefore(now) || s.isAiProductGoal;
             }
@@ -331,16 +335,11 @@ class _BudgetPageState extends State<BudgetPage> {
           // Product Picture on the Left
           ClipRRect(
             borderRadius: BorderRadius.circular(14),
-            child: goal.productImageUrl != null &&
-                    goal.productImageUrl!.isNotEmpty
-                ? Image.network(
-                    goal.productImageUrl!,
-                    width: 68,
-                    height: 68,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, _, _) => _buildFallbackGoalImage(),
-                  )
-                : _buildFallbackGoalImage(),
+            child: _buildGoalThumbnail(
+              goal.productImageUrl,
+              size: 68,
+              fallback: _buildFallbackGoalImage(),
+            ),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -473,6 +472,21 @@ class _BudgetPageState extends State<BudgetPage> {
           ),
         ],
       ),
+    );
+  }
+
+  // Safely renders a saving goal thumbnail using SafeProductImage.
+  Widget _buildGoalThumbnail(
+    String? url, {
+    required double size,
+    required Widget fallback,
+  }) {
+    return SafeProductImage(
+      imageUrl: url,
+      width: size,
+      height: size,
+      cacheWidth: 140,
+      fallback: fallback,
     );
   }
 

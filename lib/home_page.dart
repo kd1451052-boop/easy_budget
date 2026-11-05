@@ -201,19 +201,22 @@ class _HomePageState extends State<HomePage> {
     ];
 
     int index = 0;
-    return categoryAmounts.entries.map((entry) {
-      final color =
-          categoryColors[entry.key] ??
-          sectionColors[index % sectionColors.length];
-      final icon = categoryIcons[entry.key] ?? Icons.category;
-      index++;
+    return categoryAmounts.entries
+        .where((entry) => entry.value.isFinite && entry.value > 0)
+        .map((entry) {
+          final color =
+              categoryColors[entry.key] ??
+              sectionColors[index % sectionColors.length];
+          final icon = categoryIcons[entry.key] ?? Icons.category;
+          final safeValue = entry.value.clamp(0.0, 1e12);
+          index++;
 
-      return PieChartSectionData(
-        color: color,
-        value: entry.value,
-        title:
-            '${entry.key}\n$currencySymbol${NumberFormat("#,##0", "en_US").format(entry.value)}',
-        radius: 80, // Solid pie chart
+          return PieChartSectionData(
+            color: color,
+            value: safeValue,
+            title:
+                '${entry.key}\n$currencySymbol${NumberFormat("#,##0", "en_US").format(safeValue)}',
+            radius: 80, // Solid pie chart
         titleStyle: const TextStyle(
           fontSize: 10,
           fontWeight: FontWeight.bold,
@@ -263,19 +266,33 @@ class _HomePageState extends State<HomePage> {
           double filteredBalance = filteredIncome - filteredExpense;
 
           final buckets = _getComboChartBuckets(filteredTransactions);
+          const double maxChartValue = 1e12;
           double comboMaxY = 0;
           double comboMinY = 0;
           for (var bucket in buckets.values) {
-            if (bucket.income > comboMaxY) comboMaxY = bucket.income;
-            if (bucket.expense > comboMaxY) comboMaxY = bucket.expense;
-            if (bucket.netBalance > comboMaxY) comboMaxY = bucket.netBalance;
-            if (bucket.netBalance < comboMinY) comboMinY = bucket.netBalance;
+            final inc = bucket.income.isFinite
+                ? bucket.income.clamp(0.0, maxChartValue)
+                : 0.0;
+            final exp = bucket.expense.isFinite
+                ? bucket.expense.clamp(0.0, maxChartValue)
+                : 0.0;
+            final net = (inc - exp).clamp(-maxChartValue, maxChartValue);
+            if (inc > comboMaxY) comboMaxY = inc;
+            if (exp > comboMaxY) comboMaxY = exp;
+            if (net > comboMaxY) comboMaxY = net;
+            if (net < comboMinY) comboMinY = net;
           }
-          comboMaxY = comboMaxY * 1.2;
-          if (comboMinY < 0) comboMinY = comboMinY * 1.2;
+          comboMaxY = (comboMaxY * 1.2).clamp(0.0, maxChartValue * 1.2);
+          if (comboMinY < 0) {
+            comboMinY = (comboMinY * 1.2).clamp(-maxChartValue * 1.2, 0.0);
+          }
           if (!comboMaxY.isFinite || comboMaxY <= 0) comboMaxY = 100;
           if (!comboMinY.isFinite || comboMinY > 0) comboMinY = 0;
           if (comboMaxY <= comboMinY) comboMaxY = comboMinY + 100;
+          final safeHorizontalInterval = ((comboMaxY - comboMinY) / 4).clamp(
+            1.0,
+            maxChartValue,
+          );
 
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -431,14 +448,27 @@ class _HomePageState extends State<HomePage> {
                                   gridData: FlGridData(
                                     show: true,
                                     drawVerticalLine: false,
+                                    horizontalInterval: safeHorizontalInterval,
                                   ),
                                   borderData: FlBorderData(show: false),
                                   barGroups: buckets.entries.map((e) {
+                                    final inc = e.value.income.isFinite
+                                        ? e.value.income.clamp(
+                                            0.0,
+                                            maxChartValue,
+                                          )
+                                        : 0.0;
+                                    final exp = e.value.expense.isFinite
+                                        ? e.value.expense.clamp(
+                                            0.0,
+                                            maxChartValue,
+                                          )
+                                        : 0.0;
                                     return BarChartGroupData(
                                       x: e.key,
                                       barRods: [
                                         BarChartRodData(
-                                          toY: e.value.income,
+                                          toY: inc,
                                           color: const Color(0xFF10B981),
                                           width: 8,
                                           borderRadius:
@@ -447,7 +477,7 @@ class _HomePageState extends State<HomePage> {
                                               ),
                                         ),
                                         BarChartRodData(
-                                          toY: e.value.expense,
+                                          toY: exp,
                                           color: const Color(0xFFEF4444),
                                           width: 8,
                                           borderRadius:
@@ -472,14 +502,27 @@ class _HomePageState extends State<HomePage> {
                                   lineTouchData: LineTouchData(enabled: false),
                                   lineBarsData: [
                                     LineChartBarData(
-                                      spots: buckets.entries
-                                          .map(
-                                            (e) => FlSpot(
-                                              e.key.toDouble(),
-                                              e.value.netBalance,
-                                            ),
-                                          )
-                                          .toList(),
+                                      spots: buckets.entries.map((e) {
+                                        final inc = e.value.income.isFinite
+                                            ? e.value.income.clamp(
+                                                0.0,
+                                                maxChartValue,
+                                              )
+                                            : 0.0;
+                                        final exp = e.value.expense.isFinite
+                                            ? e.value.expense.clamp(
+                                                0.0,
+                                                maxChartValue,
+                                              )
+                                            : 0.0;
+                                        return FlSpot(
+                                          e.key.toDouble(),
+                                          (inc - exp).clamp(
+                                            -maxChartValue,
+                                            maxChartValue,
+                                          ),
+                                        );
+                                      }).toList(),
                                       color: const Color(
                                         0xFF3B82F6,
                                       ), // Blue line for net balance
@@ -750,6 +793,7 @@ class _HomePageState extends State<HomePage> {
 
     // Check Savings
     for (var goal in provider.savingsGoals) {
+      if (goal.isCompleted) continue;
       if (goal.isFixed &&
           goal.targetDate != null &&
           goal.targetDate!.isBefore(now)) {
@@ -757,6 +801,9 @@ class _HomePageState extends State<HomePage> {
       }
 
       final saved = provider.getSavedAmountForGoal(goal);
+      if (goal.amount > 0 && saved >= goal.amount) {
+        continue; // Already reached
+      }
       if (goal.amount > 0) {
         bool showWarning = false;
 
@@ -875,12 +922,17 @@ class _HomePageState extends State<HomePage> {
   // Renders the active Saving Goals section on HomePage right between the Income & Expense
   // hero cards and the Expense Analytics pie chart, showing the item picture on the left,
   // dynamic days left, and how much is saved so far (adjusting with the main balance).
+  // Reached/completed goals are automatically removed from here and posted to B&S History.
   Widget _buildActiveSavingGoalsSection(
     TransactionProvider provider,
     String currency,
   ) {
     final now = DateTime.now();
     final activeSavings = provider.savingsGoals.where((s) {
+      if (s.isCompleted) return false;
+      if (s.amount > 0 && provider.getSavedAmountForGoal(s) >= s.amount) {
+        return false;
+      }
       if (s.isFixed && s.targetDate != null) {
         return !s.targetDate!.isBefore(now) || s.isAiProductGoal;
       }
@@ -943,17 +995,11 @@ class _HomePageState extends State<HomePage> {
                   // Picture of the item on the left
                   ClipRRect(
                     borderRadius: BorderRadius.circular(14),
-                    child: goal.productImageUrl != null &&
-                            goal.productImageUrl!.isNotEmpty
-                        ? Image.network(
-                            goal.productImageUrl!,
-                            width: 64,
-                            height: 64,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, _, _) =>
-                                _buildHomeFallbackGoalImage(),
-                          )
-                        : _buildHomeFallbackGoalImage(),
+                    child: _buildGoalThumbnail(
+                      goal.productImageUrl,
+                      size: 64,
+                      fallback: _buildHomeFallbackGoalImage(),
+                    ),
                   ),
                   const SizedBox(width: 14),
                   // Days left and how much saved so far on the right
@@ -1062,6 +1108,22 @@ class _HomePageState extends State<HomePage> {
           }),
         ],
       ),
+    );
+  }
+
+  // Safely renders a saving goal thumbnail using SafeProductImage so non-200 HTTP responses
+  // never throw NetworkImageLoadException.
+  Widget _buildGoalThumbnail(
+    String? url, {
+    required double size,
+    required Widget fallback,
+  }) {
+    return SafeProductImage(
+      imageUrl: url,
+      width: size,
+      height: size,
+      cacheWidth: 140,
+      fallback: fallback,
     );
   }
 

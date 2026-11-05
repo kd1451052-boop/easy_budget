@@ -57,8 +57,12 @@ class BAndSHistoryPage extends StatelessWidget {
             return false;
           }).toList();
           
-          // Filter savings goals to only include fixed-date goals with a targetDate before now.
+          // Filter savings goals to include reached/completed goals as well as fixed-date goals whose targetDate has passed.
           final expiredSavings = provider.savingsGoals.where((s) {
+            if (s.isCompleted) return true;
+            if (s.amount > 0 && provider.getSavedAmountForGoal(s) >= s.amount) {
+              return true;
+            }
             if (s.isFixed && s.targetDate != null) {
               return s.targetDate!.isBefore(now);
             }
@@ -163,54 +167,168 @@ class BAndSHistoryPage extends StatelessWidget {
     );
   }
 
-  // Builds a dimmed card for an expired savings goal, calculating how much was saved
-  // toward its target amount and allowing the user to delete it from history.
+  // Builds a card for a reached/completed or expired savings goal in B&S History,
+  // showing the product thumbnail, "Goal Reached!" badge, saved vs target amount, and delete button.
   Widget _buildSavingCard(BuildContext context, SavingsGoal goal, TransactionProvider provider, String currency) {
     final rawSaved = provider.getSavedAmountForGoal(goal);
     final saved = rawSaved.isFinite ? rawSaved : 0.0;
     final target = (goal.amount.isFinite && goal.amount > 0) ? goal.amount : 0.0;
-    final rawPercent = (target > 0) ? (saved / target) : 0.0;
+    final isReached = goal.isCompleted || (target > 0 && saved >= target);
+    final displaySaved = isReached && saved < target ? target : saved;
+    final rawPercent = (target > 0) ? (displaySaved / target) : 0.0;
     final percent = rawPercent.isFinite ? rawPercent.clamp(0.0, 1.0) : 0.0;
-    
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.grey.withValues(alpha: 0.1), // Dimmed for history
+        color: isReached
+            ? const Color(0xFF10B981).withValues(alpha: 0.08)
+            : Colors.grey.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Theme.of(context).dividerColor.withValues(alpha: 0.1)),
+        border: Border.all(
+          color: isReached
+              ? const Color(0xFF10B981).withValues(alpha: 0.35)
+              : Theme.of(context).dividerColor.withValues(alpha: 0.1),
+        ),
       ),
-      child: Column(
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(goal.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-              IconButton(
-                icon: const Icon(Icons.delete_outline, color: Colors.red),
-                onPressed: () => _showDeleteConfirmation(context, 'Saving Goal', () {
-                  provider.deleteSavingsGoal(goal);
-                }),
-              )
-            ],
+          ClipRRect(
+            borderRadius: BorderRadius.circular(14),
+            child: SafeProductImage(
+              imageUrl: goal.productImageUrl,
+              width: 60,
+              height: 60,
+              cacheWidth: 140,
+              fallback: Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF10B981).withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                alignment: Alignment.center,
+                child: const Icon(
+                  Icons.emoji_events_rounded,
+                  color: Color(0xFF10B981),
+                  size: 28,
+                ),
+              ),
+            ),
           ),
-          Text(goal.category, style: TextStyle(color: Colors.grey.shade500, fontSize: 12)),
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(AppLocalizations.of(context)!.savedText(currency, NumberFormat("#,##0", "en_US").format(saved))),
-              Text(AppLocalizations.of(context)!.goalText(currency, NumberFormat("#,##0", "en_US").format(target)), style: const TextStyle(fontWeight: FontWeight.bold)),
-            ],
-          ),
-          const SizedBox(height: 8),
-          LinearProgressIndicator(
-            value: percent,
-            backgroundColor: Colors.grey.shade300,
-            color: const Color(0xFF10B981).withValues(alpha: 0.5),
-            minHeight: 8,
-            borderRadius: BorderRadius.circular(4),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            goal.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            goal.productSite != null && goal.productSite!.isNotEmpty
+                                ? '${goal.productSite} • ${goal.category}'
+                                : goal.category,
+                            style: TextStyle(
+                              color: Colors.grey.shade500,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      constraints: const BoxConstraints(),
+                      padding: EdgeInsets.zero,
+                      icon: const Icon(
+                        Icons.delete_outline,
+                        color: Colors.red,
+                        size: 20,
+                      ),
+                      onPressed: () =>
+                          _showDeleteConfirmation(context, 'Saving Goal', () {
+                            provider.deleteSavingsGoal(goal);
+                          }),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isReached
+                        ? const Color(0xFF10B981).withValues(alpha: 0.16)
+                        : Colors.grey.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    isReached ? 'Goal Reached! 🎉' : 'Expired',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: isReached
+                          ? const Color(0xFF10B981)
+                          : Colors.grey.shade700,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      AppLocalizations.of(context)!.savedText(
+                        currency,
+                        NumberFormat("#,##0", "en_US").format(displaySaved),
+                      ),
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: isReached ? const Color(0xFF10B981) : null,
+                      ),
+                    ),
+                    Text(
+                      AppLocalizations.of(context)!.goalText(
+                        currency,
+                        NumberFormat("#,##0", "en_US").format(target),
+                      ),
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                LinearProgressIndicator(
+                  value: percent,
+                  backgroundColor: Colors.grey.shade300,
+                  color: isReached
+                      ? const Color(0xFF10B981)
+                      : const Color(0xFF10B981).withValues(alpha: 0.5),
+                  minHeight: 8,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ],
+            ),
           ),
         ],
       ),

@@ -12,7 +12,9 @@
 //See the License for the specific language governing permissions and
 //limitations under the License.
 
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http; // ignore: depend_on_referenced_packages
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'settings_provider.dart';
@@ -63,17 +65,27 @@ class AppTransaction {
   }
 
   factory AppTransaction.fromMap(Map<String, dynamic> map, String id) {
+    final rawAmount = map['amount'];
+    final parsedAmount = rawAmount is num
+        ? rawAmount.toDouble()
+        : (double.tryParse(rawAmount?.toString() ?? '0') ?? 0.0);
     return AppTransaction(
       id: id,
-      type: TransactionTypeExtension.fromString(map['type'] ?? 'expense'),
-      category: map['category'] ?? '',
-      description: map['description'] ?? '',
-      amount: (map['amount'] ?? 0.0).toDouble(),
+      type: TransactionTypeExtension.fromString(
+        map['type']?.toString() ?? 'expense',
+      ),
+      category: map['category']?.toString() ?? '',
+      description: map['description']?.toString() ?? '',
+      amount: parsedAmount.isFinite ? parsedAmount : 0.0,
       dateTime: map['dateTime'] != null
-          ? DateTime.parse(map['dateTime'])
+          ? (DateTime.tryParse(map['dateTime'].toString()) ?? DateTime.now())
           : DateTime.now(),
-      iconCodePoint: map['iconCodePoint'] ?? Icons.more_horiz.codePoint,
-      iconColorValue: map['iconColorValue'] ?? Colors.grey.value,
+      iconCodePoint: map['iconCodePoint'] is int
+          ? map['iconCodePoint'] as int
+          : Icons.more_horiz.codePoint,
+      iconColorValue: map['iconColorValue'] is int
+          ? map['iconColorValue'] as int
+          : Colors.grey.toARGB32(),
     );
   }
 
@@ -162,21 +174,25 @@ class Budget {
   }
 
   factory Budget.fromMap(Map<String, dynamic> map, String id) {
+    final rawAmount = map['amount'];
+    final parsedAmount = rawAmount is num
+        ? rawAmount.toDouble()
+        : (double.tryParse(rawAmount?.toString() ?? '0') ?? 0.0);
     return Budget(
       id: id,
-      name: map['name'] ?? '',
-      note: map['note'] ?? '',
-      amount: (map['amount'] ?? 0.0).toDouble(),
-      isFixed: map['isFixed'] ?? false,
+      name: map['name']?.toString() ?? '',
+      note: map['note']?.toString() ?? '',
+      amount: parsedAmount.isFinite ? parsedAmount : 0.0,
+      isFixed: map['isFixed'] == true,
       targetDate: map['targetDate'] != null
-          ? DateTime.parse(map['targetDate'])
+          ? DateTime.tryParse(map['targetDate'].toString())
           : null,
       period: map['period'] != null
-          ? BudgetPeriodExtension.fromString(map['period'])
+          ? BudgetPeriodExtension.fromString(map['period'].toString())
           : null,
-      category: map['category'] ?? '',
+      category: map['category']?.toString() ?? '',
       createdAt: map['createdAt'] != null
-          ? DateTime.parse(map['createdAt'])
+          ? (DateTime.tryParse(map['createdAt'].toString()) ?? DateTime.now())
           : DateTime.now(),
     );
   }
@@ -201,6 +217,8 @@ class SavingsGoal {
   final double? plannedDailySaving; // Estimated daily saving rate calculated by AI
   final double? initialSavedBalance; // Main balance snapshot when goal was created
   final String? aiPlanSummary; // AI explanation / tips for achieving the goal
+  final bool isCompleted; // True once the saving goal is met and moved to B&S History
+  final DateTime? completedAt; // Timestamp when the saving goal was met
 
   SavingsGoal({
     required this.id,
@@ -219,11 +237,41 @@ class SavingsGoal {
     this.plannedDailySaving,
     this.initialSavedBalance,
     this.aiPlanSummary,
+    this.isCompleted = false,
+    this.completedAt,
   });
 
   bool get isAiProductGoal =>
       (productSite != null && productSite!.isNotEmpty) ||
       (planMode != null && planMode!.isNotEmpty);
+
+  // Creates an updated copy of this SavingsGoal (e.g. when marking it completed and moving to history).
+  SavingsGoal copyWith({
+    bool? isCompleted,
+    DateTime? completedAt,
+    DateTime? targetDate,
+  }) {
+    return SavingsGoal(
+      id: id,
+      name: name,
+      note: note,
+      amount: amount,
+      isFixed: isFixed,
+      targetDate: targetDate ?? this.targetDate,
+      period: period,
+      category: category,
+      createdAt: createdAt,
+      productSite: productSite,
+      productImageUrl: productImageUrl,
+      productSiteUrl: productSiteUrl,
+      planMode: planMode,
+      plannedDailySaving: plannedDailySaving,
+      initialSavedBalance: initialSavedBalance,
+      aiPlanSummary: aiPlanSummary,
+      isCompleted: isCompleted ?? this.isCompleted,
+      completedAt: completedAt ?? this.completedAt,
+    );
+  }
 
   Map<String, dynamic> toMap() {
     return {
@@ -243,15 +291,21 @@ class SavingsGoal {
       'plannedDailySaving': plannedDailySaving,
       'initialSavedBalance': initialSavedBalance,
       'aiPlanSummary': aiPlanSummary,
+      'isCompleted': isCompleted,
+      'completedAt': completedAt?.toIso8601String(),
     };
   }
 
   factory SavingsGoal.fromMap(Map<String, dynamic> map, String id) {
+    final rawAmount = map['amount'];
+    final parsedAmount = rawAmount is num
+        ? rawAmount.toDouble()
+        : (double.tryParse(rawAmount?.toString() ?? '0') ?? 0.0);
     return SavingsGoal(
       id: id,
       name: map['name']?.toString() ?? '',
       note: map['note']?.toString() ?? '',
-      amount: double.tryParse(map['amount']?.toString() ?? '0') ?? 0.0,
+      amount: parsedAmount.isFinite ? parsedAmount : 0.0,
       isFixed: map['isFixed'] == true,
       targetDate: map['targetDate'] != null
           ? DateTime.tryParse(map['targetDate'].toString())
@@ -274,6 +328,123 @@ class SavingsGoal {
           ? double.tryParse(map['initialSavedBalance'].toString())
           : null,
       aiPlanSummary: map['aiPlanSummary']?.toString(),
+      isCompleted: map['isCompleted'] == true,
+      completedAt: map['completedAt'] != null
+          ? DateTime.tryParse(map['completedAt'].toString())
+          : null,
+    );
+  }
+}
+
+/// Safely loads and caches external product thumbnails using `package:http` and `Image.memory`
+/// instead of `Image.network`, preventing `_network_image_io.dart` from throwing
+/// `NetworkImageLoadException` (`DRT_ReThrow`) and pausing the IDE debugger on HTTP 403/404 responses.
+class SafeProductImage extends StatefulWidget {
+  final String? imageUrl;
+  final double? width;
+  final double? height;
+  final int? cacheWidth;
+  final BoxFit fit;
+  final Widget fallback;
+
+  const SafeProductImage({
+    super.key,
+    required this.imageUrl,
+    this.width,
+    this.height,
+    this.cacheWidth = 160,
+    this.fit = BoxFit.cover,
+    required this.fallback,
+  });
+
+  @override
+  State<SafeProductImage> createState() => _SafeProductImageState();
+}
+
+class _SafeProductImageState extends State<SafeProductImage> {
+  static final Map<String, Uint8List?> _byteCache = {};
+  static final Map<String, Future<Uint8List?>> _inFlight = {};
+
+  Uint8List? _bytes;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBytes();
+  }
+
+  @override
+  void didUpdateWidget(covariant SafeProductImage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.imageUrl != widget.imageUrl) {
+      _bytes = null;
+      _loadBytes();
+    }
+  }
+
+  // Fetches image bytes via HTTP GET with a browser-compatible User-Agent header,
+  // returning null without throwing on non-200 status codes.
+  static Future<Uint8List?> _fetchUrlBytes(String url) async {
+    final uri = Uri.tryParse(url);
+    if (uri == null ||
+        uri.scheme != 'https' ||
+        url.contains('loremflickr.com') ||
+        url.contains('unsplash.com') ||
+        url.length > 500) {
+      return null;
+    }
+    try {
+      final resp = await http
+          .get(
+            uri,
+            headers: const {
+              'User-Agent':
+                  'Mozilla/5.0 (Linux; Android 14) EasyBudget/1.0 Mobile',
+              'Accept': 'image/*,*/*;q=0.8',
+            },
+          )
+          .timeout(const Duration(seconds: 4));
+      if (resp.statusCode == 200 && resp.bodyBytes.length > 64) {
+        return resp.bodyBytes;
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  void _loadBytes() {
+    final url = widget.imageUrl?.trim();
+    if (url == null || url.isEmpty) return;
+
+    if (_byteCache.containsKey(url)) {
+      _bytes = _byteCache[url];
+      return;
+    }
+
+    final future = _inFlight.putIfAbsent(url, () => _fetchUrlBytes(url));
+    future.then((result) {
+      _byteCache[url] = result;
+      _inFlight.remove(url);
+      if (mounted && widget.imageUrl?.trim() == url && result != null) {
+        setState(() {
+          _bytes = result;
+        });
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final data = _bytes;
+    if (data == null || data.isEmpty) {
+      return widget.fallback;
+    }
+    return Image.memory(
+      data,
+      width: widget.width,
+      height: widget.height,
+      cacheWidth: widget.cacheWidth,
+      fit: widget.fit,
+      errorBuilder: (_, _, _) => widget.fallback,
     );
   }
 }

@@ -23,8 +23,14 @@ class TransactionRepository {
     final userDoc = _userDoc;
     if (userDoc == null) return Stream.value([]);
     return userDoc.collection(transactionsCol).snapshots().map((snapshot) {
-      return snapshot.docs.map((doc) => AppTransaction.fromMap(doc.data(), doc.id)).toList()
-        ..sort((a, b) => b.dateTime.compareTo(a.dateTime));
+      final list = <AppTransaction>[];
+      for (final doc in snapshot.docs) {
+        try {
+          list.add(AppTransaction.fromMap(doc.data(), doc.id));
+        } catch (_) {}
+      }
+      list.sort((a, b) => b.dateTime.compareTo(a.dateTime));
+      return list;
     });
   }
 
@@ -32,8 +38,14 @@ class TransactionRepository {
     final userDoc = _userDoc;
     if (userDoc == null) return Stream.value([]);
     return userDoc.collection(budgetsCol).snapshots().map((snapshot) {
-      return snapshot.docs.map((doc) => Budget.fromMap(doc.data(), doc.id)).toList()
-        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      final list = <Budget>[];
+      for (final doc in snapshot.docs) {
+        try {
+          list.add(Budget.fromMap(doc.data(), doc.id));
+        } catch (_) {}
+      }
+      list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return list;
     });
   }
 
@@ -41,8 +53,14 @@ class TransactionRepository {
     final userDoc = _userDoc;
     if (userDoc == null) return Stream.value([]);
     return userDoc.collection(savingsGoalsCol).snapshots().map((snapshot) {
-      return snapshot.docs.map((doc) => SavingsGoal.fromMap(doc.data(), doc.id)).toList()
-        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      final list = <SavingsGoal>[];
+      for (final doc in snapshot.docs) {
+        try {
+          list.add(SavingsGoal.fromMap(doc.data(), doc.id));
+        } catch (_) {}
+      }
+      list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return list;
     });
   }
 

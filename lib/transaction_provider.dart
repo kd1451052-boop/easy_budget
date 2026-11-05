@@ -10,17 +10,29 @@ class TransactionProvider extends ChangeNotifier {
   List<AppTransaction> _transactions = [];
   List<Budget> _budgets = [];
   List<SavingsGoal> _savingsGoals = [];
+  final List<SavingsGoal> _newlyReachedGoals = [];
+  final Set<String> _notifiedGoalIds = {};
 
   StreamSubscription? _authSub;
   StreamSubscription? _transactionsSub;
   StreamSubscription? _budgetsSub;
   StreamSubscription? _savingsSub;
+  String? _activeUid;
+  bool _hasLoadedTransactions = false;
+  bool _hasLoadedSavings = false;
 
   TransactionProvider() {
+    _activeUid = FirebaseAuth.instance.currentUser?.uid;
     _initStreams();
-    // Re-subscribe to Firestore streams whenever the user signs in, switches accounts, or logs out.
-    _authSub = FirebaseAuth.instance.authStateChanges().listen((_) {
-      _initStreams();
+    // Re-subscribe to Firestore streams only when the signed-in user's UID actually changes.
+    _authSub = FirebaseAuth.instance.authStateChanges().listen((user) {
+      final newUid = user?.uid;
+      if (newUid != _activeUid) {
+        _activeUid = newUid;
+        _hasLoadedTransactions = false;
+        _hasLoadedSavings = false;
+        _initStreams();
+      }
     });
   }
 
@@ -29,20 +41,86 @@ class TransactionProvider extends ChangeNotifier {
     _budgetsSub?.cancel();
     _savingsSub?.cancel();
 
-    _transactionsSub = _repository.getTransactionsStream().listen((data) {
-      _transactions = data..sort((a, b) => b.dateTime.compareTo(a.dateTime));
-      notifyListeners();
-    });
+    _transactionsSub = _repository.getTransactionsStream().listen(
+      (data) {
+        _transactions = data..sort((a, b) => b.dateTime.compareTo(a.dateTime));
+        _hasLoadedTransactions = true;
+        _checkAndCompleteReachedGoals();
+        notifyListeners();
+      },
+      onError: (Object e) => debugPrint('Transactions stream error: $e'),
+    );
 
-    _budgetsSub = _repository.getBudgetsStream().listen((data) {
-      _budgets = data;
-      notifyListeners();
-    });
+    _budgetsSub = _repository.getBudgetsStream().listen(
+      (data) {
+        _budgets = data;
+        notifyListeners();
+      },
+      onError: (Object e) => debugPrint('Budgets stream error: $e'),
+    );
 
-    _savingsSub = _repository.getSavingsGoalsStream().listen((data) {
-      _savingsGoals = data;
-      notifyListeners();
-    });
+    _savingsSub = _repository.getSavingsGoalsStream().listen(
+      (data) {
+        _savingsGoals = data;
+        for (final g in _savingsGoals) {
+          if (g.isCompleted) {
+            _notifiedGoalIds.add(g.id);
+          }
+        }
+        _hasLoadedSavings = true;
+        _checkAndCompleteReachedGoals();
+        notifyListeners();
+      },
+      onError: (Object e) => debugPrint('Savings goals stream error: $e'),
+    );
+  }
+
+  /// Checks all active saving goals and marks any goal whose saved amount has met or
+  /// exceeded its target amount as completed, moving it to B&S History and queuing
+  /// a "Goal Reached!" celebration popup.
+  void _checkAndCompleteReachedGoals({bool forceCheck = false}) {
+    if (!forceCheck && (!_hasLoadedTransactions || !_hasLoadedSavings)) {
+      return;
+    }
+
+    bool anyUpdated = false;
+    final now = DateTime.now();
+
+    for (int i = 0; i < _savingsGoals.length; i++) {
+      final goal = _savingsGoals[i];
+      if (goal.isCompleted) {
+        _notifiedGoalIds.add(goal.id);
+        continue;
+      }
+      if (goal.amount <= 0 || !goal.amount.isFinite) continue;
+
+      final saved = getSavedAmountForGoal(goal);
+      if (saved.isFinite && saved >= goal.amount) {
+        final completedGoal = goal.copyWith(
+          isCompleted: true,
+          completedAt: now,
+        );
+        _savingsGoals[i] = completedGoal;
+        anyUpdated = true;
+
+        if (!_notifiedGoalIds.contains(goal.id)) {
+          _notifiedGoalIds.add(goal.id);
+          _newlyReachedGoals.add(completedGoal);
+        }
+
+        unawaited(_repository.saveSavingsGoal(completedGoal));
+      }
+    }
+
+    if (anyUpdated) {
+      _savingsGoals = [..._savingsGoals];
+    }
+  }
+
+  /// Pops the next newly reached saving goal so the UI can display the "Goal Reached!" popup once.
+  SavingsGoal? consumeNewlyReachedGoal() {
+    if (_newlyReachedGoals.isEmpty) return null;
+    return _newlyReachedGoals.removeAt(0);
   }
 
   @override
@@ -68,6 +146,7 @@ class TransactionProvider extends ChangeNotifier {
       _transactions = [..._transactions, t]
         ..sort((a, b) => b.dateTime.compareTo(a.dateTime));
     }
+    _checkAndCompleteReachedGoals(forceCheck: true);
     notifyListeners();
     await _repository.save(t);
   }
@@ -75,6 +154,7 @@ class TransactionProvider extends ChangeNotifier {
   /// Deletes a transaction
   Future<void> deleteTransaction(AppTransaction t) async {
     _transactions = _transactions.where((item) => item.id != t.id).toList();
+    _checkAndCompleteReachedGoals(forceCheck: true);
     notifyListeners();
     await _repository.delete(t);
   }
@@ -105,8 +185,13 @@ class TransactionProvider extends ChangeNotifier {
       _savingsGoals = [..._savingsGoals, s]
         ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
     }
+    _checkAndCompleteReachedGoals(forceCheck: true);
+    final updatedGoal = _savingsGoals.firstWhere(
+      (item) => item.id == s.id,
+      orElse: () => s,
+    );
     notifyListeners();
-    await _repository.saveSavingsGoal(s);
+    await _repository.saveSavingsGoal(updatedGoal);
   }
 
   Future<void> deleteSavingsGoal(SavingsGoal s) async {
@@ -144,34 +229,53 @@ class TransactionProvider extends ChangeNotifier {
 
   // Filters transactions by a specific date (ignoring time)
   List<AppTransaction> getTransactionsForDate(DateTime date) {
-    return _transactions.where((t) =>
-        t.dateTime.year == date.year &&
-        t.dateTime.month == date.month &&
-        t.dateTime.day == date.day).toList();
+    return _transactions
+        .where(
+          (t) =>
+              t.dateTime.year == date.year &&
+              t.dateTime.month == date.month &&
+              t.dateTime.day == date.day,
+        )
+        .toList();
   }
 
   /// Calculates the amount spent towards a specific budget based on its period/fixed date
   double getSpentAmountForBudget(Budget budget) {
     final now = DateTime.now();
-    return _transactions.where((t) {
-      if (t.type != TransactionType.expense || t.category != budget.category) return false;
-      
-      if (budget.isFixed && budget.targetDate != null) {
-        // Includes all expenses before the target date
-        return t.dateTime.isBefore(budget.targetDate!) || t.dateTime.isAtSameMomentAs(budget.targetDate!);
-      } else if (!budget.isFixed && budget.period != null) {
-        if (budget.period == BudgetPeriod.weekly) {
-          DateTime startOfWeek = now.subtract(Duration(days: now.weekday - 1));
-          startOfWeek = DateTime(startOfWeek.year, startOfWeek.month, startOfWeek.day);
-          return t.dateTime.isAfter(startOfWeek.subtract(const Duration(seconds: 1)));
-        } else if (budget.period == BudgetPeriod.monthly) {
-          return t.dateTime.year == now.year && t.dateTime.month == now.month;
-        } else if (budget.period == BudgetPeriod.yearly) {
-          return t.dateTime.year == now.year;
-        }
-      }
-      return false;
-    }).fold(0.0, (sum, item) => sum + item.amount);
+    return _transactions
+        .where((t) {
+          if (t.type != TransactionType.expense ||
+              t.category != budget.category) {
+            return false;
+          }
+
+          if (budget.isFixed && budget.targetDate != null) {
+            // Includes all expenses before the target date
+            return t.dateTime.isBefore(budget.targetDate!) ||
+                t.dateTime.isAtSameMomentAs(budget.targetDate!);
+          } else if (!budget.isFixed && budget.period != null) {
+            if (budget.period == BudgetPeriod.weekly) {
+              DateTime startOfWeek = now.subtract(
+                Duration(days: now.weekday - 1),
+              );
+              startOfWeek = DateTime(
+                startOfWeek.year,
+                startOfWeek.month,
+                startOfWeek.day,
+              );
+              return t.dateTime.isAfter(
+                startOfWeek.subtract(const Duration(seconds: 1)),
+              );
+            } else if (budget.period == BudgetPeriod.monthly) {
+              return t.dateTime.year == now.year &&
+                  t.dateTime.month == now.month;
+            } else if (budget.period == BudgetPeriod.yearly) {
+              return t.dateTime.year == now.year;
+            }
+          }
+          return false;
+        })
+        .fold(0.0, (sum, item) => sum + item.amount);
   }
 
   /// Calculates the amount saved towards a specific savings goal.
@@ -179,31 +283,46 @@ class TransactionProvider extends ChangeNotifier {
   /// (plus any direct deposits to the goal's category).
   double getSavedAmountForGoal(SavingsGoal goal) {
     final now = DateTime.now();
-    final categorySaved = _transactions.where((t) {
-      if (t.type != TransactionType.expense || t.category != goal.category) return false;
-      
-      if (goal.isFixed && goal.targetDate != null) {
-        return t.dateTime.isBefore(goal.targetDate!) || t.dateTime.isAtSameMomentAs(goal.targetDate!);
-      } else if (!goal.isFixed && goal.period != null) {
-        if (goal.period == BudgetPeriod.weekly) {
-          DateTime startOfWeek = now.subtract(Duration(days: now.weekday - 1));
-          startOfWeek = DateTime(startOfWeek.year, startOfWeek.month, startOfWeek.day);
-          return t.dateTime.isAfter(startOfWeek.subtract(const Duration(seconds: 1)));
-        } else if (goal.period == BudgetPeriod.monthly) {
-          return t.dateTime.year == now.year && t.dateTime.month == now.month;
-        } else if (goal.period == BudgetPeriod.yearly) {
-          return t.dateTime.year == now.year;
-        }
-      }
-      return false;
-    }).fold(0.0, (sum, item) => sum + item.amount);
+    final categorySaved = _transactions
+        .where((t) {
+          if (t.type != TransactionType.expense || t.category != goal.category) {
+            return false;
+          }
 
-    if (goal.isAiProductGoal) {
-      // Adjust saved amount dynamically with the main balance (totalBalance).
-      return totalBalance + categorySaved;
+          if (goal.isFixed && goal.targetDate != null) {
+            return t.dateTime.isBefore(goal.targetDate!) ||
+                t.dateTime.isAtSameMomentAs(goal.targetDate!);
+          } else if (!goal.isFixed && goal.period != null) {
+            if (goal.period == BudgetPeriod.weekly) {
+              DateTime startOfWeek = now.subtract(
+                Duration(days: now.weekday - 1),
+              );
+              startOfWeek = DateTime(
+                startOfWeek.year,
+                startOfWeek.month,
+                startOfWeek.day,
+              );
+              return t.dateTime.isAfter(
+                startOfWeek.subtract(const Duration(seconds: 1)),
+              );
+            } else if (goal.period == BudgetPeriod.monthly) {
+              return t.dateTime.year == now.year &&
+                  t.dateTime.month == now.month;
+            } else if (goal.period == BudgetPeriod.yearly) {
+              return t.dateTime.year == now.year;
+            }
+          }
+          return false;
+        })
+        .fold(0.0, (sum, item) => sum + item.amount);
+
+    final double computedSaved = goal.isAiProductGoal
+        ? (totalBalance + categorySaved)
+        : categorySaved;
+    if (goal.isCompleted && computedSaved < goal.amount) {
+      return goal.amount;
     }
-
-    return categorySaved;
+    return computedSaved;
   }
 
   /// Calculates the effective daily saving rate for a goal based on AI plan or transaction history.
@@ -262,13 +381,17 @@ class TransactionProvider extends ChangeNotifier {
   /// Deletes budgets and savings goals that are older than 1 year.
   Future<void> cleanUpOldHistory() async {
     final oneYearAgo = DateTime.now().subtract(const Duration(days: 365));
-    
-    final oldBudgets = _budgets.where((b) => b.createdAt.isBefore(oneYearAgo)).toList();
+
+    final oldBudgets = _budgets
+        .where((b) => b.createdAt.isBefore(oneYearAgo))
+        .toList();
     for (var b in oldBudgets) {
       await deleteBudget(b);
     }
-    
-    final oldSavings = _savingsGoals.where((s) => s.createdAt.isBefore(oneYearAgo)).toList();
+
+    final oldSavings = _savingsGoals
+        .where((s) => s.createdAt.isBefore(oneYearAgo))
+        .toList();
     for (var s in oldSavings) {
       await deleteSavingsGoal(s);
     }

@@ -4,8 +4,6 @@ import 'package:provider/provider.dart';
 import 'package:easy_budget/l10n/app_localizations.dart';
 
 import 'settings_provider.dart';
-import 'language_selection_page.dart';
-import 'main_navigation_screen.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -95,17 +93,7 @@ class _LoginPageState extends State<LoginPage> {
         } else {
           settings.updateRememberedEmail('');
         }
-
-        // Navigation
-        if (!settings.hasCompletedOnboarding) {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (_) => const LanguageSelectionPage()),
-          );
-        } else {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (_) => const MainNavigationScreen()),
-          );
-        }
+        // RootWrapper's authStateChanges StreamBuilder automatically switches to MainNavigationScreen.
       }
     } on FirebaseAuthException catch (e) {
       setState(() {
@@ -357,12 +345,7 @@ class _LoginPageState extends State<LoginPage> {
                               if (mounted) {
                                 final settings = Provider.of<SettingsProvider>(context, listen: false);
                                 settings.setGuestUser(true);
-                                
-                                if (!settings.hasCompletedOnboarding) {
-                                  Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const LanguageSelectionPage()));
-                                } else {
-                                  Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const MainNavigationScreen()));
-                                }
+                                // RootWrapper's authStateChanges StreamBuilder automatically switches to MainNavigationScreen.
                               }
                             } on FirebaseAuthException catch (e) {
                               setState(() {

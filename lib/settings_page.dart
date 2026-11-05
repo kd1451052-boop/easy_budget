@@ -13,7 +13,6 @@ import 'profile_page.dart';
 import 'profile_avatar.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:archive/archive.dart';
-import 'login_page.dart';
 import 'dart:convert';
 
 class SettingsPage extends StatefulWidget {
@@ -433,10 +432,7 @@ class _SettingsPageState extends State<SettingsPage> {
       }
       await FirebaseAuth.instance.signOut();
       if (!context.mounted) return;
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const LoginPage()),
-        (route) => false,
-      );
+      Navigator.of(context).popUntil((route) => route.isFirst);
     });
   }
 
