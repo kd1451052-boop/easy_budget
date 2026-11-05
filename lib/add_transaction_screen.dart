@@ -22,7 +22,6 @@ import 'history.dart';
 import 'settings_provider.dart';
 import 'currency_input_formatter.dart';
 import 'package:easy_budget/l10n/app_localizations.dart';
-import 'scanner.dart';
 import 'category_localization.dart';
 
 class AddExpenseScreen extends StatefulWidget {

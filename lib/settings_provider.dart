@@ -101,8 +101,9 @@ class SettingsProvider extends ChangeNotifier {
 
   /// Formats [amount] with `.00` only if the active currency uses decimals.
   String formatAmount(double amount) {
+    final safeAmount = amount.isFinite ? amount : 0.0;
     final pattern = currencyHasDecimals ? '#,##0.00' : '#,##0';
-    return NumberFormat(pattern, 'en_US').format(amount);
+    return NumberFormat(pattern, 'en_US').format(safeAmount);
   }
 
   // --- Language ---

@@ -69,14 +69,16 @@ class _BudgetPageState extends State<BudgetPage> {
           final now = DateTime.now();
           // Keep only recurring budgets or fixed-date budgets whose targetDate has not passed.
           final activeBudgets = provider.budgets.where((b) {
-            if (b.isFixed && b.targetDate != null)
+            if (b.isFixed && b.targetDate != null) {
               return !b.targetDate!.isBefore(now);
+            }
             return true;
           }).toList();
-          // Keep only recurring savings goals or fixed-date goals whose targetDate has not passed.
+          // Keep only recurring savings goals, AI product goals, or fixed-date goals whose targetDate has not passed.
           final activeSavings = provider.savingsGoals.where((s) {
-            if (s.isFixed && s.targetDate != null)
-              return !s.targetDate!.isBefore(now);
+            if (s.isFixed && s.targetDate != null) {
+              return !s.targetDate!.isBefore(now) || s.isAiProductGoal;
+            }
             return true;
           }).toList();
           final currency = Provider.of<SettingsProvider>(
@@ -289,17 +291,29 @@ class _BudgetPageState extends State<BudgetPage> {
     );
   }
 
-  // Builds an active savings goal card, calculating the saved amount toward the target
-  // from TransactionProvider and rendering an emerald progress bar.
+  // Builds an active savings goal card, showing the product picture on the left,
+  // dynamic days left (which increases if the main balance drops or goes negative),
+  // how much is saved so far, and an emerald progress bar.
   Widget _buildSavingCard(
     BuildContext context,
     SavingsGoal goal,
     TransactionProvider provider,
     String currency,
   ) {
-    final saved = provider.getSavedAmountForGoal(goal);
-    final target = goal.amount;
-    final percent = (target > 0) ? (saved / target).clamp(0.0, 1.0) : 0.0;
+    final settings = Provider.of<SettingsProvider>(context, listen: false);
+    final rawSaved = provider.getSavedAmountForGoal(goal);
+    final saved = rawSaved.isFinite ? rawSaved : 0.0;
+    final target =
+        (goal.amount.isFinite && goal.amount > 0) ? goal.amount : 0.0;
+    final rawPercent = (target > 0) ? (saved / target) : 0.0;
+    final percent = rawPercent.isFinite ? rawPercent.clamp(0.0, 1.0) : 0.0;
+    final daysLeft = provider.getDynamicDaysLeftForGoal(goal);
+    final extraDays = provider.getExtraDaysAddedFromBalance(goal);
+    final isNegativeSaved = saved < 0;
+    final savedSign = isNegativeSaved ? '-' : '';
+    final formattedSaved =
+        '$savedSign$currency${settings.formatAmount(saved.abs())}';
+    final formattedTarget = '$currency${settings.formatAmount(target)}';
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -311,60 +325,171 @@ class _BudgetPageState extends State<BudgetPage> {
           color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
         ),
       ),
-      child: Column(
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                goal.name,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
-              ),
-              IconButton(
-                icon: const Icon(Icons.delete_outline, color: Colors.red),
-                onPressed: () =>
-                    _showDeleteConfirmation(context, 'Saving Goal', () {
-                      provider.deleteSavingsGoal(goal);
-                    }),
-              ),
-            ],
+          // Product Picture on the Left
+          ClipRRect(
+            borderRadius: BorderRadius.circular(14),
+            child: goal.productImageUrl != null &&
+                    goal.productImageUrl!.isNotEmpty
+                ? Image.network(
+                    goal.productImageUrl!,
+                    width: 68,
+                    height: 68,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, _, _) => _buildFallbackGoalImage(),
+                  )
+                : _buildFallbackGoalImage(),
           ),
-          Text(
-            goal.category,
-            style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                AppLocalizations.of(context)!.savedText(
-                  currency,
-                  NumberFormat("#,##0", "en_US").format(saved),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            goal.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            goal.productSite != null &&
+                                    goal.productSite!.isNotEmpty
+                                ? '${goal.productSite} • ${goal.category}'
+                                : goal.category,
+                            style: TextStyle(
+                              color: Colors.grey.shade500,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      constraints: const BoxConstraints(),
+                      padding: EdgeInsets.zero,
+                      icon: const Icon(
+                        Icons.delete_outline,
+                        color: Colors.red,
+                        size: 20,
+                      ),
+                      onPressed: () =>
+                          _showDeleteConfirmation(context, 'Saving Goal', () {
+                            provider.deleteSavingsGoal(goal);
+                          }),
+                    ),
+                  ],
                 ),
-              ),
-              Text(
-                AppLocalizations.of(context)!.goalText(
-                  currency,
-                  NumberFormat("#,##0", "en_US").format(target),
+                const SizedBox(height: 8),
+                // Days Left Badge + Extra Days Warning when main balance is negative
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF10B981).withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        daysLeft == 0
+                            ? 'Goal Reached!'
+                            : '$daysLeft days left',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF10B981),
+                        ),
+                      ),
+                    ),
+                    if (extraDays > 0)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.redAccent.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          '+$extraDays days (Negative Balance)',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.redAccent,
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          LinearProgressIndicator(
-            value: percent,
-            backgroundColor: Colors.grey.shade200,
-            color: const Color(0xFF10B981),
-            minHeight: 8,
-            borderRadius: BorderRadius.circular(4),
+                const SizedBox(height: 10),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Saved: $formattedSaved',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: isNegativeSaved ? Colors.redAccent : null,
+                      ),
+                    ),
+                    Text(
+                      'Goal: $formattedTarget',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                LinearProgressIndicator(
+                  value: percent,
+                  backgroundColor: Colors.grey.shade200,
+                  color: const Color(0xFF10B981),
+                  minHeight: 8,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ],
+            ),
           ),
         ],
+      ),
+    );
+  }
+
+  // Builds a fallback icon thumbnail when a saving goal does not have a network product image.
+  Widget _buildFallbackGoalImage() {
+    return Container(
+      width: 68,
+      height: 68,
+      decoration: BoxDecoration(
+        color: const Color(0xFF10B981).withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      alignment: Alignment.center,
+      child: const Icon(
+        Icons.savings_rounded,
+        color: Color(0xFF10B981),
+        size: 32,
       ),
     );
   }

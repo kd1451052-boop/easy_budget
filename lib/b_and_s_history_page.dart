@@ -166,9 +166,11 @@ class BAndSHistoryPage extends StatelessWidget {
   // Builds a dimmed card for an expired savings goal, calculating how much was saved
   // toward its target amount and allowing the user to delete it from history.
   Widget _buildSavingCard(BuildContext context, SavingsGoal goal, TransactionProvider provider, String currency) {
-    final saved = provider.getSavedAmountForGoal(goal);
-    final target = goal.amount;
-    final percent = (target > 0) ? (saved / target).clamp(0.0, 1.0) : 0.0;
+    final rawSaved = provider.getSavedAmountForGoal(goal);
+    final saved = rawSaved.isFinite ? rawSaved : 0.0;
+    final target = (goal.amount.isFinite && goal.amount > 0) ? goal.amount : 0.0;
+    final rawPercent = (target > 0) ? (saved / target) : 0.0;
+    final percent = rawPercent.isFinite ? rawPercent.clamp(0.0, 1.0) : 0.0;
     
     return Container(
       margin: const EdgeInsets.only(bottom: 16),

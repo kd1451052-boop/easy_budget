@@ -50,8 +50,14 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       );
       gamification.onAchievementUnlocked = () {
         if (!mounted) return;
-        _confettiController.play();
-        _audioPlayer.play(AssetSource('sounds/tada.wav'));
+        try {
+          _confettiController.play();
+        } catch (e) {
+          debugPrint('Confetti play error: $e');
+        }
+        _audioPlayer
+            .play(AssetSource('sounds/tada.wav'))
+            .catchError((Object e) => debugPrint('Audio play error: $e'));
       };
     });
   }

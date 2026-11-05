@@ -193,6 +193,15 @@ class SavingsGoal {
   final String category;
   final DateTime createdAt;
 
+  // Optional AI product saving fields
+  final String? productSite; // e.g., 'Amazon', 'Yahoo! Shopping', 'Rakuten Ichiba', 'Mercari'
+  final String? productImageUrl; // Product thumbnail URL
+  final String? productSiteUrl; // Store product/search URL
+  final String? planMode; // 'usual' or 'cut_expenses'
+  final double? plannedDailySaving; // Estimated daily saving rate calculated by AI
+  final double? initialSavedBalance; // Main balance snapshot when goal was created
+  final String? aiPlanSummary; // AI explanation / tips for achieving the goal
+
   SavingsGoal({
     required this.id,
     required this.name,
@@ -203,7 +212,18 @@ class SavingsGoal {
     this.period,
     required this.category,
     required this.createdAt,
+    this.productSite,
+    this.productImageUrl,
+    this.productSiteUrl,
+    this.planMode,
+    this.plannedDailySaving,
+    this.initialSavedBalance,
+    this.aiPlanSummary,
   });
+
+  bool get isAiProductGoal =>
+      (productSite != null && productSite!.isNotEmpty) ||
+      (planMode != null && planMode!.isNotEmpty);
 
   Map<String, dynamic> toMap() {
     return {
@@ -216,26 +236,44 @@ class SavingsGoal {
       'period': period?.toShortString(),
       'category': category,
       'createdAt': createdAt.toIso8601String(),
+      'productSite': productSite,
+      'productImageUrl': productImageUrl,
+      'productSiteUrl': productSiteUrl,
+      'planMode': planMode,
+      'plannedDailySaving': plannedDailySaving,
+      'initialSavedBalance': initialSavedBalance,
+      'aiPlanSummary': aiPlanSummary,
     };
   }
 
   factory SavingsGoal.fromMap(Map<String, dynamic> map, String id) {
     return SavingsGoal(
       id: id,
-      name: map['name'] ?? '',
-      note: map['note'] ?? '',
-      amount: (map['amount'] ?? 0.0).toDouble(),
-      isFixed: map['isFixed'] ?? false,
+      name: map['name']?.toString() ?? '',
+      note: map['note']?.toString() ?? '',
+      amount: double.tryParse(map['amount']?.toString() ?? '0') ?? 0.0,
+      isFixed: map['isFixed'] == true,
       targetDate: map['targetDate'] != null
-          ? DateTime.parse(map['targetDate'])
+          ? DateTime.tryParse(map['targetDate'].toString())
           : null,
       period: map['period'] != null
-          ? BudgetPeriodExtension.fromString(map['period'])
+          ? BudgetPeriodExtension.fromString(map['period'].toString())
           : null,
-      category: map['category'] ?? '',
+      category: map['category']?.toString() ?? '',
       createdAt: map['createdAt'] != null
-          ? DateTime.parse(map['createdAt'])
+          ? (DateTime.tryParse(map['createdAt'].toString()) ?? DateTime.now())
           : DateTime.now(),
+      productSite: map['productSite']?.toString(),
+      productImageUrl: map['productImageUrl']?.toString(),
+      productSiteUrl: map['productSiteUrl']?.toString(),
+      planMode: map['planMode']?.toString(),
+      plannedDailySaving: map['plannedDailySaving'] != null
+          ? double.tryParse(map['plannedDailySaving'].toString())
+          : null,
+      initialSavedBalance: map['initialSavedBalance'] != null
+          ? double.tryParse(map['initialSavedBalance'].toString())
+          : null,
+      aiPlanSummary: map['aiPlanSummary']?.toString(),
     );
   }
 }

@@ -80,18 +80,38 @@ class TransactionProvider extends ChangeNotifier {
   }
 
   Future<void> addBudget(Budget b) async {
+    final existingIdx = _budgets.indexWhere((item) => item.id == b.id);
+    if (existingIdx >= 0) {
+      _budgets[existingIdx] = b;
+    } else {
+      _budgets = [..._budgets, b]
+        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    }
+    notifyListeners();
     await _repository.saveBudget(b);
   }
 
   Future<void> deleteBudget(Budget b) async {
+    _budgets = _budgets.where((item) => item.id != b.id).toList();
+    notifyListeners();
     await _repository.deleteBudget(b);
   }
 
   Future<void> addSavingsGoal(SavingsGoal s) async {
+    final existingIdx = _savingsGoals.indexWhere((item) => item.id == s.id);
+    if (existingIdx >= 0) {
+      _savingsGoals[existingIdx] = s;
+    } else {
+      _savingsGoals = [..._savingsGoals, s]
+        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    }
+    notifyListeners();
     await _repository.saveSavingsGoal(s);
   }
 
   Future<void> deleteSavingsGoal(SavingsGoal s) async {
+    _savingsGoals = _savingsGoals.where((item) => item.id != s.id).toList();
+    notifyListeners();
     await _repository.deleteSavingsGoal(s);
   }
 
@@ -154,11 +174,12 @@ class TransactionProvider extends ChangeNotifier {
     }).fold(0.0, (sum, item) => sum + item.amount);
   }
 
-  /// Calculates the amount saved towards a specific savings goal
-  /// Assumes we track "expense" transactions into the savings category as money put towards savings.
+  /// Calculates the amount saved towards a specific savings goal.
+  /// For AI Product Saving Goals, saved progress adjusts dynamically with the main balance
+  /// (plus any direct deposits to the goal's category).
   double getSavedAmountForGoal(SavingsGoal goal) {
     final now = DateTime.now();
-    return _transactions.where((t) {
+    final categorySaved = _transactions.where((t) {
       if (t.type != TransactionType.expense || t.category != goal.category) return false;
       
       if (goal.isFixed && goal.targetDate != null) {
@@ -176,6 +197,66 @@ class TransactionProvider extends ChangeNotifier {
       }
       return false;
     }).fold(0.0, (sum, item) => sum + item.amount);
+
+    if (goal.isAiProductGoal) {
+      // Adjust saved amount dynamically with the main balance (totalBalance).
+      return totalBalance + categorySaved;
+    }
+
+    return categorySaved;
+  }
+
+  /// Calculates the effective daily saving rate for a goal based on AI plan or transaction history.
+  double getEffectiveDailySavingRate(SavingsGoal goal) {
+    if (goal.plannedDailySaving != null &&
+        goal.plannedDailySaving!.isFinite &&
+        goal.plannedDailySaving! > 0) {
+      return goal.plannedDailySaving!;
+    }
+    // Fallback: estimate from historical average daily income or target / 30 days
+    final incomeTotal = totalIncome;
+    final expenseTotal = totalExpense;
+    final net = incomeTotal - expenseTotal;
+    final safeGoalAmount = goal.amount > 1.0 ? goal.amount : 1.0;
+    if (net > 0) {
+      return (net / 30.0).clamp(1.0, safeGoalAmount);
+    }
+    return (safeGoalAmount / 30.0).clamp(1.0, double.infinity);
+  }
+
+  /// Calculates the dynamic number of days left to achieve a savings goal.
+  /// If the user makes more expense transactions or goes into a negative main balance,
+  /// the remaining gap increases and adds more days to achieve the saving goal.
+  int getDynamicDaysLeftForGoal(SavingsGoal goal) {
+    final savedSoFar = getSavedAmountForGoal(goal);
+    final remainingNeeded = goal.amount - savedSoFar;
+    if (!remainingNeeded.isFinite || remainingNeeded <= 0) {
+      return 0;
+    }
+
+    final dailyRate = getEffectiveDailySavingRate(goal);
+    if (dailyRate.isFinite && dailyRate > 0) {
+      final ratio = remainingNeeded / dailyRate;
+      if (ratio.isFinite) {
+        return ratio.ceil().clamp(0, 36500);
+      }
+    }
+
+    if (goal.targetDate != null) {
+      final diff = goal.targetDate!.difference(DateTime.now()).inDays;
+      return diff < 0 ? 0 : diff;
+    }
+    return 30;
+  }
+
+  /// Returns how many extra days were added because of a negative balance or new expenses.
+  int getExtraDaysAddedFromBalance(SavingsGoal goal) {
+    if (totalBalance >= 0) return 0;
+    final dailyRate = getEffectiveDailySavingRate(goal);
+    if (!dailyRate.isFinite || dailyRate <= 0) return 0;
+    final ratio = totalBalance.abs() / dailyRate;
+    if (!ratio.isFinite) return 0;
+    return ratio.ceil().clamp(0, 36500);
   }
 
   /// Deletes budgets and savings goals that are older than 1 year.

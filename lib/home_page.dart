@@ -273,7 +273,9 @@ class _HomePageState extends State<HomePage> {
           }
           comboMaxY = comboMaxY * 1.2;
           if (comboMinY < 0) comboMinY = comboMinY * 1.2;
-          if (comboMaxY == 0) comboMaxY = 100;
+          if (!comboMaxY.isFinite || comboMaxY <= 0) comboMaxY = 100;
+          if (!comboMinY.isFinite || comboMinY > 0) comboMinY = 0;
+          if (comboMaxY <= comboMinY) comboMaxY = comboMinY + 100;
 
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -289,6 +291,9 @@ class _HomePageState extends State<HomePage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // Active Saving Goals Section (placed between Income & Expense and Expense Analytics)
+                      _buildActiveSavingGoalsSection(provider, currencySymbol),
+
                       // Analytics Section
                       Padding(
                         padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
@@ -722,8 +727,9 @@ class _HomePageState extends State<HomePage> {
     for (var budget in provider.budgets) {
       if (budget.isFixed &&
           budget.targetDate != null &&
-          budget.targetDate!.isBefore(now))
+          budget.targetDate!.isBefore(now)) {
         continue; // Expired
+      }
 
       final spent = provider.getSpentAmountForBudget(budget);
       if (budget.amount > 0 && spent >= budget.amount * 0.9) {
@@ -746,8 +752,9 @@ class _HomePageState extends State<HomePage> {
     for (var goal in provider.savingsGoals) {
       if (goal.isFixed &&
           goal.targetDate != null &&
-          goal.targetDate!.isBefore(now))
+          goal.targetDate!.isBefore(now)) {
         continue; // Expired
+      }
 
       final saved = provider.getSavedAmountForGoal(goal);
       if (goal.amount > 0) {
@@ -766,16 +773,19 @@ class _HomePageState extends State<HomePage> {
         } else if (!goal.isFixed && goal.period != null) {
           if (goal.period == BudgetPeriod.monthly &&
               now.day >= 24 &&
-              saved < goal.amount)
+              saved < goal.amount) {
             showWarning = true;
+          }
           if (goal.period == BudgetPeriod.weekly &&
               now.weekday >= 6 &&
-              saved < goal.amount)
+              saved < goal.amount) {
             showWarning = true;
+          }
           if (goal.period == BudgetPeriod.yearly &&
               now.month >= 11 &&
-              saved < goal.amount)
+              saved < goal.amount) {
             showWarning = true;
+          }
         }
 
         if (showWarning) {
@@ -858,6 +868,217 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  // Renders the active Saving Goals section on HomePage right between the Income & Expense
+  // hero cards and the Expense Analytics pie chart, showing the item picture on the left,
+  // dynamic days left, and how much is saved so far (adjusting with the main balance).
+  Widget _buildActiveSavingGoalsSection(
+    TransactionProvider provider,
+    String currency,
+  ) {
+    final now = DateTime.now();
+    final activeSavings = provider.savingsGoals.where((s) {
+      if (s.isFixed && s.targetDate != null) {
+        return !s.targetDate!.isBefore(now) || s.isAiProductGoal;
+      }
+      return true;
+    }).toList();
+
+    if (activeSavings.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final settings = Provider.of<SettingsProvider>(context, listen: false);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            AppLocalizations.of(context)!.savingGoals,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
+          ),
+          const SizedBox(height: 12),
+          ...activeSavings.map((goal) {
+            final rawSaved = provider.getSavedAmountForGoal(goal);
+            final saved = rawSaved.isFinite ? rawSaved : 0.0;
+            final target =
+                (goal.amount.isFinite && goal.amount > 0) ? goal.amount : 0.0;
+            final rawPercent = (target > 0) ? (saved / target) : 0.0;
+            final percent =
+                rawPercent.isFinite ? rawPercent.clamp(0.0, 1.0) : 0.0;
+            final daysLeft = provider.getDynamicDaysLeftForGoal(goal);
+            final extraDays = provider.getExtraDaysAddedFromBalance(goal);
+            final isNegativeSaved = saved < 0;
+            final savedSign = isNegativeSaved ? '-' : '';
+            final formattedSaved =
+                '$savedSign$currency${settings.formatAmount(saved.abs())}';
+            final formattedTarget = '$currency${settings.formatAmount(target)}';
+
+            return Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Theme.of(context).cardColor,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.03),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  // Picture of the item on the left
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(14),
+                    child: goal.productImageUrl != null &&
+                            goal.productImageUrl!.isNotEmpty
+                        ? Image.network(
+                            goal.productImageUrl!,
+                            width: 64,
+                            height: 64,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, _, _) =>
+                                _buildHomeFallbackGoalImage(),
+                          )
+                        : _buildHomeFallbackGoalImage(),
+                  ),
+                  const SizedBox(width: 14),
+                  // Days left and how much saved so far on the right
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                goal.name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(
+                                  0xFF10B981,
+                                ).withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Text(
+                                daysLeft == 0
+                                    ? 'Goal Reached!'
+                                    : '$daysLeft days left',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF10B981),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (goal.productSite != null &&
+                            goal.productSite!.isNotEmpty) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            goal.productSite!,
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.grey.shade500,
+                            ),
+                          ),
+                        ],
+                        if (extraDays > 0) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            '+$extraDays extra days added due to negative balance',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.redAccent,
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: 8),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Saved so far: $formattedSaved',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: isNegativeSaved
+                                    ? Colors.redAccent
+                                    : const Color(0xFF10B981),
+                              ),
+                            ),
+                            Text(
+                              formattedTarget,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        LinearProgressIndicator(
+                          value: percent,
+                          backgroundColor: Colors.grey.shade200,
+                          color: const Color(0xFF10B981),
+                          minHeight: 7,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
+  // Fallback thumbnail icon for saving goals without a product image URL on HomePage.
+  Widget _buildHomeFallbackGoalImage() {
+    return Container(
+      width: 64,
+      height: 64,
+      decoration: BoxDecoration(
+        color: const Color(0xFF10B981).withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      alignment: Alignment.center,
+      child: const Icon(
+        Icons.savings_rounded,
+        color: Color(0xFF10B981),
+        size: 30,
       ),
     );
   }
