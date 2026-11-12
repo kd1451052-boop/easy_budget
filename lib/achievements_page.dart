@@ -39,16 +39,19 @@ class AchievementsPage extends StatelessWidget {
     );
   }
 
-  // Builds a single achievement card, mapping its ID to localized strings,
+  // Builds a single achievement card, mapping its ID to localized strings (or directly
+  // using the fields defined on the Achievement in GamificationProvider),
   // calculating completion percentage, and showing either a progress bar (locked)
   // or the reward badge and "Equip Frame" button (unlocked).
   Widget _buildAchievementCard(BuildContext context, Achievement ach) {
     final loc = AppLocalizations.of(context)!;
-    String title = '';
-    String description = '';
-    String rewardDescription = '';
+    String title = ach.title.isNotEmpty ? ach.title : ach.id;
+    String description = ach.description;
+    String rewardDescription = ach.rewardLabel;
 
-    // Map achievement IDs to their localized title, description, and reward text.
+    // Use localized text for built-in achievements; any new Achievement added in
+    // GamificationProvider._achievements automatically uses ach.title, ach.description,
+    // ach.rewardLabel, and ach.rewardFrameId without needing to edit this file!
     switch (ach.id) {
       case 'first_expense':
         title = loc.achTitleFirstStep;
@@ -65,17 +68,10 @@ class AchievementsPage extends StatelessWidget {
         description = loc.achDescConsistency;
         rewardDescription = loc.achRewardGoldenFlame;
         break;
-      default:
-        title = ach.id;
-        description = '';
-        rewardDescription = '';
     }
 
-    // Determine which avatar frame ID corresponds to this achievement.
-    String frameToEquip = '';
-    if (ach.id == 'first_expense') frameToEquip = 'bronze';
-    if (ach.id == 'receipt_master_10') frameToEquip = 'silver';
-    if (ach.id == 'streak_7_days') frameToEquip = 'gold';
+    // Automatically read the equippable frame ID from the Achievement model.
+    final String frameToEquip = ach.rewardFrameId;
 
     // Calculate progress ratio clamped between 0.0 and 1.0 for the progress bar.
     final double progressPercent = ach.targetProgress > 0 

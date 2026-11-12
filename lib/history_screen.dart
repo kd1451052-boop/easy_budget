@@ -13,11 +13,13 @@
 //limitations under the License.
 
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'transaction_provider.dart';
 import 'settings_provider.dart';
 import 'category_localization.dart';
+import 'add_transaction_screen.dart';
 import 'history.dart';
 import 'package:easy_budget/l10n/app_localizations.dart';
 
@@ -29,13 +31,33 @@ class HistoryScreen extends StatefulWidget {
 }
 
 class _HistoryScreenState extends State<HistoryScreen> {
-  // Tracks the currently selected date, visible month/week focus, and calendar view format.
-  DateTime _selectedDay = DateTime.now();
+  // Tracks the optional selected date (null = show entire month), visible month focus, and calendar format.
+  DateTime? _selectedDay;
   DateTime _focusedDay = DateTime.now();
   CalendarFormat _calendarFormat = CalendarFormat.month;
 
+  // Navigates to AddExpenseScreen pre-filled with [date].
+  Future<void> _openAddTransactionForDate(DateTime date) async {
+    final normalized = DateTime(date.year, date.month, date.day);
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => AddExpenseScreen(initialDate: normalized),
+      ),
+    );
+    if (!mounted) return;
+    setState(() {
+      _selectedDay = normalized;
+      _focusedDay = normalized;
+    });
+  }
+
+  // Formats a DateTime as Date only (no time), e.g. "2026/04/12".
+  String _formatDateOnly(DateTime date) {
+    return '${date.year}/${date.month.toString().padLeft(2, '0')}/${date.day.toString().padLeft(2, '0')}';
+  }
+
   // Builds the Transaction History layout with the interactive calendar on top
-  // and the selected day's transaction list below.
+  // and the month/selected-day transaction list below.
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -51,16 +73,18 @@ class _HistoryScreenState extends State<HistoryScreen> {
         children: [
           // 3. Calendar Feature
           _buildCalendar(),
-          const Divider(),
-          // 4. Filtered List
+          const Divider(height: 1),
+          // 4. Filtered List (Month view + Selected date on top)
           Expanded(child: _buildFilteredList()),
         ],
       ),
     );
   }
 
-  // Builds the TableCalendar widget, marking dates that have transactions and
-  // updating _selectedDay whenever the user taps a date.
+  // Builds the TableCalendar widget:
+  // - Viewing a month shows all transactions of that month.
+  // - Clicking a date selects it and brings that date's transactions to the top of the list.
+  // - Pressing the selected day again (or long-pressing any day) opens AddExpenseScreen for that date.
   Widget _buildCalendar() {
     return Consumer<TransactionProvider>(
       builder: (context, provider, child) {
@@ -69,12 +93,30 @@ class _HistoryScreenState extends State<HistoryScreen> {
           lastDay: DateTime.utc(2030, 12, 31),
           focusedDay: _focusedDay,
           calendarFormat: _calendarFormat,
-          selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
-          // Update _selectedDay using setState
+          selectedDayPredicate: (day) =>
+              _selectedDay != null && isSameDay(_selectedDay, day),
           onDaySelected: (selectedDay, focusedDay) {
+            if (_selectedDay != null && isSameDay(_selectedDay, selectedDay)) {
+              // Pressing the already-selected day opens Add Transaction for that date
+              _openAddTransactionForDate(selectedDay);
+              return;
+            }
             setState(() {
               _selectedDay = selectedDay;
               _focusedDay = focusedDay;
+            });
+          },
+          onDayLongPressed: (selectedDay, focusedDay) {
+            setState(() {
+              _selectedDay = selectedDay;
+              _focusedDay = focusedDay;
+            });
+            _openAddTransactionForDate(selectedDay);
+          },
+          onPageChanged: (focusedDay) {
+            setState(() {
+              _focusedDay = focusedDay;
+              _selectedDay = null; // Show all transactions of the newly focused month
             });
           },
           onFormatChanged: (format) {
@@ -110,102 +152,274 @@ class _HistoryScreenState extends State<HistoryScreen> {
     );
   }
 
-  // Queries TransactionProvider for transactions on _selectedDay and renders
-  // either an empty placeholder or a list of transaction cards.
+  // Renders all transactions of the focused month.
+  // When a specific date (_selectedDay) is clicked:
+  // - Shows the transactions of _selectedDay at the TOP (with a button to add a transaction for that date).
+  // - Shows the rest of the month's transactions below, displaying only their DATE (not date and time).
   Widget _buildFilteredList() {
     return Consumer<TransactionProvider>(
       builder: (context, provider, child) {
-        // Call getTransactionsForDate from the Provider
-        final filteredTransactions = provider.getTransactionsForDate(
-          _selectedDay,
+        final monthTransactions = provider.getTransactionsForMonth(
+          _focusedDay.year,
+          _focusedDay.month,
         );
+        final monthLabel = DateFormat('MMMM yyyy').format(_focusedDay);
 
-        // 5. Empty State
-        if (filteredTransactions.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.event_busy, size: 64, color: Colors.grey[300]),
-                const SizedBox(height: 16),
-                Text(
-                  AppLocalizations.of(context)!.noTransactionsOnDate,
-                  style: const TextStyle(color: Colors.grey, fontSize: 16),
-                ),
-              ],
-            ),
-          );
-        }
-
-        return ListView.builder(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          itemCount: filteredTransactions.length,
-          itemBuilder: (context, index) {
-            final tx = filteredTransactions[index];
-            final isIncome = tx.type == TransactionType.income;
-
-            return GestureDetector(
-              onLongPress: () => _showDeleteConfirmation(context, tx),
-              child: Stack(
+        // If no date is selected yet, show all transactions of the current month.
+        if (_selectedDay == null) {
+          if (monthTransactions.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Card(
-                    margin: const EdgeInsets.only(bottom: 10),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    elevation: 2,
-                    child: ListTile(
-                      leading: CircleAvatar(
-                        backgroundColor: tx.iconColor.withValues(alpha: 0.1),
-                        child: Icon(tx.icon, color: tx.iconColor, size: 20),
-                      ),
-                      title: Text(
-                        getLocalizedCategory(context, tx.category),
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      subtitle: Text(tx.description),
-                      trailing: Padding(
-                        padding: const EdgeInsets.only(right: 16.0),
-                        child: Builder(
-                          builder: (context) {
-                            final settings = Provider.of<SettingsProvider>(
-                              context,
-                            );
-                            return Text(
-                              '${isIncome ? '+' : '-'}${settings.currencySymbol}${settings.formatAmount(tx.amount)}',
-                              style: TextStyle(
-                                color: isIncome
-                                    ? Colors.green
-                                    : Theme.of(context).colorScheme.onSurface,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    top: 0,
-                    right: 0,
-                    child: IconButton(
-                      icon: const Icon(
-                        Icons.close,
-                        size: 16,
-                        color: Color(0xFFBCAAA4),
-                      ), // greyreddish
-                      onPressed: () => _showDeleteConfirmation(context, tx),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                    ),
+                  Icon(Icons.event_busy, size: 64, color: Colors.grey[300]),
+                  const SizedBox(height: 16),
+                  Text(
+                    AppLocalizations.of(context)!.noTransactionsOnDate,
+                    style: const TextStyle(color: Colors.grey, fontSize: 16),
                   ),
                 ],
               ),
             );
-          },
+          }
+
+          return ListView(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8, left: 4, right: 4),
+                child: Text(
+                  '$monthLabel (${monthTransactions.length})',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                    color: Colors.grey,
+                  ),
+                ),
+              ),
+              ...monthTransactions.map(
+                (tx) => _buildTransactionCard(
+                  context,
+                  tx,
+                  showDateOnly: true,
+                ),
+              ),
+            ],
+          );
+        }
+
+        // A specific date is selected: split into selected date's transactions (top)
+        // and the rest of the month's transactions (below, showing date only).
+        final selectedDayTx = monthTransactions
+            .where((t) => isSameDay(t.dateTime, _selectedDay))
+            .toList();
+        final restOfMonthTx = monthTransactions
+            .where((t) => !isSameDay(t.dateTime, _selectedDay))
+            .toList();
+
+        return ListView(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          children: [
+            // TOP SECTION: Selected Date Header + Add Transaction Button
+            Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: const Color(0xFF0D47A1).withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.event_available,
+                    size: 18,
+                    color: Color(0xFF0D47A1),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _formatDateOnly(_selectedDay!),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                        color: Color(0xFF0D47A1),
+                      ),
+                    ),
+                  ),
+                  TextButton.icon(
+                    onPressed: () => _openAddTransactionForDate(_selectedDay!),
+                    icon: const Icon(Icons.add_circle_outline, size: 16),
+                    label: const Text(
+                      'Add Transaction',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    style: TextButton.styleFrom(
+                      foregroundColor: const Color(0xFF0D47A1),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            if (selectedDayTx.isEmpty)
+              InkWell(
+                onTap: () => _openAddTransactionForDate(_selectedDay!),
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 16,
+                    horizontal: 12,
+                  ),
+                  margin: const EdgeInsets.only(bottom: 12),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey.shade300),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.add_task, size: 20, color: Colors.grey[500]),
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: Text(
+                          '${AppLocalizations.of(context)!.noTransactionsOnDate} • Tap to add',
+                          style: const TextStyle(
+                            color: Colors.grey,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            else
+              ...selectedDayTx.map(
+                (tx) => _buildTransactionCard(
+                  context,
+                  tx,
+                  showDateOnly: true,
+                ),
+              ),
+
+            // REST OF THE MONTH SECTION (shown in dates only, not date and time)
+            if (restOfMonthTx.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8, left: 4, right: 4),
+                child: Text(
+                  'Other transactions in $monthLabel',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                    color: Colors.grey,
+                  ),
+                ),
+              ),
+              ...restOfMonthTx.map(
+                (tx) => _buildTransactionCard(
+                  context,
+                  tx,
+                  showDateOnly: true,
+                ),
+              ),
+            ],
+          ],
         );
       },
+    );
+  }
+
+  // Builds a single transaction card showing its category, description, date (date only, not date & time),
+  // formatted amount, and delete action.
+  Widget _buildTransactionCard(
+    BuildContext context,
+    AppTransaction tx, {
+    required bool showDateOnly,
+  }) {
+    final isIncome = tx.type == TransactionType.income;
+    final dateLabel = _formatDateOnly(tx.dateTime);
+
+    return GestureDetector(
+      onLongPress: () => _showDeleteConfirmation(context, tx),
+      child: Stack(
+        children: [
+          Card(
+            margin: const EdgeInsets.only(bottom: 10),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            elevation: 2,
+            child: ListTile(
+              leading: CircleAvatar(
+                backgroundColor: tx.iconColor.withValues(alpha: 0.1),
+                child: Icon(tx.icon, color: tx.iconColor, size: 20),
+              ),
+              title: Text(
+                getLocalizedCategory(context, tx.category),
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (tx.description.isNotEmpty) Text(tx.description),
+                  const SizedBox(height: 2),
+                  Text(
+                    dateLabel,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey.shade600,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+              trailing: Padding(
+                padding: const EdgeInsets.only(right: 16.0),
+                child: Builder(
+                  builder: (context) {
+                    final settings = Provider.of<SettingsProvider>(context);
+                    return Text(
+                      '${isIncome ? '+' : '-'}${settings.currencySymbol}${settings.formatAmount(tx.amount)}',
+                      style: TextStyle(
+                        color: isIncome
+                            ? Colors.green
+                            : Theme.of(context).colorScheme.onSurface,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            top: 0,
+            right: 0,
+            child: IconButton(
+              icon: const Icon(
+                Icons.close,
+                size: 16,
+                color: Color(0xFFBCAAA4),
+              ), // greyreddish
+              onPressed: () => _showDeleteConfirmation(context, tx),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+            ),
+          ),
+        ],
+      ),
     );
   }
 

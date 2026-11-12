@@ -239,6 +239,15 @@ class TransactionProvider extends ChangeNotifier {
         .toList();
   }
 
+  // Filters transactions by a specific year and month (sorted newest first)
+  List<AppTransaction> getTransactionsForMonth(int year, int month) {
+    return _transactions
+        .where(
+          (t) => t.dateTime.year == year && t.dateTime.month == month,
+        )
+        .toList();
+  }
+
   /// Calculates the amount spent towards a specific budget based on its period/fixed date
   double getSpentAmountForBudget(Budget budget) {
     final now = DateTime.now();

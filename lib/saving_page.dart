@@ -9,6 +9,7 @@ import 'transaction_provider.dart';
 import 'settings_provider.dart';
 import 'history.dart';
 import 'currency_input_formatter.dart';
+import 'store_api_service.dart';
 import 'package:easy_budget/l10n/app_localizations.dart';
 
 // HTTP client wrapper that attaches the cached Firebase App Check token and retries
@@ -73,7 +74,7 @@ class _SavingAiHttpClient extends http.BaseClient {
 }
 
 // Represents a single e-commerce or manual item offer with its visual product photo,
-// store/source label, target price, and badge.
+// store/source label, target price, badge, and whether the price is an AI estimate or live store price.
 class AiProductOffer {
   final String title;
   final String siteName;
@@ -81,6 +82,7 @@ class AiProductOffer {
   final String imageUrl;
   final String siteUrl;
   final String badge;
+  final bool isEstimate;
 
   AiProductOffer({
     required this.title,
@@ -89,6 +91,7 @@ class AiProductOffer {
     required this.imageUrl,
     required this.siteUrl,
     required this.badge,
+    this.isEstimate = true,
   });
 }
 
@@ -141,6 +144,449 @@ class _SavingPageState extends State<SavingPage> {
   bool _isAnalyzingTransactions = false;
   AiSavingAnalysis? _aiAnalysis;
   String _selectedPlanMode = 'usual'; // 'usual' or 'cut_expenses'
+
+  // Connected Rakuten Ichiba & Yahoo! Shopping credentials for live price search.
+  StoreCredentials _credentials = const StoreCredentials();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadStoreCredentials();
+  }
+
+  Future<void> _loadStoreCredentials() async {
+    final loaded = await StoreCredentials.load();
+    if (!mounted) return;
+    setState(() {
+      _credentials = loaded;
+    });
+  }
+
+  // Opens a modal bottom sheet allowing the user to connect their Rakuten Ichiba
+  // and Yahoo! Shopping accounts/keys so the app can fetch real live store prices on its own.
+  Future<void> _showConnectStoresSheet() async {
+    final rakutenIdCtrl = TextEditingController(text: _credentials.rakutenAppId);
+    final rakutenKeyCtrl = TextEditingController(
+      text: _credentials.rakutenAccessKey,
+    );
+    final yahooIdCtrl = TextEditingController(text: _credentials.yahooClientId);
+    bool isTesting = false;
+    String? statusMessage;
+    bool statusIsError = false;
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Theme.of(context).cardColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetCtx) {
+        return StatefulBuilder(
+          builder: (ctx, setSheetState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                left: 20,
+                right: 20,
+                top: 16,
+                bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade400,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    const Row(
+                      children: [
+                        Icon(
+                          Icons.link_rounded,
+                          color: Color(0xFF10B981),
+                          size: 22,
+                        ),
+                        SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Connect Rakuten & Yahoo! Shopping',
+                            style: TextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Connect your Rakuten Ichiba and Yahoo! Shopping developer keys so the app can search real-time store prices and product images on its own. Unconnected stores are clearly labeled as "AI estimate".',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Theme.of(ctx)
+                            .colorScheme
+                            .onSurface
+                            .withValues(alpha: 0.7),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // RAKUTEN SECTION
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFBF0000),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: const Text(
+                            'Rakuten Ichiba',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        const Expanded(
+                          child: Text(
+                            'webservice.rakuten.co.jp',
+                            style: TextStyle(fontSize: 11, color: Colors.grey),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: rakutenIdCtrl,
+                      decoration: InputDecoration(
+                        labelText: 'Rakuten Application ID',
+                        hintText: 'e.g. 1023456789... or UUID',
+                        prefixIcon: const Icon(Icons.vpn_key_outlined, size: 18),
+                        isDense: true,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: rakutenKeyCtrl,
+                      decoration: InputDecoration(
+                        labelText: 'Rakuten Access Key (Optional / OpenAPI)',
+                        hintText: 'e.g. pk_... (leave blank for classic App ID)',
+                        prefixIcon: const Icon(Icons.lock_outline, size: 18),
+                        isDense: true,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // YAHOO! SHOPPING SECTION
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFF0033),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: const Text(
+                            'Yahoo! Shopping',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        const Expanded(
+                          child: Text(
+                            'developer.yahoo.co.jp (Client ID / appid)',
+                            style: TextStyle(fontSize: 11, color: Colors.grey),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: yahooIdCtrl,
+                      decoration: InputDecoration(
+                        labelText: 'Yahoo! Japan Client ID (appid)',
+                        hintText: 'e.g. dj00aiZpPV...',
+                        prefixIcon: const Icon(Icons.vpn_key_outlined, size: 18),
+                        isDense: true,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+
+                    if (statusMessage != null) ...[
+                      const SizedBox(height: 12),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: (statusIsError ? Colors.red : Colors.green)
+                              .withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: (statusIsError ? Colors.red : Colors.green)
+                                .withValues(alpha: 0.35),
+                          ),
+                        ),
+                        child: Text(
+                          statusMessage!,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: statusIsError
+                                ? Colors.red.shade700
+                                : Colors.green.shade700,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: isTesting
+                                ? null
+                                : () async {
+                                    setSheetState(() {
+                                      isTesting = true;
+                                      statusMessage = null;
+                                    });
+                                    final List<String> checks = [];
+                                    bool hasErr = false;
+                                    if (rakutenIdCtrl.text.trim().isNotEmpty) {
+                                      final err =
+                                          await StoreApiService.testRakuten(
+                                            appId: rakutenIdCtrl.text,
+                                            accessKey: rakutenKeyCtrl.text,
+                                          );
+                                      if (err != null) {
+                                        hasErr = true;
+                                        checks.add('Rakuten: $err');
+                                      } else {
+                                        checks.add(
+                                          'Rakuten Ichiba: Connected & verified!',
+                                        );
+                                      }
+                                    }
+                                    if (yahooIdCtrl.text.trim().isNotEmpty) {
+                                      final err =
+                                          await StoreApiService.testYahoo(
+                                            clientId: yahooIdCtrl.text,
+                                          );
+                                      if (err != null) {
+                                        hasErr = true;
+                                        checks.add('Yahoo!: $err');
+                                      } else {
+                                        checks.add(
+                                          'Yahoo! Shopping: Connected & verified!',
+                                        );
+                                      }
+                                    }
+                                    if (checks.isEmpty) {
+                                      hasErr = true;
+                                      checks.add(
+                                        'Enter a Rakuten Application ID or Yahoo! Client ID to test.',
+                                      );
+                                    }
+                                    setSheetState(() {
+                                      isTesting = false;
+                                      statusIsError = hasErr;
+                                      statusMessage = checks.join('\n');
+                                    });
+                                  },
+                            icon: isTesting
+                                ? const SizedBox(
+                                    width: 14,
+                                    height: 14,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Icon(Icons.bolt_rounded, size: 18),
+                            label: const Text('Test Connection'),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF10B981),
+                              foregroundColor: Colors.white,
+                            ),
+                            onPressed: () async {
+                              final updated = StoreCredentials(
+                                rakutenAppId: rakutenIdCtrl.text.trim(),
+                                rakutenAccessKey: rakutenKeyCtrl.text.trim(),
+                                yahooClientId: yahooIdCtrl.text.trim(),
+                              );
+                              await updated.save();
+                              if (!mounted) return;
+                              setState(() {
+                                _credentials = updated;
+                              });
+                              if (sheetCtx.mounted) {
+                                Navigator.of(sheetCtx).pop();
+                              }
+                              if (_searchController.text.trim().isNotEmpty) {
+                                _searchProductsWithAi();
+                              }
+                            },
+                            icon: const Icon(Icons.check_rounded, size: 18),
+                            label: const Text('Save & Use'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // Queries connected Rakuten Ichiba & Yahoo! Shopping APIs directly for live prices and images.
+  Future<(List<AiProductOffer>, List<String>)> _searchLiveStores(
+    String query,
+  ) async {
+    final List<AiProductOffer> liveOffers = [];
+    final List<String> errors = [];
+
+    final futures = <Future<void>>[];
+
+    if (_credentials.hasRakuten) {
+      futures.add(() async {
+        final res = await StoreApiService.searchRakuten(
+          query: query,
+          appId: _credentials.rakutenAppId,
+          accessKey: _credentials.rakutenAccessKey,
+          hits: 2,
+        );
+        if (res.error != null) {
+          errors.add(res.error!);
+        }
+        for (final item in res.items) {
+          liveOffers.add(
+            AiProductOffer(
+              title: item.title,
+              siteName: item.siteName,
+              price: item.price,
+              imageUrl: item.imageUrl,
+              siteUrl: item.siteUrl,
+              badge: item.badge,
+              isEstimate: false,
+            ),
+          );
+        }
+      }());
+    }
+
+    if (_credentials.hasYahoo) {
+      futures.add(() async {
+        final res = await StoreApiService.searchYahoo(
+          query: query,
+          clientId: _credentials.yahooClientId,
+          hits: 2,
+        );
+        if (res.error != null) {
+          errors.add(res.error!);
+        }
+        for (final item in res.items) {
+          liveOffers.add(
+            AiProductOffer(
+              title: item.title,
+              siteName: item.siteName,
+              price: item.price,
+              imageUrl: item.imageUrl,
+              siteUrl: item.siteUrl,
+              badge: item.badge,
+              isEstimate: false,
+            ),
+          );
+        }
+      }());
+    }
+
+    if (futures.isNotEmpty) {
+      await Future.wait(futures);
+    }
+    return (liveOffers, errors);
+  }
+
+  // Places verified live store listings first, followed by AI-estimated listings for unconnected stores.
+  List<AiProductOffer> _mergeLiveAndEstimates(
+    List<AiProductOffer> liveOffers,
+    List<AiProductOffer> aiOffers,
+  ) {
+    if (liveOffers.isEmpty) return aiOffers;
+    final hasLiveRakuten = liveOffers.any(
+      (o) => o.siteName.toLowerCase().contains('rakuten'),
+    );
+    final hasLiveYahoo = liveOffers.any(
+      (o) => o.siteName.toLowerCase().contains('yahoo'),
+    );
+
+    // If a live store returned a real product photo, share that verified photo with AI estimate cards
+    // that didn't find an image so all cards show the real product picture.
+    final livePhoto = liveOffers
+        .map((o) => o.imageUrl)
+        .firstWhere((u) => u.isNotEmpty, orElse: () => '');
+
+    final filteredEstimates = aiOffers
+        .where((o) {
+          final lower = o.siteName.toLowerCase();
+          if (hasLiveRakuten && lower.contains('rakuten')) return false;
+          if (hasLiveYahoo && lower.contains('yahoo')) return false;
+          return true;
+        })
+        .map(
+          (o) => o.imageUrl.isEmpty && livePhoto.isNotEmpty
+              ? AiProductOffer(
+                  title: o.title,
+                  siteName: o.siteName,
+                  price: o.price,
+                  imageUrl: livePhoto,
+                  siteUrl: o.siteUrl,
+                  badge: o.badge,
+                  isEstimate: o.isEstimate,
+                )
+              : o,
+        )
+        .toList();
+
+    return [...liveOffers, ...filteredEstimates];
+  }
 
   // Popular full product names used for instant local prefix/substring matching alongside live Amazon autocomplete.
   static const List<String> _popularProductCatalog = [
@@ -343,6 +789,7 @@ class _SavingPageState extends State<SavingPage> {
 
     final settings = Provider.of<SettingsProvider>(context, listen: false);
     final currencyCode = settings.selectedCurrency;
+    final liveFuture = _searchLiveStores(query);
 
     try {
       String? dbgToken;
@@ -411,7 +858,10 @@ class _SavingPageState extends State<SavingPage> {
             final title = item['title']?.toString() ?? query;
             final price =
                 double.tryParse(item['price']?.toString() ?? '0') ?? 0.0;
-            final badge = item['badge']?.toString() ?? 'Popular';
+            final rawBadge = item['badge']?.toString() ?? 'Popular';
+            final badge = rawBadge.toLowerCase().contains('estimate')
+                ? rawBadge
+                : 'AI estimate • $rawBadge';
             final searchKeyword =
                 item['searchQuery']?.toString().trim().isNotEmpty == true
                 ? item['searchQuery'].toString().trim()
@@ -435,6 +885,7 @@ class _SavingPageState extends State<SavingPage> {
                 imageUrl: resolvedImg,
                 siteUrl: _buildStoreSearchUrl(site, query),
                 badge: badge,
+                isEstimate: true,
               ),
             );
             i++;
@@ -446,20 +897,30 @@ class _SavingPageState extends State<SavingPage> {
         offers = _buildFallbackProductOffers(query, currencyCode, storeImages);
       }
 
+      final (liveOffers, liveErrors) = await liveFuture;
+      final merged = _mergeLiveAndEstimates(liveOffers, offers);
+
       if (!mounted) return;
       setState(() {
-        _searchResults = offers;
+        _searchResults = merged;
       });
+      if (liveErrors.isNotEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(liveErrors.first)),
+        );
+      }
     } catch (e) {
       debugPrint('AI product search error: $e');
       final storeImages = await _fetchRealStoreProductImages(query);
+      final (liveOffers, _) = await liveFuture;
+      final fallback = _buildFallbackProductOffers(
+        query,
+        currencyCode,
+        storeImages,
+      );
       if (!mounted) return;
       setState(() {
-        _searchResults = _buildFallbackProductOffers(
-          query,
-          currencyCode,
-          storeImages,
-        );
+        _searchResults = _mergeLiveAndEstimates(liveOffers, fallback);
       });
     } finally {
       if (mounted) {
@@ -597,7 +1058,8 @@ class _SavingPageState extends State<SavingPage> {
           storeImages: storeImages,
         ),
         siteUrl: _buildStoreSearchUrl('Amazon', query),
-        badge: 'Fast Delivery',
+        badge: 'AI estimate • Fast Delivery',
+        isEstimate: true,
       ),
       AiProductOffer(
         title: query,
@@ -611,7 +1073,8 @@ class _SavingPageState extends State<SavingPage> {
           storeImages: storeImages,
         ),
         siteUrl: _buildStoreSearchUrl('Rakuten Ichiba', query),
-        badge: 'Rakuten Points',
+        badge: 'AI estimate • Rakuten Points',
+        isEstimate: true,
       ),
       AiProductOffer(
         title: query,
@@ -625,7 +1088,8 @@ class _SavingPageState extends State<SavingPage> {
           storeImages: storeImages,
         ),
         siteUrl: _buildStoreSearchUrl('Yahoo! Shopping', query),
-        badge: 'PayPay Bonus',
+        badge: 'AI estimate • PayPay Bonus',
+        isEstimate: true,
       ),
       AiProductOffer(
         title: '$query (Pre-owned)',
@@ -639,7 +1103,8 @@ class _SavingPageState extends State<SavingPage> {
           storeImages: storeImages,
         ),
         siteUrl: _buildStoreSearchUrl('Mercari', query),
-        badge: 'Best Value',
+        badge: 'AI estimate • Best Value',
+        isEstimate: true,
       ),
     ];
   }
@@ -719,6 +1184,7 @@ class _SavingPageState extends State<SavingPage> {
       badge: _manualNoteController.text.trim().isNotEmpty
           ? _manualNoteController.text.trim()
           : 'Custom Saving Goal',
+      isEstimate: false,
     );
 
     if (!mounted) return;
@@ -1372,6 +1838,61 @@ class _SavingPageState extends State<SavingPage> {
                         ).colorScheme.onSurface.withValues(alpha: 0.7),
                       ),
                     ),
+                    const SizedBox(height: 10),
+                    InkWell(
+                      onTap: _showConnectStoresSheet,
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).cardColor.withValues(
+                            alpha: 0.9,
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: _credentials.hasAny
+                                ? headerColor.withValues(alpha: 0.6)
+                                : Colors.orange.withValues(alpha: 0.5),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              _credentials.hasAny
+                                  ? Icons.verified_rounded
+                                  : Icons.link_rounded,
+                              size: 16,
+                              color: _credentials.hasAny
+                                  ? headerColor
+                                  : Colors.orange.shade700,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                _credentials.hasAny
+                                    ? 'Connected: ${[if (_credentials.hasRakuten) "Rakuten", if (_credentials.hasYahoo) "Yahoo!"].join(" & ")} (Live price search active)'
+                                    : 'Results are AI estimates • Tap to connect Rakuten / Yahoo! account',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: _credentials.hasAny
+                                      ? headerColor
+                                      : Colors.orange.shade800,
+                                ),
+                              ),
+                            ),
+                            const Icon(
+                              Icons.chevron_right_rounded,
+                              size: 18,
+                              color: Colors.grey,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                     const SizedBox(height: 12),
                     Row(
                       children: [
@@ -1513,7 +2034,7 @@ class _SavingPageState extends State<SavingPage> {
                 ),
                 const SizedBox(height: 12),
                 SizedBox(
-                  height: 230,
+                  height: 242,
                   child: ListView.separated(
                     scrollDirection: Axis.horizontal,
                     itemCount: _searchResults.length,
@@ -1593,6 +2114,36 @@ class _SavingPageState extends State<SavingPage> {
                                       ),
                                     ),
                                   ),
+                                  Positioned(
+                                    bottom: 6,
+                                    left: 8,
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 7,
+                                        vertical: 3,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: offer.isEstimate
+                                            ? Colors.amber.shade800.withValues(
+                                                alpha: 0.92,
+                                              )
+                                            : headerColor.withValues(
+                                                alpha: 0.92,
+                                              ),
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Text(
+                                        offer.isEstimate
+                                            ? 'AI estimate'
+                                            : 'Live price',
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 9,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
                                   if (isSelected)
                                     const Positioned(
                                       top: 8,
@@ -1634,13 +2185,32 @@ class _SavingPageState extends State<SavingPage> {
                                       ),
                                     ),
                                     const SizedBox(height: 6),
-                                    Text(
-                                      '${settings.currencySymbol}${settings.formatAmount(offer.price)}',
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 15,
-                                        color: headerColor,
-                                      ),
+                                    Row(
+                                      children: [
+                                        Flexible(
+                                          child: Text(
+                                            '${settings.currencySymbol}${settings.formatAmount(offer.price)}',
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 15,
+                                              color: headerColor,
+                                            ),
+                                          ),
+                                        ),
+                                        if (offer.isEstimate) ...[
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            '(est.)',
+                                            style: TextStyle(
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.w600,
+                                              color: Colors.amber.shade800,
+                                            ),
+                                          ),
+                                        ],
+                                      ],
                                     ),
                                   ],
                                 ),
@@ -1925,7 +2495,7 @@ class _SavingPageState extends State<SavingPage> {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      '$days days • $symbol${settings.formatAmount(daily)}/day • Goal: $symbol${settings.formatAmount(offer.price)}',
+                      '$days days • $symbol${settings.formatAmount(daily)}/day • Goal: $symbol${settings.formatAmount(offer.price)}${offer.isEstimate ? " (AI estimate)" : " (Live price)"}',
                       style: const TextStyle(
                         fontWeight: FontWeight.w600,
                         fontSize: 12,

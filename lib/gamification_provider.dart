@@ -3,15 +3,25 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class Achievement {
   final String id;
+  final String title;
+  final String description;
+  final String rewardLabel;
+  final String rewardFrameId;
   final IconData iconData;
   final int targetProgress;
+  final Color accentColor;
   int currentProgress;
   bool isUnlocked;
 
   Achievement({
     required this.id,
+    this.title = '',
+    this.description = '',
+    this.rewardLabel = '',
+    this.rewardFrameId = '',
     required this.iconData,
     required this.targetProgress,
+    this.accentColor = const Color(0xFF6366F1),
     this.currentProgress = 0,
     this.isUnlocked = false,
   });
@@ -29,6 +39,7 @@ class StreakMilestone {
   final String title;
   final String subtitle;
   final String rewardLabel;
+  final String rewardFrameId;
   final IconData icon;
   final Color accentColor;
   bool isRewardClaimed;
@@ -39,6 +50,7 @@ class StreakMilestone {
     required this.title,
     required this.subtitle,
     required this.rewardLabel,
+    this.rewardFrameId = '',
     required this.icon,
     required this.accentColor,
     this.isRewardClaimed = false,
@@ -52,27 +64,48 @@ class GamificationProvider with ChangeNotifier {
   final Set<String> _activeDates = {};
   Future<void>? _loadFuture;
 
+  // ==========================================================================
+  // EASY ACHIEVEMENT REGISTRY:
+  // Add any new Achievement here in 1 step! The AchievementsPage UI will
+  // automatically render its title, description, icon, progress bar, and reward.
+  // Trigger progress anywhere in the app using:
+  //   gamification.incrementAchievement('your_id');
+  // ==========================================================================
   final List<Achievement> _achievements = [
     Achievement(
       id: 'first_expense',
+      title: 'First Step',
+      description: 'Log your first transaction',
+      rewardLabel: 'Bronze Starter Frame',
+      rewardFrameId: 'bronze',
       iconData: Icons.monetization_on,
       targetProgress: 1,
     ),
     Achievement(
       id: 'receipt_master_10',
+      title: 'Receipt Master',
+      description: 'Scan 10 receipts with AI Scanner',
+      rewardLabel: 'Silver Scanner Frame',
+      rewardFrameId: 'silver',
       iconData: Icons.receipt_long,
       targetProgress: 10,
     ),
     Achievement(
       id: 'streak_7_days',
+      title: '7-Day Consistency',
+      description: 'Maintain a 7-day streak',
+      rewardLabel: 'Golden Flame Frame',
+      rewardFrameId: 'gold',
       iconData: Icons.local_fire_department,
       targetProgress: 7,
     ),
   ];
 
-  // Streak goals/milestones for the Duolingo-style Streak Page.
-  // TODO(reward-system): Connect each milestone to actual unlockable rewards
-  // (e.g., Streak Freeze items, bonus XP/coins, exclusive avatar frames, or themes).
+  // ==========================================================================
+  // EASY STREAK MILESTONES & REWARDS REGISTRY:
+  // Add any new StreakMilestone here in 1 step! The StreakPage UI will
+  // automatically render the milestone card, progress bar, and reward label.
+  // ==========================================================================
   final List<StreakMilestone> _streakMilestones = [
     StreakMilestone(
       id: 'streak_goal_3',
@@ -80,6 +113,7 @@ class GamificationProvider with ChangeNotifier {
       title: '3-Day Spark',
       subtitle: 'Build the daily budgeting habit',
       rewardLabel: 'Spark Badge (Coming Soon)',
+      rewardFrameId: 'bronze',
       icon: Icons.bolt_rounded,
       accentColor: const Color(0xFFF59E0B),
     ),
@@ -89,6 +123,7 @@ class GamificationProvider with ChangeNotifier {
       title: '1-Week Warrior',
       subtitle: 'Complete a full week of tracking',
       rewardLabel: 'Golden Flame Frame (Coming Soon)',
+      rewardFrameId: 'gold',
       icon: Icons.local_fire_department_rounded,
       accentColor: const Color(0xFFFF6B00),
     ),
@@ -339,44 +374,52 @@ class GamificationProvider with ChangeNotifier {
     }
   }
 
+  /// Universal 1-line helper to increment progress on any achievement by its [id].
+  void incrementAchievement(String id, {int by = 1}) {
+    final idx = _achievements.indexWhere((a) => a.id == id);
+    if (idx == -1) return;
+    final ach = _achievements[idx];
+    if (ach.isUnlocked) return;
+    ach.currentProgress += by;
+    if (ach.currentProgress >= ach.targetProgress) {
+      _unlockAchievement(ach);
+    } else {
+      _saveData();
+      notifyListeners();
+    }
+  }
+
+  /// Universal 1-line helper to set absolute progress on any achievement by its [id].
+  void setAchievementProgress(String id, int progress) {
+    final idx = _achievements.indexWhere((a) => a.id == id);
+    if (idx == -1) return;
+    final ach = _achievements[idx];
+    if (ach.isUnlocked) return;
+    ach.currentProgress = progress;
+    if (ach.currentProgress >= ach.targetProgress) {
+      _unlockAchievement(ach);
+    } else {
+      _saveData();
+      notifyListeners();
+    }
+  }
+
   void _checkStreakAchievements() {
-    final streakAch = _achievements.firstWhere((a) => a.id == 'streak_7_days');
-    if (!streakAch.isUnlocked) {
-      streakAch.currentProgress = _currentStreak;
-      if (streakAch.currentProgress >= streakAch.targetProgress) {
-        _unlockAchievement(streakAch);
-      } else {
-        _saveData();
-        notifyListeners();
+    // Automatically updates any achievement whose id starts with 'streak_'
+    for (final ach in _achievements) {
+      if (ach.id.startsWith('streak_')) {
+        setAchievementProgress(ach.id, _currentStreak);
       }
     }
   }
 
   void addTransactionEvent() {
     checkAppOpened();
-    final ach = _achievements.firstWhere((a) => a.id == 'first_expense');
-    if (!ach.isUnlocked) {
-      ach.currentProgress++;
-      if (ach.currentProgress >= ach.targetProgress) {
-        _unlockAchievement(ach);
-      } else {
-        _saveData();
-        notifyListeners();
-      }
-    }
+    incrementAchievement('first_expense');
   }
 
   void addReceiptScannedEvent() {
     checkAppOpened();
-    final ach = _achievements.firstWhere((a) => a.id == 'receipt_master_10');
-    if (!ach.isUnlocked) {
-      ach.currentProgress++;
-      if (ach.currentProgress >= ach.targetProgress) {
-        _unlockAchievement(ach);
-      } else {
-        _saveData();
-        notifyListeners();
-      }
-    }
+    incrementAchievement('receipt_master_10');
   }
 }

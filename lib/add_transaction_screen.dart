@@ -25,7 +25,9 @@ import 'package:easy_budget/l10n/app_localizations.dart';
 import 'category_localization.dart';
 
 class AddExpenseScreen extends StatefulWidget {
-  const AddExpenseScreen({super.key});
+  final DateTime? initialDate;
+
+  const AddExpenseScreen({super.key, this.initialDate});
 
   @override
   State<AddExpenseScreen> createState() => _AddExpenseScreenState();
@@ -54,11 +56,20 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   final _merchantController = TextEditingController();
   final List<_ItemEntry> _items = [];
 
-  // Tracks selected transaction type (Expense/Income), category, icon, and date/time.
+  // Tracks selected transaction type (Expense/Income), category, icon, and separate date & optional time.
   TransactionType _selectedType = TransactionType.expense;
   String _selectedCategory = 'Food';
   IconData _selectedIcon = Icons.fastfood; // Added to track custom icons
-  DateTime _selectedDate = DateTime.now(); // Added for the date picker
+  late DateTime _selectedDate; // Selected date (year, month, day)
+  TimeOfDay? _selectedTime; // Optional time of day (null when not specified)
+
+  @override
+  void initState() {
+    super.initState();
+    final init = widget.initialDate ?? DateTime.now();
+    _selectedDate = DateTime(init.year, init.month, init.day);
+    _selectedTime = null;
+  }
 
   final List<String> _expenseCategories = [
     'Food',
@@ -159,6 +170,20 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
       return;
     }
 
+    final effectiveDateTime = _selectedTime != null
+        ? DateTime(
+            _selectedDate.year,
+            _selectedDate.month,
+            _selectedDate.day,
+            _selectedTime!.hour,
+            _selectedTime!.minute,
+          )
+        : DateTime(
+            _selectedDate.year,
+            _selectedDate.month,
+            _selectedDate.day,
+          );
+
     final tx = AppTransaction(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       type: _selectedType,
@@ -167,7 +192,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
         Provider.of<SettingsProvider>(context, listen: false).currencySymbol,
       ),
       amount: amount,
-      dateTime: _selectedDate, // Now uses the actual selected date
+      dateTime: effectiveDateTime, // Uses the selected date and optional time
       iconCodePoint: _selectedIcon.codePoint, // Uses the active icon
       iconColorValue:
           (_selectedType == TransactionType.income ? Colors.green : Colors.red)
@@ -180,15 +205,19 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
       listen: false,
     ).addTransactionEvent();
 
-    Navigator.of(context).pushAndRemoveUntil(
-      PageRouteBuilder(
-        pageBuilder: (context, animation1, animation2) =>
-            const MainNavigationScreen(),
-        transitionDuration: Duration.zero,
-        reverseTransitionDuration: Duration.zero,
-      ),
-      (route) => false,
-    );
+    if (Navigator.of(context).canPop()) {
+      Navigator.of(context).pop(effectiveDateTime);
+    } else {
+      Navigator.of(context).pushAndRemoveUntil(
+        PageRouteBuilder(
+          pageBuilder: (context, animation1, animation2) =>
+              const MainNavigationScreen(),
+          transitionDuration: Duration.zero,
+          reverseTransitionDuration: Duration.zero,
+        ),
+        (route) => false,
+      );
+    }
   }
 
   // Gets default icons for the standard string categories
@@ -469,9 +498,14 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     );
   }
 
-  // Helper to format date nicely
-  String _formatDate(DateTime date) {
-    return "${date.year}/${date.month.toString().padLeft(2, '0')}/${date.day.toString().padLeft(2, '0')}, ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}";
+  // Helper to format date only (YYYY/MM/DD)
+  String _formatDateOnly(DateTime date) {
+    return "${date.year}/${date.month.toString().padLeft(2, '0')}/${date.day.toString().padLeft(2, '0')}";
+  }
+
+  // Helper to format optional time (HH:mm)
+  String _formatTimeOnly(TimeOfDay time) {
+    return "${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}";
   }
 
   InputDecoration _fieldDecoration(
@@ -538,15 +572,20 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                       IconButton(
                         icon: const Icon(Icons.arrow_back, color: Colors.white),
                         onPressed: () {
-                          Navigator.of(context).pushAndRemoveUntil(
-                            PageRouteBuilder(
-                              pageBuilder: (context, animation1, animation2) =>
-                                  const MainNavigationScreen(),
-                              transitionDuration: Duration.zero,
-                              reverseTransitionDuration: Duration.zero,
-                            ),
-                            (route) => false,
-                          );
+                          if (Navigator.of(context).canPop()) {
+                            Navigator.of(context).pop();
+                          } else {
+                            Navigator.of(context).pushAndRemoveUntil(
+                              PageRouteBuilder(
+                                pageBuilder:
+                                    (context, animation1, animation2) =>
+                                        const MainNavigationScreen(),
+                                transitionDuration: Duration.zero,
+                                reverseTransitionDuration: Duration.zero,
+                              ),
+                              (route) => false,
+                            );
+                          }
                         },
                       ),
                       Text(
@@ -837,72 +876,183 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                   ),
                   const SizedBox(height: 32),
 
-                  // FIXED: Interactive Date & Time Picker
-                  Text(
-                    AppLocalizations.of(context)!.dateTime,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: Theme.of(context).colorScheme.onSurface,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  InkWell(
-                    onTap: () async {
-                      final DateTime? pickedDate = await showDatePicker(
-                        context: context,
-                        initialDate: _selectedDate,
-                        firstDate: DateTime(2020),
-                        lastDate: DateTime(2030),
-                      );
-                      if (pickedDate != null) {
-                        final TimeOfDay? pickedTime = await showTimePicker(
-                          context: context,
-                          initialTime: TimeOfDay.fromDateTime(_selectedDate),
-                        );
-                        if (pickedTime != null) {
-                          setState(() {
-                            _selectedDate = DateTime(
-                              pickedDate.year,
-                              pickedDate.month,
-                              pickedDate.day,
-                              pickedTime.hour,
-                              pickedTime.minute,
-                            );
-                          });
-                        }
-                      }
-                    },
-                    borderRadius: BorderRadius.circular(16),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 16,
-                      ),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey.shade300),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            _formatDate(_selectedDate),
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: Theme.of(context).colorScheme.onSurface,
+                  // Separate Date Picker and Optional Time Picker
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // 1. Date Picker (Required)
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Date',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: Theme.of(context).colorScheme.onSurface,
+                              ),
                             ),
-                          ),
-                          Icon(
-                            Icons.calendar_today_outlined,
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.onSurface.withValues(alpha: 0.5),
-                            size: 20,
-                          ),
-                        ],
+                            const SizedBox(height: 8),
+                            InkWell(
+                              onTap: () async {
+                                final DateTime? pickedDate =
+                                    await showDatePicker(
+                                      context: context,
+                                      initialDate: _selectedDate,
+                                      firstDate: DateTime(2020),
+                                      lastDate: DateTime(2030),
+                                    );
+                                if (pickedDate != null) {
+                                  setState(() {
+                                    _selectedDate = DateTime(
+                                      pickedDate.year,
+                                      pickedDate.month,
+                                      pickedDate.day,
+                                    );
+                                  });
+                                }
+                              },
+                              borderRadius: BorderRadius.circular(16),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 16,
+                                ),
+                                decoration: BoxDecoration(
+                                  border: Border.all(
+                                    color: Colors.grey.shade300,
+                                  ),
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Flexible(
+                                      child: Text(
+                                        _formatDateOnly(_selectedDate),
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          fontSize: 15,
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.onSurface,
+                                        ),
+                                      ),
+                                    ),
+                                    Icon(
+                                      Icons.calendar_today_outlined,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurface
+                                          .withValues(alpha: 0.5),
+                                      size: 18,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
+                      const SizedBox(width: 12),
+                      // 2. Time Picker (Optional)
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Time (Optional)',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: Theme.of(context).colorScheme.onSurface,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            InkWell(
+                              onTap: () async {
+                                final TimeOfDay? pickedTime =
+                                    await showTimePicker(
+                                      context: context,
+                                      initialTime:
+                                          _selectedTime ?? TimeOfDay.now(),
+                                    );
+                                if (pickedTime != null) {
+                                  setState(() {
+                                    _selectedTime = pickedTime;
+                                  });
+                                }
+                              },
+                              borderRadius: BorderRadius.circular(16),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 16,
+                                ),
+                                decoration: BoxDecoration(
+                                  border: Border.all(
+                                    color: Colors.grey.shade300,
+                                  ),
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Flexible(
+                                      child: Text(
+                                        _selectedTime != null
+                                            ? _formatTimeOnly(_selectedTime!)
+                                            : 'Optional',
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          fontSize: 15,
+                                          color: _selectedTime != null
+                                              ? Theme.of(
+                                                  context,
+                                                ).colorScheme.onSurface
+                                              : Theme.of(context)
+                                                    .colorScheme
+                                                    .onSurface
+                                                    .withValues(alpha: 0.45),
+                                        ),
+                                      ),
+                                    ),
+                                    if (_selectedTime != null)
+                                      GestureDetector(
+                                        onTap: () {
+                                          setState(() {
+                                            _selectedTime = null;
+                                          });
+                                        },
+                                        child: Icon(
+                                          Icons.close,
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onSurface
+                                              .withValues(alpha: 0.5),
+                                          size: 18,
+                                        ),
+                                      )
+                                    else
+                                      Icon(
+                                        Icons.access_time_outlined,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurface
+                                            .withValues(alpha: 0.5),
+                                        size: 18,
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 32),
 
