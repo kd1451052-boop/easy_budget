@@ -41,6 +41,9 @@ void main() async {
     final rememberMe = SettingsProvider.prefs.getBool('rememberMe') ?? false;
     if (!rememberMe && FirebaseAuth.instance.currentUser != null) {
       await FirebaseAuth.instance.signOut().timeout(const Duration(seconds: 2));
+      await SettingsProvider.prefs.setBool('isGuestUser', false);
+    } else if (FirebaseAuth.instance.currentUser == null) {
+      await SettingsProvider.prefs.setBool('isGuestUser', false);
     }
   } catch (e) {
     debugPrint('Initial signOut error: $e');

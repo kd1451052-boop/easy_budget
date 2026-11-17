@@ -116,12 +116,18 @@ class _HistoryScreenState extends State<HistoryScreen> {
           onPageChanged: (focusedDay) {
             setState(() {
               _focusedDay = focusedDay;
-              _selectedDay = null; // Show all transactions of the newly focused month
+              _selectedDay =
+                  null; // Show all transactions of the newly focused period
             });
           },
           onFormatChanged: (format) {
             setState(() {
+              if (_selectedDay != null) {
+                _focusedDay = _selectedDay!;
+              }
               _calendarFormat = format;
+              _selectedDay =
+                  null; // Show all transactions of the newly selected format (month / 2 weeks / week)
             });
           },
           // eventLoader: Check provider for transactions on a specific day
@@ -152,22 +158,81 @@ class _HistoryScreenState extends State<HistoryScreen> {
     );
   }
 
-  // Renders all transactions of the focused month.
+  // Computes the exact inclusive [startDate, endDate] and display label for the currently visible
+  // calendar view (Month, 2 Weeks, or Week), matching TableCalendar's page calculation.
+  (DateTime, DateTime, String) _getVisiblePeriodRangeAndLabel() {
+    if (_calendarFormat == CalendarFormat.month) {
+      final start = DateTime(_focusedDay.year, _focusedDay.month, 1);
+      final end = DateTime(_focusedDay.year, _focusedDay.month + 1, 0);
+      final label = DateFormat('MMMM yyyy').format(_focusedDay);
+      return (start, end, label);
+    }
+
+    // TableCalendar's firstDay is DateTime.utc(2020, 1, 1) with default StartingDayOfWeek.sunday.
+    final firstCalendarDay = DateTime.utc(2020, 1, 1);
+    final baseSunday = firstCalendarDay.subtract(
+      Duration(days: firstCalendarDay.weekday % 7),
+    );
+    final focusedUtc = DateTime.utc(
+      _focusedDay.year,
+      _focusedDay.month,
+      _focusedDay.day,
+    );
+
+    if (_calendarFormat == CalendarFormat.twoWeeks) {
+      final twoWeekIndex = focusedUtc.difference(baseSunday).inDays ~/ 14;
+      final startUtc = baseSunday.add(Duration(days: twoWeekIndex * 14));
+      final endUtc = startUtc.add(const Duration(days: 13));
+      final start = DateTime(startUtc.year, startUtc.month, startUtc.day);
+      final end = DateTime(endUtc.year, endUtc.month, endUtc.day);
+      final label = '${_formatDateOnly(start)} – ${_formatDateOnly(end)}';
+      return (start, end, label);
+    } else {
+      // CalendarFormat.week
+      final weekIndex = focusedUtc.difference(baseSunday).inDays ~/ 7;
+      final startUtc = baseSunday.add(Duration(days: weekIndex * 7));
+      final endUtc = startUtc.add(const Duration(days: 6));
+      final start = DateTime(startUtc.year, startUtc.month, startUtc.day);
+      final end = DateTime(endUtc.year, endUtc.month, endUtc.day);
+      final label = '${_formatDateOnly(start)} – ${_formatDateOnly(end)}';
+      return (start, end, label);
+    }
+  }
+
+  // Returns all transactions whose date falls within the inclusive [start, end] date range.
+  List<AppTransaction> _getTransactionsInDateRange(
+    List<AppTransaction> allTransactions,
+    DateTime start,
+    DateTime end,
+  ) {
+    final startDay = DateTime(start.year, start.month, start.day);
+    final endDay = DateTime(end.year, end.month, end.day, 23, 59, 59, 999);
+    return allTransactions
+        .where(
+          (t) =>
+              !t.dateTime.isBefore(startDay) && !t.dateTime.isAfter(endDay),
+        )
+        .toList();
+  }
+
+  // Renders all transactions of the active calendar period (Month, 2 Weeks, or Week).
   // When a specific date (_selectedDay) is clicked:
   // - Shows the transactions of _selectedDay at the TOP (with a button to add a transaction for that date).
-  // - Shows the rest of the month's transactions below, displaying only their DATE (not date and time).
+  // - Shows the rest of the visible period's transactions below, displaying only their DATE (not date and time).
   Widget _buildFilteredList() {
     return Consumer<TransactionProvider>(
       builder: (context, provider, child) {
-        final monthTransactions = provider.getTransactionsForMonth(
-          _focusedDay.year,
-          _focusedDay.month,
+        final (rangeStart, rangeEnd, periodLabel) =
+            _getVisiblePeriodRangeAndLabel();
+        final periodTransactions = _getTransactionsInDateRange(
+          provider.transactions,
+          rangeStart,
+          rangeEnd,
         );
-        final monthLabel = DateFormat('MMMM yyyy').format(_focusedDay);
 
-        // If no date is selected yet, show all transactions of the current month.
+        // If no date is selected yet, show all transactions of the current period (Month / 2 Weeks / Week).
         if (_selectedDay == null) {
-          if (monthTransactions.isEmpty) {
+          if (periodTransactions.isEmpty) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -189,7 +254,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
               Padding(
                 padding: const EdgeInsets.only(bottom: 8, left: 4, right: 4),
                 child: Text(
-                  '$monthLabel (${monthTransactions.length})',
+                  '$periodLabel (${periodTransactions.length})',
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 14,
@@ -197,7 +262,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   ),
                 ),
               ),
-              ...monthTransactions.map(
+              ...periodTransactions.map(
                 (tx) => _buildTransactionCard(
                   context,
                   tx,
@@ -209,11 +274,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
         }
 
         // A specific date is selected: split into selected date's transactions (top)
-        // and the rest of the month's transactions (below, showing date only).
-        final selectedDayTx = monthTransactions
+        // and the rest of the visible period's transactions (below, showing date only).
+        final selectedDayTx = periodTransactions
             .where((t) => isSameDay(t.dateTime, _selectedDay))
             .toList();
-        final restOfMonthTx = monthTransactions
+        final restOfPeriodTx = periodTransactions
             .where((t) => !isSameDay(t.dateTime, _selectedDay))
             .toList();
 
@@ -311,13 +376,13 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 ),
               ),
 
-            // REST OF THE MONTH SECTION (shown in dates only, not date and time)
-            if (restOfMonthTx.isNotEmpty) ...[
+            // REST OF THE PERIOD SECTION (shown in dates only, not date and time)
+            if (restOfPeriodTx.isNotEmpty) ...[
               const SizedBox(height: 8),
               Padding(
                 padding: const EdgeInsets.only(bottom: 8, left: 4, right: 4),
                 child: Text(
-                  'Other transactions in $monthLabel',
+                  'Other transactions in $periodLabel',
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 13,
@@ -325,7 +390,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   ),
                 ),
               ),
-              ...restOfMonthTx.map(
+              ...restOfPeriodTx.map(
                 (tx) => _buildTransactionCard(
                   context,
                   tx,

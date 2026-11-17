@@ -25,9 +25,8 @@ Future<void> showGuestRegistrationDialog(BuildContext context, {String featureNa
             child: const Text('Register'),
             onPressed: () {
               Navigator.of(context).pop(); // close dialog
-              Navigator.of(context).pushAndRemoveUntil(
+              Navigator.of(context).push(
                 MaterialPageRoute(builder: (context) => const LoginPage()),
-                (Route<dynamic> route) => false,
               );
             },
           ),

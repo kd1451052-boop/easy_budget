@@ -11,6 +11,7 @@ import 'settings_provider.dart';
 import 'package:easy_budget/l10n/app_localizations.dart';
 import 'profile_page.dart';
 import 'profile_avatar.dart';
+import 'login_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:archive/archive.dart';
 import 'dart:convert';
@@ -118,8 +119,12 @@ class _SettingsPageState extends State<SettingsPage> {
           const SizedBox(height: 16),
           _buildSectionHeader('Account'),
           _buildSettingTile(
-            Icons.switch_account_outlined,
-            'Switch Account',
+            settings.isGuestUser
+                ? Icons.login_outlined
+                : Icons.switch_account_outlined,
+            settings.isGuestUser
+                ? AppLocalizations.of(context)!.login
+                : 'Switch Account',
             null,
             onTap: () => _handleSignOut(context, isSwitchAccount: true),
           ),
@@ -138,7 +143,12 @@ class _SettingsPageState extends State<SettingsPage> {
   // --- REUSABLE CONFIRMATION POPUP ---
 
   /// This handles the "Are you sure?" popup for all settings changes
-  void _confirmChange(String title, String message, VoidCallback onConfirm) {
+  void _confirmChange(
+    String title,
+    String message,
+    VoidCallback onConfirm, {
+    bool showSnackBar = true,
+  }) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -161,11 +171,13 @@ class _SettingsPageState extends State<SettingsPage> {
             onPressed: () {
               Navigator.pop(ctx); // Close the dialog
               onConfirm(); // Execute the actual change
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(AppLocalizations.of(context)!.changesApplied),
-                ),
-              );
+              if (showSnackBar) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(AppLocalizations.of(context)!.changesApplied),
+                  ),
+                );
+              }
             },
             child: Text(
               AppLocalizations.of(context)!.confirm,
@@ -417,23 +429,45 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  // Confirms with the user, signs out from FirebaseAuth, optionally clears Remember Me, and navigates to LoginPage.
+  // Confirms with the user, signs out from FirebaseAuth (or navigates a guest to LoginPage),
+  // optionally clears Remember Me, and navigates to LoginPage.
   void _handleSignOut(BuildContext context, {required bool isSwitchAccount}) {
-    final title = isSwitchAccount ? 'Switch Account' : 'Log Out';
-    final desc = isSwitchAccount
-        ? 'Are you sure you want to switch accounts?'
-        : 'Are you sure you want to log out?';
+    final settings = Provider.of<SettingsProvider>(context, listen: false);
+    final isGuest = settings.isGuestUser;
 
-    _confirmChange(title, desc, () async {
-      final settings = Provider.of<SettingsProvider>(context, listen: false);
-      if (!isSwitchAccount) {
-        settings.updateRememberMe(false);
-        settings.updateRememberedEmail('');
-      }
-      await FirebaseAuth.instance.signOut();
-      if (!context.mounted) return;
-      Navigator.of(context).popUntil((route) => route.isFirst);
-    });
+    final String title;
+    final String desc;
+    if (isSwitchAccount) {
+      title = isGuest ? AppLocalizations.of(context)!.login : 'Switch Account';
+      desc = isGuest
+          ? 'Are you sure you want to log in to an account?'
+          : 'Are you sure you want to switch accounts?';
+    } else {
+      title = 'Log Out';
+      desc = 'Are you sure you want to log out?';
+    }
+
+    _confirmChange(
+      title,
+      desc,
+      () async {
+        if (isSwitchAccount && isGuest) {
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const LoginPage()),
+          );
+          return;
+        }
+        if (!isSwitchAccount) {
+          settings.updateRememberMe(false);
+          settings.updateRememberedEmail('');
+        }
+        settings.setGuestUser(false);
+        await FirebaseAuth.instance.signOut();
+        if (!context.mounted) return;
+        Navigator.of(context).popUntil((route) => route.isFirst);
+      },
+      showSnackBar: false,
+    );
   }
 
   // Prompts for confirmation before wiping all transactions, budgets, and savings goals in TransactionProvider.

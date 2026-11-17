@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:easy_budget/l10n/app_localizations.dart';
 
 import 'settings_provider.dart';
+import 'main_navigation_screen.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -73,7 +74,18 @@ class _LoginPageState extends State<LoginPage> {
             email: _emailController.text.trim(),
             password: _passwordController.text,
           );
-          await _auth.currentUser!.linkWithCredential(credential);
+          try {
+            await _auth.currentUser!.linkWithCredential(credential);
+          } on FirebaseAuthException catch (e) {
+            if (e.code == 'provider-already-linked') {
+              await _auth.createUserWithEmailAndPassword(
+                email: _emailController.text.trim(),
+                password: _passwordController.text,
+              );
+            } else {
+              rethrow;
+            }
+          }
           settings.setGuestUser(false);
         } else {
           await _auth.createUserWithEmailAndPassword(
@@ -93,7 +105,11 @@ class _LoginPageState extends State<LoginPage> {
         } else {
           settings.updateRememberedEmail('');
         }
-        // RootWrapper's authStateChanges StreamBuilder automatically switches to MainNavigationScreen.
+        // If LoginPage was pushed on top of MainNavigationScreen (e.g., Guest clicking Login),
+        // pop back to the root route so MainNavigationScreen is visible.
+        if (Navigator.of(context).canPop()) {
+          Navigator.of(context).popUntil((route) => route.isFirst);
+        }
       }
     } on FirebaseAuthException catch (e) {
       setState(() {
@@ -159,8 +175,36 @@ class _LoginPageState extends State<LoginPage> {
   // Forgot Password action, Login/Sign-Up toggle, and Continue as Guest option.
   @override
   Widget build(BuildContext context) {
+    final settings = Provider.of<SettingsProvider>(context);
+    final isActiveGuest = settings.isGuestUser && _auth.currentUser != null;
+
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      appBar: isActiveGuest
+          ? AppBar(
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              leading: IconButton(
+                icon: Icon(
+                  Icons.arrow_back,
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
+                onPressed: _isLoading
+                    ? null
+                    : () {
+                        if (Navigator.of(context).canPop()) {
+                          Navigator.of(context).pop();
+                        } else {
+                          Navigator.of(context).pushReplacement(
+                            MaterialPageRoute(
+                              builder: (_) => const MainNavigationScreen(),
+                            ),
+                          );
+                        }
+                      },
+              ),
+            )
+          : null,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -323,7 +367,7 @@ class _LoginPageState extends State<LoginPage> {
                     style: TextStyle(color: _primaryIndigo),
                   ),
                 ),
-                if (_isLogin && !Provider.of<SettingsProvider>(context).isGuestUser)
+                if (_isLogin && !isActiveGuest)
                   TextButton(
                     onPressed: _isLoading
                         ? null
