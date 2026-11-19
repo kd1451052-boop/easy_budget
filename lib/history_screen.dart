@@ -88,7 +88,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
   Widget _buildCalendar() {
     return Consumer<TransactionProvider>(
       builder: (context, provider, child) {
-        return TableCalendar(
+        return TableCalendar<AppTransaction>(
           firstDay: DateTime.utc(2020, 1, 1),
           lastDay: DateTime.utc(2030, 12, 31),
           focusedDay: _focusedDay,
@@ -143,10 +143,21 @@ class _HistoryScreenState extends State<HistoryScreen> {
               color: Color(0xFF0D47A1),
               shape: BoxShape.circle,
             ),
-            markerDecoration: BoxDecoration(
-              color: Colors.orange,
-              shape: BoxShape.circle,
-            ),
+          ),
+          calendarBuilders: CalendarBuilders<AppTransaction>(
+            singleMarkerBuilder: (context, date, event) {
+              return Container(
+                width: 7,
+                height: 7,
+                margin: const EdgeInsets.symmetric(horizontal: 0.5),
+                decoration: BoxDecoration(
+                  color: event.type == TransactionType.income
+                      ? Colors.green
+                      : Colors.red,
+                  shape: BoxShape.circle,
+                ),
+              );
+            },
           ),
           headerStyle: const HeaderStyle(
             formatButtonVisible: true,
@@ -457,9 +468,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     return Text(
                       '${isIncome ? '+' : '-'}${settings.currencySymbol}${settings.formatAmount(tx.amount)}',
                       style: TextStyle(
-                        color: isIncome
-                            ? Colors.green
-                            : Theme.of(context).colorScheme.onSurface,
+                        color: isIncome ? Colors.green : Colors.red,
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
                       ),
