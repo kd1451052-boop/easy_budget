@@ -22,6 +22,7 @@ import 'category_localization.dart';
 import 'add_transaction_screen.dart';
 import 'history.dart';
 import 'package:easy_budget/l10n/app_localizations.dart';
+import 'auto_translator.dart';
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
@@ -88,11 +89,19 @@ class _HistoryScreenState extends State<HistoryScreen> {
   Widget _buildCalendar() {
     return Consumer<TransactionProvider>(
       builder: (context, provider, child) {
+        final l10n = AppLocalizations.of(context)!;
+        final localeCode = Localizations.localeOf(context).languageCode;
         return TableCalendar<AppTransaction>(
+          locale: localeCode,
           firstDay: DateTime.utc(2020, 1, 1),
           lastDay: DateTime.utc(2030, 12, 31),
           focusedDay: _focusedDay,
           calendarFormat: _calendarFormat,
+          availableCalendarFormats: {
+            CalendarFormat.month: l10n.calendarMonth,
+            CalendarFormat.twoWeeks: l10n.calendarTwoWeeks,
+            CalendarFormat.week: l10n.calendarWeek,
+          },
           selectedDayPredicate: (day) =>
               _selectedDay != null && isSameDay(_selectedDay, day),
           onDaySelected: (selectedDay, focusedDay) {
@@ -171,11 +180,14 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   // Computes the exact inclusive [startDate, endDate] and display label for the currently visible
   // calendar view (Month, 2 Weeks, or Week), matching TableCalendar's page calculation.
-  (DateTime, DateTime, String) _getVisiblePeriodRangeAndLabel() {
+  (DateTime, DateTime, String) _getVisiblePeriodRangeAndLabel(
+    BuildContext context,
+  ) {
+    final localeCode = Localizations.localeOf(context).languageCode;
     if (_calendarFormat == CalendarFormat.month) {
       final start = DateTime(_focusedDay.year, _focusedDay.month, 1);
       final end = DateTime(_focusedDay.year, _focusedDay.month + 1, 0);
-      final label = DateFormat('MMMM yyyy').format(_focusedDay);
+      final label = DateFormat.yMMMM(localeCode).format(_focusedDay);
       return (start, end, label);
     }
 
@@ -233,8 +245,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
   Widget _buildFilteredList() {
     return Consumer<TransactionProvider>(
       builder: (context, provider, child) {
+        final l10n = AppLocalizations.of(context)!;
         final (rangeStart, rangeEnd, periodLabel) =
-            _getVisiblePeriodRangeAndLabel();
+            _getVisiblePeriodRangeAndLabel(context);
         final periodTransactions = _getTransactionsInDateRange(
           provider.transactions,
           rangeStart,
@@ -325,9 +338,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   TextButton.icon(
                     onPressed: () => _openAddTransactionForDate(_selectedDay!),
                     icon: const Icon(Icons.add_circle_outline, size: 16),
-                    label: const Text(
-                      'Add Transaction',
-                      style: TextStyle(
+                    label: Text(
+                      l10n.addTransaction,
+                      style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
                       ),
@@ -367,7 +380,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                       const SizedBox(width: 8),
                       Flexible(
                         child: Text(
-                          '${AppLocalizations.of(context)!.noTransactionsOnDate} • Tap to add',
+                          '${l10n.noTransactionsOnDate} • ${l10n.tapToAdd}',
                           style: const TextStyle(
                             color: Colors.grey,
                             fontSize: 13,
@@ -393,7 +406,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
               Padding(
                 padding: const EdgeInsets.only(bottom: 8, left: 4, right: 4),
                 child: Text(
-                  'Other transactions in $periodLabel',
+                  l10n.otherTransactionsInPeriod(periodLabel),
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 13,
@@ -448,7 +461,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  if (tx.description.isNotEmpty) Text(tx.description),
+                  AutoLocalizedText(tx.description),
                   const SizedBox(height: 2),
                   Text(
                     dateLabel,
@@ -499,22 +512,21 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   // Prompts the user to confirm before deleting the selected transaction from TransactionProvider.
   void _showDeleteConfirmation(BuildContext context, AppTransaction tx) {
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
-          AppLocalizations.of(context)!.confirm,
+          l10n.confirm,
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
-        content: const Text(
-          "Are you sure you want to delete this transaction?",
-        ),
+        content: Text(l10n.deleteTransactionConfirm),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
             child: Text(
-              AppLocalizations.of(context)!.cancel,
+              l10n.cancel,
               style: const TextStyle(color: Colors.black54),
             ),
           ),
@@ -530,10 +542,13 @@ class _HistoryScreenState extends State<HistoryScreen> {
               ).deleteTransaction(tx);
               Navigator.pop(ctx);
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("Transaction deleted.")),
+                SnackBar(content: Text(l10n.transactionDeleted)),
               );
             },
-            child: const Text("Delete", style: TextStyle(color: Colors.white)),
+            child: Text(
+              l10n.delete,
+              style: const TextStyle(color: Colors.white),
+            ),
           ),
         ],
       ),

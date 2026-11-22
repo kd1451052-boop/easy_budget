@@ -8,6 +8,8 @@ import 'history.dart';
 import 'customize_budget_page.dart';
 import 'saving_page.dart';
 import 'b_and_s_history_page.dart';
+import 'category_localization.dart';
+import 'auto_translator.dart';
 
 class BudgetPage extends StatefulWidget {
   const BudgetPage({super.key});
@@ -23,17 +25,22 @@ class _BudgetPageState extends State<BudgetPage> {
     String title,
     VoidCallback onConfirm,
   ) {
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('Delete $title?'),
+        title: Text(tr(context, 'Delete $title?', '$titleを削除しますか？')),
         content: Text(
-          'Are you sure you want to delete this $title? This action cannot be undone.',
+          tr(
+            context,
+            'Are you sure you want to delete this $title? This action cannot be undone.',
+            'この$titleを削除してもよろしいですか？この操作は元に戻せません。',
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text(AppLocalizations.of(context)!.cancel),
+            child: Text(l10n.cancel),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
@@ -41,7 +48,10 @@ class _BudgetPageState extends State<BudgetPage> {
               Navigator.pop(ctx);
               onConfirm();
             },
-            child: const Text('Delete', style: TextStyle(color: Colors.white)),
+            child: Text(
+              l10n.delete,
+              style: const TextStyle(color: Colors.white),
+            ),
           ),
         ],
       ),
@@ -243,23 +253,29 @@ class _BudgetPageState extends State<BudgetPage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                budget.name,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
+              Expanded(
+                child: AutoLocalizedText(
+                  budget.name,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
                 ),
               ),
               IconButton(
                 icon: const Icon(Icons.delete_outline, color: Colors.red),
-                onPressed: () => _showDeleteConfirmation(context, 'Budget', () {
-                  provider.deleteBudget(budget);
-                }),
+                onPressed: () => _showDeleteConfirmation(
+                  context,
+                  AppLocalizations.of(context)!.budgetPageTitle,
+                  () {
+                    provider.deleteBudget(budget);
+                  },
+                ),
               ),
             ],
           ),
           Text(
-            budget.category,
+            getLocalizedCategory(context, budget.category),
             style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
           ),
           const SizedBox(height: 12),
@@ -317,7 +333,6 @@ class _BudgetPageState extends State<BudgetPage> {
     final savedSign = isNegativeSaved ? '-' : '';
     final formattedSaved =
         '$savedSign$currency${settings.formatAmount(saved.abs())}';
-    final formattedTarget = '$currency${settings.formatAmount(target)}';
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -353,7 +368,7 @@ class _BudgetPageState extends State<BudgetPage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
+                          AutoLocalizedText(
                             goal.name,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -366,8 +381,8 @@ class _BudgetPageState extends State<BudgetPage> {
                           Text(
                             goal.productSite != null &&
                                     goal.productSite!.isNotEmpty
-                                ? '${goal.productSite} • ${goal.category}'
-                                : goal.category,
+                                ? '${AutoTranslator.localizeSync(context, goal.productSite!)} • ${getLocalizedCategory(context, goal.category)}'
+                                : getLocalizedCategory(context, goal.category),
                             style: TextStyle(
                               color: Colors.grey.shade500,
                               fontSize: 12,
@@ -384,10 +399,13 @@ class _BudgetPageState extends State<BudgetPage> {
                         color: Colors.red,
                         size: 20,
                       ),
-                      onPressed: () =>
-                          _showDeleteConfirmation(context, 'Saving Goal', () {
-                            provider.deleteSavingsGoal(goal);
-                          }),
+                      onPressed: () => _showDeleteConfirmation(
+                        context,
+                        AppLocalizations.of(context)!.savingGoals,
+                        () {
+                          provider.deleteSavingsGoal(goal);
+                        },
+                      ),
                     ),
                   ],
                 ),
@@ -408,8 +426,10 @@ class _BudgetPageState extends State<BudgetPage> {
                       ),
                       child: Text(
                         daysLeft == 0
-                            ? 'Goal Reached!'
-                            : '$daysLeft days left',
+                            ? AppLocalizations.of(context)!.goalReached
+                            : AppLocalizations.of(
+                                context,
+                              )!.daysLeftCount(daysLeft),
                         style: const TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
@@ -428,7 +448,9 @@ class _BudgetPageState extends State<BudgetPage> {
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Text(
-                          '+$extraDays days (Negative Balance)',
+                          AppLocalizations.of(
+                            context,
+                          )!.extraDaysNegativeBalance(extraDays),
                           style: const TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
@@ -443,7 +465,7 @@ class _BudgetPageState extends State<BudgetPage> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'Saved: $formattedSaved',
+                      AppLocalizations.of(context)!.savedSoFar(formattedSaved),
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
@@ -451,7 +473,9 @@ class _BudgetPageState extends State<BudgetPage> {
                       ),
                     ),
                     Text(
-                      'Goal: $formattedTarget',
+                      AppLocalizations.of(
+                        context,
+                      )!.goalText(currency, settings.formatAmount(target)),
                       style: const TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.bold,

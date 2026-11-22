@@ -886,7 +886,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Date',
+                              AppLocalizations.of(context)!.date,
                               style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
@@ -963,7 +963,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Time (Optional)',
+                              AppLocalizations.of(context)!.timeOptional,
                               style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
@@ -1005,7 +1005,9 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                                       child: Text(
                                         _selectedTime != null
                                             ? _formatTimeOnly(_selectedTime!)
-                                            : 'Optional',
+                                            : AppLocalizations.of(
+                                                context,
+                                              )!.optionalHint,
                                         overflow: TextOverflow.ellipsis,
                                         style: TextStyle(
                                           fontSize: 15,

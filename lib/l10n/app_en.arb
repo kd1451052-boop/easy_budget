@@ -38,15 +38,12 @@
   "monthDec": "Dec",
   "thisWeek": "This Week",
   "expenseAnalytics": "Expense Analytics",
-  "totalSpent": "Total Spent",
   "noExpensesYet": "No expenses yet!",
-  "recentTransactions": "Recent Transactions",
   "yearly": "Yearly",
   "monthly": "Monthly",
   "weekly": "Weekly",
   "income": "Income",
   "expense": "Expense",
-  "noRecentTransactions": "No recent transactions.",
   "budgetAlert": "Budget Alert: {budgetName}",
   "budgetSpentWarning": "You have spent {currency}{spent} of your {currency}{limit} limit.",
   "savingsFallingBehind": "Savings Falling Behind: {goalName}",
@@ -103,10 +100,7 @@
   "cancel": "Cancel",
   "confirm": "Confirm",
   "changesApplied": "Changes applied successfully!",
-  "editProfileName": "Edit Profile Name",
   "enterYourName": "Enter your name",
-  "confirmNameChange": "Confirm Name Change",
-  "confirmNameChangeDesc": "Are you sure you want to change your profile name to {newName}?",
   "save": "Save",
   "selectCurrency": "Select Currency",
   "confirmCurrency": "Confirm Currency",
@@ -121,17 +115,6 @@
   "deleteAll": "Delete All",
   "allDataCleared": "All data cleared successfully",
   "proMember": "Pro Member",
-  "confirmThemeChange": "Confirm Theme Change",
-  "confirmThemeChangeDesc": "Are you sure you want to turn {on_off} Dark Mode?",
-  "on": "on",
-  "off": "off",
-  "@confirmNameChangeDesc": {
-    "placeholders": {
-      "newName": {
-        "type": "String"
-      }
-    }
-  },
   "@confirmCurrencyDesc": {
     "placeholders": {
       "currency": {
@@ -142,13 +125,6 @@
   "@confirmLanguageDesc": {
     "placeholders": {
       "lang": {
-        "type": "String"
-      }
-    }
-  },
-  "@confirmThemeChangeDesc": {
-    "placeholders": {
-      "on_off": {
         "type": "String"
       }
     }
@@ -291,5 +267,94 @@
   "itemsOptional": "Items (optional)",
   "itemNameHint": "Item name",
   "itemPriceHint": "Price",
-  "addItem": "Add item"
+  "addItem": "Add item",
+  "dailyStreak": "Daily Streak",
+  "streakDaysCount": "{count} Days",
+  "@streakDaysCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "dayStreakBanner": "{count} Day Streak!",
+  "@dayStreakBanner": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "achievementsAndBadges": "Achievements & Badges",
+  "backupDataZip": "Backup Data (ZIP)",
+  "backupDataTitle": "Backup Data",
+  "backupDataConfirmDesc": "Are you sure you want to backup all your data? The file will be saved on your device.",
+  "noDataToBackup": "No data to backup!",
+  "backupSuccessful": "Backup Successful",
+  "backupSavedTo": "Your backup has been saved to:\n\n{path}",
+  "@backupSavedTo": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "shareExport": "Share/Export",
+  "accountSection": "Account",
+  "switchAccount": "Switch Account",
+  "switchAccountConfirmDesc": "Are you sure you want to switch accounts?",
+  "loginAccountConfirmDesc": "Are you sure you want to log in to an account?",
+  "logOut": "Log Out",
+  "logOutConfirmDesc": "Are you sure you want to log out?",
+  "calendarMonth": "Month",
+  "calendarTwoWeeks": "2 Weeks",
+  "calendarWeek": "Week",
+  "addTransaction": "Add Transaction",
+  "tapToAdd": "Tap to add",
+  "otherTransactionsInPeriod": "Other transactions in {period}",
+  "@otherTransactionsInPeriod": {
+    "placeholders": {
+      "period": {
+        "type": "String"
+      }
+    }
+  },
+  "deleteTransactionConfirm": "Are you sure you want to delete this transaction?",
+  "transactionDeleted": "Transaction deleted.",
+  "delete": "Delete",
+  "incomeVsExpense": "Income vs Expense",
+  "daysLeftCount": "{count} days left",
+  "@daysLeftCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "goalReached": "Goal Reached!",
+  "savedSoFar": "Saved so far: {amount}",
+  "@savedSoFar": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "extraDaysNegativeBalance": "+{count} extra days added due to negative balance",
+  "@extraDaysNegativeBalance": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "timeOptional": "Time (Optional)",
+  "optionalHint": "Optional",
+  "continueAsGuest": "Continue as Guest",
+  "editProfile": "Edit Profile",
+  "nameLabel": "Name",
+  "profileFrame": "Profile Frame",
+  "expired": "Expired",
+  "equipFrame": "Equip Frame",
+  "equipped": "Equipped"
 }

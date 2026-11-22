@@ -5,6 +5,7 @@ import 'package:image_cropper/image_cropper.dart';
 import 'settings_provider.dart';
 import 'profile_avatar.dart';
 import 'guest_registration_dialog.dart';
+import 'package:easy_budget/l10n/app_localizations.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -62,7 +63,7 @@ class _ProfilePageState extends State<ProfilePage> {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          'Edit Profile', // Hardcoded as fallback or could be added to localization
+          AppLocalizations.of(context)!.editProfile,
           style: TextStyle(
             color: Theme.of(context).colorScheme.onSurface,
             fontWeight: FontWeight.bold,
@@ -136,7 +137,7 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
             const SizedBox(height: 32),
             Text(
-              'Name',
+              AppLocalizations.of(context)!.nameLabel,
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -153,7 +154,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 }
               },
               decoration: InputDecoration(
-                hintText: 'Enter your name',
+                hintText: AppLocalizations.of(context)!.enterYourName,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -161,7 +162,7 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
             const SizedBox(height: 32),
             Text(
-              'Profile Frame',
+              AppLocalizations.of(context)!.profileFrame,
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -253,9 +254,9 @@ class _ProfilePageState extends State<ProfilePage> {
                   settings.updateProfileFrame(_tempFrame);
                   Navigator.pop(context);
                 },
-                child: const Text(
-                  'Save',
-                  style: TextStyle(
+                child: Text(
+                  AppLocalizations.of(context)!.save,
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 16,
                     fontWeight: FontWeight.bold,

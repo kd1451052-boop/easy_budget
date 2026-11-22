@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:easy_budget/l10n/app_localizations.dart';
 import 'gamification_provider.dart';
+import 'auto_translator.dart';
 
 // ============================================================================
 // FILE: streak_page.dart
@@ -88,9 +90,9 @@ class _StreakPageState extends State<StreakPage>
         foregroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
-        title: const Text(
-          'Daily Streak',
-          style: TextStyle(fontWeight: FontWeight.bold),
+        title: Text(
+          AppLocalizations.of(context)!.dailyStreak,
+          style: const TextStyle(fontWeight: FontWeight.bold),
         ),
       ),
       body: Consumer<GamificationProvider>(
@@ -135,7 +137,11 @@ class _StreakPageState extends State<StreakPage>
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            'Streak Goals & Rewards',
+                            tr(
+                              context,
+                              'Streak Goals & Rewards',
+                              '連続記録の目標と報酬',
+                            ),
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
@@ -151,9 +157,9 @@ class _StreakPageState extends State<StreakPage>
                               color: const Color(0xFFFF6B00).withValues(alpha: 0.12),
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            child: const Text(
-                              'Rewards Soon',
-                              style: TextStyle(
+                            child: Text(
+                              tr(context, 'Rewards Soon', '報酬は近日公開'),
+                              style: const TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
                                 color: Color(0xFFFF6B00),
@@ -245,7 +251,11 @@ class _StreakPageState extends State<StreakPage>
           ),
           const SizedBox(height: 4),
           Text(
-            streak == 1 ? 'DAY STREAK!' : 'DAYS STREAK!',
+            tr(
+              context,
+              streak == 1 ? 'DAY STREAK!' : 'DAYS STREAK!',
+              '日連続記録！',
+            ),
             style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w800,
@@ -256,8 +266,16 @@ class _StreakPageState extends State<StreakPage>
           const SizedBox(height: 8),
           Text(
             streak > 0
-                ? 'You are on fire! Keep tracking your expenses every day.'
-                : 'Open the app or log a transaction today to start your streak!',
+                ? tr(
+                    context,
+                    'You are on fire! Keep tracking your expenses every day.',
+                    '絶好調です！毎日支出を記録して連続記録を伸ばしましょう。',
+                  )
+                : tr(
+                    context,
+                    'Open the app or log a transaction today to start your streak!',
+                    '今日アプリを開くか取引を記録して連続記録を始めましょう！',
+                  ),
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 13,
@@ -270,24 +288,24 @@ class _StreakPageState extends State<StreakPage>
               Expanded(
                 child: _buildStatPill(
                   icon: Icons.local_fire_department_rounded,
-                  label: 'Current',
-                  value: '$streak d',
+                  label: tr(context, 'Current', '現在'),
+                  value: tr(context, '$streak d', '$streak日'),
                 ),
               ),
               const SizedBox(width: 10),
               Expanded(
                 child: _buildStatPill(
                   icon: Icons.emoji_events_rounded,
-                  label: 'Best Streak',
-                  value: '$longestStreak d',
+                  label: tr(context, 'Best Streak', '最高記録'),
+                  value: tr(context, '$longestStreak d', '$longestStreak日'),
                 ),
               ),
               const SizedBox(width: 10),
               Expanded(
                 child: _buildStatPill(
                   icon: Icons.calendar_month_rounded,
-                  label: 'Total Days',
-                  value: '$totalActiveDays d',
+                  label: tr(context, 'Total Days', '合計日数'),
+                  value: tr(context, '$totalActiveDays d', '$totalActiveDays日'),
                 ),
               ),
             ],
@@ -344,7 +362,10 @@ class _StreakPageState extends State<StreakPage>
     required int activeThisWeek,
     required bool isDark,
   }) {
-    const dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    final isJa = Localizations.localeOf(context).languageCode == 'ja';
+    final dayLabels = isJa
+        ? const ['月', '火', '水', '木', '金', '土', '日']
+        : const ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -370,7 +391,7 @@ class _StreakPageState extends State<StreakPage>
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'This Week',
+                AppLocalizations.of(context)!.thisWeek,
                 style: TextStyle(
                   fontSize: 17,
                   fontWeight: FontWeight.bold,
@@ -378,7 +399,7 @@ class _StreakPageState extends State<StreakPage>
                 ),
               ),
               Text(
-                '$activeThisWeek / 7 days',
+                tr(context, '$activeThisWeek / 7 days', '$activeThisWeek / 7日'),
                 style: const TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.bold,
@@ -532,7 +553,7 @@ class _StreakPageState extends State<StreakPage>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Streak Freeze',
+                  tr(context, 'Streak Freeze', '連続記録フリーズ'),
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 15,
@@ -541,7 +562,11 @@ class _StreakPageState extends State<StreakPage>
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'Protect your streak if you miss a day. Earned via streak goal rewards (coming soon).',
+                  tr(
+                    context,
+                    'Protect your streak if you miss a day. Earned via streak goal rewards (coming soon).',
+                    '1日記録を忘れても連続記録を保護します。目標達成報酬で獲得できます（近日公開）。',
+                  ),
                   style: TextStyle(
                     fontSize: 12,
                     color: Theme.of(

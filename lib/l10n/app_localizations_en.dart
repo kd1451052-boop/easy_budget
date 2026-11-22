@@ -128,13 +128,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get expenseAnalytics => 'Expense Analytics';
 
   @override
-  String get totalSpent => 'Total Spent';
-
-  @override
   String get noExpensesYet => 'No expenses yet!';
-
-  @override
-  String get recentTransactions => 'Recent Transactions';
 
   @override
   String get yearly => 'Yearly';
@@ -150,9 +144,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get expense => 'Expense';
-
-  @override
-  String get noRecentTransactions => 'No recent transactions.';
 
   @override
   String budgetAlert(String budgetName) {
@@ -211,18 +202,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get changesApplied => 'Changes applied successfully!';
 
   @override
-  String get editProfileName => 'Edit Profile Name';
-
-  @override
   String get enterYourName => 'Enter your name';
-
-  @override
-  String get confirmNameChange => 'Confirm Name Change';
-
-  @override
-  String confirmNameChangeDesc(String newName) {
-    return 'Are you sure you want to change your profile name to $newName?';
-  }
 
   @override
   String get save => 'Save';
@@ -271,20 +251,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get proMember => 'Pro Member';
-
-  @override
-  String get confirmThemeChange => 'Confirm Theme Change';
-
-  @override
-  String confirmThemeChangeDesc(String on_off) {
-    return 'Are you sure you want to turn $on_off Dark Mode?';
-  }
-
-  @override
-  String get on => 'on';
-
-  @override
-  String get off => 'off';
 
   @override
   String get budgetPageTitle => 'Budget';
@@ -576,4 +542,142 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get addItem => 'Add item';
+
+  @override
+  String get dailyStreak => 'Daily Streak';
+
+  @override
+  String streakDaysCount(int count) {
+    return '$count Days';
+  }
+
+  @override
+  String dayStreakBanner(int count) {
+    return '$count Day Streak!';
+  }
+
+  @override
+  String get achievementsAndBadges => 'Achievements & Badges';
+
+  @override
+  String get backupDataZip => 'Backup Data (ZIP)';
+
+  @override
+  String get backupDataTitle => 'Backup Data';
+
+  @override
+  String get backupDataConfirmDesc =>
+      'Are you sure you want to backup all your data? The file will be saved on your device.';
+
+  @override
+  String get noDataToBackup => 'No data to backup!';
+
+  @override
+  String get backupSuccessful => 'Backup Successful';
+
+  @override
+  String backupSavedTo(String path) {
+    return 'Your backup has been saved to:\n\n$path';
+  }
+
+  @override
+  String get shareExport => 'Share/Export';
+
+  @override
+  String get accountSection => 'Account';
+
+  @override
+  String get switchAccount => 'Switch Account';
+
+  @override
+  String get switchAccountConfirmDesc =>
+      'Are you sure you want to switch accounts?';
+
+  @override
+  String get loginAccountConfirmDesc =>
+      'Are you sure you want to log in to an account?';
+
+  @override
+  String get logOut => 'Log Out';
+
+  @override
+  String get logOutConfirmDesc => 'Are you sure you want to log out?';
+
+  @override
+  String get calendarMonth => 'Month';
+
+  @override
+  String get calendarTwoWeeks => '2 Weeks';
+
+  @override
+  String get calendarWeek => 'Week';
+
+  @override
+  String get addTransaction => 'Add Transaction';
+
+  @override
+  String get tapToAdd => 'Tap to add';
+
+  @override
+  String otherTransactionsInPeriod(String period) {
+    return 'Other transactions in $period';
+  }
+
+  @override
+  String get deleteTransactionConfirm =>
+      'Are you sure you want to delete this transaction?';
+
+  @override
+  String get transactionDeleted => 'Transaction deleted.';
+
+  @override
+  String get delete => 'Delete';
+
+  @override
+  String get incomeVsExpense => 'Income vs Expense';
+
+  @override
+  String daysLeftCount(int count) {
+    return '$count days left';
+  }
+
+  @override
+  String get goalReached => 'Goal Reached!';
+
+  @override
+  String savedSoFar(String amount) {
+    return 'Saved so far: $amount';
+  }
+
+  @override
+  String extraDaysNegativeBalance(int count) {
+    return '+$count extra days added due to negative balance';
+  }
+
+  @override
+  String get timeOptional => 'Time (Optional)';
+
+  @override
+  String get optionalHint => 'Optional';
+
+  @override
+  String get continueAsGuest => 'Continue as Guest';
+
+  @override
+  String get editProfile => 'Edit Profile';
+
+  @override
+  String get nameLabel => 'Name';
+
+  @override
+  String get profileFrame => 'Profile Frame';
+
+  @override
+  String get expired => 'Expired';
+
+  @override
+  String get equipFrame => 'Equip Frame';
+
+  @override
+  String get equipped => 'Equipped';
 }

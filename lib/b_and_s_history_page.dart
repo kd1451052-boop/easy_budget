@@ -5,18 +5,27 @@ import 'transaction_provider.dart';
 import 'settings_provider.dart';
 import 'history.dart';
 import 'package:easy_budget/l10n/app_localizations.dart';
+import 'category_localization.dart';
+import 'auto_translator.dart';
 
 // Shows a confirmation dialog before permanently deleting an expired budget or saving goal.
 void _showDeleteConfirmation(BuildContext context, String title, VoidCallback onConfirm) {
+  final l10n = AppLocalizations.of(context)!;
   showDialog(
     context: context,
     builder: (ctx) => AlertDialog(
-      title: Text('Delete $title?'),
-      content: Text('Are you sure you want to delete this $title? This action cannot be undone.'),
+      title: Text(tr(context, 'Delete $title?', '$titleを削除しますか？')),
+      content: Text(
+        tr(
+          context,
+          'Are you sure you want to delete this $title? This action cannot be undone.',
+          'この$titleを削除してもよろしいですか？この操作は元に戻せません。',
+        ),
+      ),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(ctx),
-          child: Text(AppLocalizations.of(context)!.cancel),
+          child: Text(l10n.cancel),
         ),
         ElevatedButton(
           style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
@@ -24,7 +33,7 @@ void _showDeleteConfirmation(BuildContext context, String title, VoidCallback on
             Navigator.pop(ctx);
             onConfirm();
           },
-          child: const Text('Delete', style: TextStyle(color: Colors.white)),
+          child: Text(l10n.delete, style: const TextStyle(color: Colors.white)),
         ),
       ],
     ),
@@ -136,16 +145,25 @@ class BAndSHistoryPage extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(budget.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              Expanded(
+                child: AutoLocalizedText(
+                  budget.name,
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+              ),
               IconButton(
                 icon: const Icon(Icons.delete_outline, color: Colors.red),
-                onPressed: () => _showDeleteConfirmation(context, 'Budget', () {
-                  provider.deleteBudget(budget);
-                }),
+                onPressed: () => _showDeleteConfirmation(
+                  context,
+                  AppLocalizations.of(context)!.budgetPageTitle,
+                  () {
+                    provider.deleteBudget(budget);
+                  },
+                ),
               )
             ],
           ),
-          Text(budget.category, style: TextStyle(color: Colors.grey.shade500, fontSize: 12)),
+          Text(getLocalizedCategory(context, budget.category), style: TextStyle(color: Colors.grey.shade500, fontSize: 12)),
           const SizedBox(height: 12),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -230,7 +248,7 @@ class BAndSHistoryPage extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
+                          AutoLocalizedText(
                             goal.name,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -242,8 +260,8 @@ class BAndSHistoryPage extends StatelessWidget {
                           const SizedBox(height: 2),
                           Text(
                             goal.productSite != null && goal.productSite!.isNotEmpty
-                                ? '${goal.productSite} • ${goal.category}'
-                                : goal.category,
+                                ? '${AutoTranslator.localizeSync(context, goal.productSite!)} • ${getLocalizedCategory(context, goal.category)}'
+                                : getLocalizedCategory(context, goal.category),
                             style: TextStyle(
                               color: Colors.grey.shade500,
                               fontSize: 12,
@@ -260,10 +278,13 @@ class BAndSHistoryPage extends StatelessWidget {
                         color: Colors.red,
                         size: 20,
                       ),
-                      onPressed: () =>
-                          _showDeleteConfirmation(context, 'Saving Goal', () {
-                            provider.deleteSavingsGoal(goal);
-                          }),
+                      onPressed: () => _showDeleteConfirmation(
+                        context,
+                        AppLocalizations.of(context)!.savingGoals,
+                        () {
+                          provider.deleteSavingsGoal(goal);
+                        },
+                      ),
                     ),
                   ],
                 ),
@@ -280,7 +301,9 @@ class BAndSHistoryPage extends StatelessWidget {
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Text(
-                    isReached ? 'Goal Reached! 🎉' : 'Expired',
+                    isReached
+                        ? '${AppLocalizations.of(context)!.goalReached} 🎉'
+                        : AppLocalizations.of(context)!.expired,
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,

@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 import 'package:easy_budget/l10n/app_localizations.dart';
 
 import 'settings_provider.dart';
 import 'main_navigation_screen.dart';
+import 'update_notifier.dart';
 
 class LoginPage extends StatefulWidget {
-  const LoginPage({super.key});
+  final bool initialIsLogin;
+
+  const LoginPage({super.key, this.initialIsLogin = true});
 
   @override
   State<LoginPage> createState() => _LoginPageState();
@@ -20,7 +24,7 @@ class _LoginPageState extends State<LoginPage> {
   final _auth = FirebaseAuth.instance;
   
   // Tracks whether the form is in Login or Sign-Up mode, loading state, and error display.
-  bool _isLogin = true;
+  late bool _isLogin = widget.initialIsLogin;
   bool _isLoading = false;
   bool _rememberMe = false;
   String? _errorMessage;
@@ -40,6 +44,7 @@ class _LoginPageState extends State<LoginPage> {
           _emailController.text = settings.rememberedEmail;
         }
       });
+      UpdateNotifier.checkAndShowWhatsNew(context);
     });
   }
 
@@ -63,10 +68,12 @@ class _LoginPageState extends State<LoginPage> {
       final settings = Provider.of<SettingsProvider>(context, listen: false);
 
       if (_isLogin) {
-        await _auth.signInWithEmailAndPassword(
-          email: _emailController.text.trim(),
-          password: _passwordController.text,
-        );
+        await _auth
+            .signInWithEmailAndPassword(
+              email: _emailController.text.trim(),
+              password: _passwordController.text,
+            )
+            .timeout(const Duration(seconds: 15));
         settings.setGuestUser(false);
       } else {
         if (settings.isGuestUser && _auth.currentUser != null) {
@@ -75,23 +82,29 @@ class _LoginPageState extends State<LoginPage> {
             password: _passwordController.text,
           );
           try {
-            await _auth.currentUser!.linkWithCredential(credential);
+            await _auth.currentUser!
+                .linkWithCredential(credential)
+                .timeout(const Duration(seconds: 15));
           } on FirebaseAuthException catch (e) {
             if (e.code == 'provider-already-linked') {
-              await _auth.createUserWithEmailAndPassword(
-                email: _emailController.text.trim(),
-                password: _passwordController.text,
-              );
+              await _auth
+                  .createUserWithEmailAndPassword(
+                    email: _emailController.text.trim(),
+                    password: _passwordController.text,
+                  )
+                  .timeout(const Duration(seconds: 15));
             } else {
               rethrow;
             }
           }
           settings.setGuestUser(false);
         } else {
-          await _auth.createUserWithEmailAndPassword(
-            email: _emailController.text.trim(),
-            password: _passwordController.text,
-          );
+          await _auth
+              .createUserWithEmailAndPassword(
+                email: _emailController.text.trim(),
+                password: _passwordController.text,
+              )
+              .timeout(const Duration(seconds: 15));
           settings.setGuestUser(false);
         }
       }
@@ -112,10 +125,17 @@ class _LoginPageState extends State<LoginPage> {
         }
       }
     } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
       setState(() {
-        _errorMessage = e.message ?? AppLocalizations.of(context)!.authFailed;
+        _errorMessage = _friendlyAuthError(e.code, e.message);
+      });
+    } on PlatformException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _errorMessage = _friendlyAuthError(e.code, e.message);
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _errorMessage = AppLocalizations.of(context)!.unexpectedError;
       });
@@ -126,6 +146,27 @@ class _LoginPageState extends State<LoginPage> {
         });
       }
     }
+  }
+
+  // Maps Firebase / Platform auth error codes to clear, user-friendly messages.
+  String _friendlyAuthError(String code, String? rawMessage) {
+    final normalized = code.toLowerCase();
+    if (normalized.contains('invalid-credential') ||
+        normalized.contains('invalid_credential') ||
+        normalized.contains('wrong-password') ||
+        normalized.contains('user-not-found')) {
+      return 'Incorrect email or password. If you do not have an account yet, please tap Sign Up below.';
+    }
+    if (normalized.contains('email-already-in-use')) {
+      return 'This email is already registered. Please switch to Login.';
+    }
+    if (normalized.contains('weak-password')) {
+      return 'Password should be at least 6 characters.';
+    }
+    if (normalized.contains('invalid-email')) {
+      return 'Please enter a valid email address.';
+    }
+    return rawMessage ?? AppLocalizations.of(context)!.authFailed;
   }
 
   // Sends a Firebase password reset email to the address entered in _emailController.
@@ -213,10 +254,21 @@ class _LoginPageState extends State<LoginPage> {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Icon(
-                  Icons.account_balance_wallet_rounded,
-                  size: 80,
-                  color: _primaryIndigo,
+                Center(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(24),
+                    child: Image.asset(
+                      'assets/images/app_logo.png',
+                      width: 110,
+                      height: 110,
+                      fit: BoxFit.contain,
+                      errorBuilder: (_, _, _) => Icon(
+                        Icons.account_balance_wallet_rounded,
+                        size: 80,
+                        color: _primaryIndigo,
+                      ),
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 24),
                 Text(
@@ -381,15 +433,19 @@ class _LoginPageState extends State<LoginPage> {
                               final fakeEmail = 'guest_$randomNum@easybudget.local';
                               final fakePassword = 'guest_$randomNum';
                               
-                              await _auth.createUserWithEmailAndPassword(
-                                email: fakeEmail, 
-                                password: fakePassword
-                              );
-                              
+                              await _auth
+                                  .createUserWithEmailAndPassword(
+                                    email: fakeEmail,
+                                    password: fakePassword,
+                                  )
+                                  .timeout(const Duration(seconds: 15));
+
                               if (mounted) {
                                 final settings = Provider.of<SettingsProvider>(context, listen: false);
                                 settings.setGuestUser(true);
-                                // RootWrapper's authStateChanges StreamBuilder automatically switches to MainNavigationScreen.
+                                if (Navigator.of(context).canPop()) {
+                                  Navigator.of(context).popUntil((route) => route.isFirst);
+                                }
                               }
                             } on FirebaseAuthException catch (e) {
                               setState(() {
@@ -406,7 +462,7 @@ class _LoginPageState extends State<LoginPage> {
                             }
                           },
                     child: Text(
-                      'Continue as Guest',
+                      AppLocalizations.of(context)!.continueAsGuest,
                       style: TextStyle(color: Colors.grey.shade600, fontWeight: FontWeight.bold),
                     ),
                   ),

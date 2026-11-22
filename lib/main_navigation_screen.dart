@@ -13,6 +13,7 @@ import 'package:confetti/confetti.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:provider/provider.dart';
 import 'gamification_provider.dart';
+import 'update_notifier.dart';
 
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key});
@@ -59,6 +60,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       _txProvider = Provider.of<TransactionProvider>(context, listen: false);
       _txProvider!.addListener(_onTransactionProviderChanged);
       _checkAndShowGoalReachedPopup();
+      UpdateNotifier.checkAndShowWhatsNew(context);
     });
   }
 

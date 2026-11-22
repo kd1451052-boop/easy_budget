@@ -126,13 +126,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get expenseAnalytics => '支出分析';
 
   @override
-  String get totalSpent => '合計支出';
-
-  @override
   String get noExpensesYet => 'まだ支出はありません！';
-
-  @override
-  String get recentTransactions => '最近の取引';
 
   @override
   String get yearly => '毎年';
@@ -148,9 +142,6 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get expense => '支出';
-
-  @override
-  String get noRecentTransactions => '最近の取引はありません。';
 
   @override
   String budgetAlert(String budgetName) {
@@ -209,18 +200,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get changesApplied => '変更が正常に適用されました！';
 
   @override
-  String get editProfileName => 'プロファイル名の編集';
-
-  @override
   String get enterYourName => '名前を入力';
-
-  @override
-  String get confirmNameChange => '名前の変更を確認';
-
-  @override
-  String confirmNameChangeDesc(String newName) {
-    return 'プロファイル名を$newNameに変更してもよろしいですか？';
-  }
 
   @override
   String get save => '保存';
@@ -268,20 +248,6 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get proMember => 'プロメンバー';
-
-  @override
-  String get confirmThemeChange => 'テーマ変更の確認';
-
-  @override
-  String confirmThemeChangeDesc(String on_off) {
-    return 'ダークモードを$on_offにしてもよろしいですか？';
-  }
-
-  @override
-  String get on => 'オン';
-
-  @override
-  String get off => 'オフ';
 
   @override
   String get budgetPageTitle => '予算';
@@ -570,4 +536,139 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get addItem => '商品を追加';
+
+  @override
+  String get dailyStreak => '連続記録';
+
+  @override
+  String streakDaysCount(int count) {
+    return '$count日';
+  }
+
+  @override
+  String dayStreakBanner(int count) {
+    return '$count日連続！';
+  }
+
+  @override
+  String get achievementsAndBadges => '実績とバッジ';
+
+  @override
+  String get backupDataZip => 'データのバックアップ (ZIP)';
+
+  @override
+  String get backupDataTitle => 'データのバックアップ';
+
+  @override
+  String get backupDataConfirmDesc =>
+      'すべてのデータをバックアップしてもよろしいですか？ファイルはデバイスに保存されます。';
+
+  @override
+  String get noDataToBackup => 'バックアップするデータがありません！';
+
+  @override
+  String get backupSuccessful => 'バックアップ完了';
+
+  @override
+  String backupSavedTo(String path) {
+    return 'バックアップは以下の場所に保存されました:\n\n$path';
+  }
+
+  @override
+  String get shareExport => '共有・エクスポート';
+
+  @override
+  String get accountSection => 'アカウント';
+
+  @override
+  String get switchAccount => 'アカウントを切り替え';
+
+  @override
+  String get switchAccountConfirmDesc => 'アカウントを切り替えてもよろしいですか？';
+
+  @override
+  String get loginAccountConfirmDesc => 'アカウントにログインしてもよろしいですか？';
+
+  @override
+  String get logOut => 'ログアウト';
+
+  @override
+  String get logOutConfirmDesc => 'ログアウトしてもよろしいですか？';
+
+  @override
+  String get calendarMonth => '月';
+
+  @override
+  String get calendarTwoWeeks => '2週間';
+
+  @override
+  String get calendarWeek => '週';
+
+  @override
+  String get addTransaction => '取引を追加';
+
+  @override
+  String get tapToAdd => 'タップして追加';
+
+  @override
+  String otherTransactionsInPeriod(String period) {
+    return '$periodのその他の取引';
+  }
+
+  @override
+  String get deleteTransactionConfirm => 'この取引を削除してもよろしいですか？';
+
+  @override
+  String get transactionDeleted => '取引を削除しました。';
+
+  @override
+  String get delete => '削除';
+
+  @override
+  String get incomeVsExpense => '収入 vs 支出';
+
+  @override
+  String daysLeftCount(int count) {
+    return '残り$count日';
+  }
+
+  @override
+  String get goalReached => '目標達成！';
+
+  @override
+  String savedSoFar(String amount) {
+    return '現在の貯金額: $amount';
+  }
+
+  @override
+  String extraDaysNegativeBalance(int count) {
+    return '残高マイナスのため+$count日延長';
+  }
+
+  @override
+  String get timeOptional => '時間（任意）';
+
+  @override
+  String get optionalHint => '任意';
+
+  @override
+  String get continueAsGuest => 'ゲストとして続行';
+
+  @override
+  String get editProfile => 'プロフィールを編集';
+
+  @override
+  String get nameLabel => '名前';
+
+  @override
+  String get profileFrame => 'プロフィールフレーム';
+
+  @override
+  String get expired => '期限切れ';
+
+  @override
+  String get equipFrame => 'フレームを装着';
+
+  @override
+  String get equipped => '装着中';
 }

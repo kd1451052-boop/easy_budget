@@ -12,6 +12,8 @@ import 'settings_provider.dart';
 import 'transaction_provider.dart';
 import 'gamification_provider.dart';
 import 'history.dart';
+import 'category_localization.dart';
+import 'auto_translator.dart';
 
 class _DebugHttpClient extends http.BaseClient {
   final http.Client _inner = http.Client();
@@ -339,6 +341,10 @@ class _ScannerState extends State<Scanner> with SingleTickerProviderStateMixin {
       );
       final bytes = await image.readAsBytes();
 
+      final targetLanguage = settings.selectedLanguage == 'Japanese'
+          ? 'Japanese'
+          : 'English';
+
       final prompt = TextPart(
         'Analyze this receipt image and return ONLY valid JSON in this exact format: '
         '{"merchant":"name","date":"yyyy-MM-dd","total":12.34,"currency":"JPY",'
@@ -350,7 +356,11 @@ class _ScannerState extends State<Scanner> with SingleTickerProviderStateMixin {
         '3. If an item clearly belongs to a distinct category not in the list (e.g. "Clothes", "Medical", "Electronics", "Pets", "Coffee", "Entertainment"), '
         'create a short 1-word TitleCase category name (like "Clothes") so we can add it as a custom category. '
         '4. For "icon" and "majorityIcon", pick the closest match from: '
-        '${_iconMap.keys.join(", ")}.',
+        '${_iconMap.keys.join(", ")}. '
+        '5. IMPORTANT LANGUAGE RULE: The app language is currently set to $targetLanguage. '
+        'Write the "merchant" name, every item "name", and any "note" translated into natural $targetLanguage '
+        '(if $targetLanguage is English and the receipt is printed in Japanese, translate all Japanese item names and merchant into clear English; '
+        'if $targetLanguage is Japanese, write them in Japanese).',
       );
       final imagePart = InlineDataPart('image/jpeg', bytes);
 
@@ -559,8 +569,8 @@ class _ScannerState extends State<Scanner> with SingleTickerProviderStateMixin {
         );
 
     final categorySummary = groups.keys.isNotEmpty
-        ? groups.keys.join(', ')
-        : majorityCategory;
+        ? groups.keys.map((k) => getLocalizedCategory(context, k)).join(', ')
+        : getLocalizedCategory(context, majorityCategory);
 
     showModalBottomSheet(
       context: context,
@@ -619,8 +629,16 @@ class _ScannerState extends State<Scanner> with SingleTickerProviderStateMixin {
                     Expanded(
                       child: Text(
                         canSplitByPrice
-                            ? 'Mixed items detected: Will save ${groups.length} separate transactions ($categorySummary).'
-                            : 'Mixed items detected: Will save under majority category with a note.',
+                            ? tr(
+                                context,
+                                'Mixed items detected: Will save ${groups.length} separate transactions ($categorySummary).',
+                                '複数カテゴリーを検出: ${groups.length}件の取引（$categorySummary）に分けて保存します。',
+                              )
+                            : tr(
+                                context,
+                                'Mixed items detected: Will save under majority category with a note.',
+                                '複数カテゴリーを検出: メインカテゴリーとメモで保存します。',
+                              ),
                         style: const TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
@@ -647,8 +665,10 @@ class _ScannerState extends State<Scanner> with SingleTickerProviderStateMixin {
                 itemBuilder: (context, index) {
                   final item = items[index];
                   final price = (item['price'] as num?)?.toDouble() ?? 0.0;
-                  final itemCat =
-                      item['category']?.toString() ?? majorityCategory;
+                  final itemCat = getLocalizedCategory(
+                    context,
+                    item['category']?.toString() ?? majorityCategory,
+                  );
                   return Padding(
                     padding: const EdgeInsets.symmetric(vertical: 4),
                     child: Row(

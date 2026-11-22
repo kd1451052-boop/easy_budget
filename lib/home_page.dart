@@ -25,6 +25,7 @@ import 'streak_page.dart';
 import 'category_localization.dart';
 import 'package:easy_budget/l10n/app_localizations.dart';
 import 'package:intl/intl.dart';
+import 'auto_translator.dart';
 
 enum FilterPeriod { year, month, week }
 
@@ -91,11 +92,13 @@ class _HomePageState extends State<HomePage> {
 
   // Maps a bucket index to its X-axis label on the Income vs Expense chart ('Mon'-'Sun', 'W1'-'W5', or 'Jan'-'Dec').
   String _getBucketLabel(int index, AppLocalizations l10n) {
+    final isJa = Localizations.localeOf(context).languageCode == 'ja';
     if (_selectedPeriod == FilterPeriod.week) {
-      const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-      return days[index % 7];
+      const daysEn = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+      const daysJa = ['月', '火', '水', '木', '金', '土', '日'];
+      return isJa ? daysJa[index % 7] : daysEn[index % 7];
     } else if (_selectedPeriod == FilterPeriod.month) {
-      return 'W${index + 1}';
+      return isJa ? '第${index + 1}週' : 'W${index + 1}';
     } else {
       final months = [
         l10n.monthJan,
@@ -355,7 +358,7 @@ class _HomePageState extends State<HomePage> {
                       Padding(
                         padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
                         child: Text(
-                          'Income vs Expense',
+                          AppLocalizations.of(context)!.incomeVsExpense,
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -575,7 +578,9 @@ class _HomePageState extends State<HomePage> {
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            '${gamification.currentStreak} Day Streak!',
+                            AppLocalizations.of(
+                              context,
+                            )!.dayStreakBanner(gamification.currentStreak),
                             style: const TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.bold,
@@ -990,7 +995,7 @@ class _HomePageState extends State<HomePage> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Expanded(
-                              child: Text(
+                              child: AutoLocalizedText(
                                 goal.name,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
@@ -1014,8 +1019,10 @@ class _HomePageState extends State<HomePage> {
                               ),
                               child: Text(
                                 daysLeft == 0
-                                    ? 'Goal Reached!'
-                                    : '$daysLeft days left',
+                                    ? AppLocalizations.of(context)!.goalReached
+                                    : AppLocalizations.of(
+                                        context,
+                                      )!.daysLeftCount(daysLeft),
                                 style: const TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.bold,
@@ -1028,7 +1035,7 @@ class _HomePageState extends State<HomePage> {
                         if (goal.productSite != null &&
                             goal.productSite!.isNotEmpty) ...[
                           const SizedBox(height: 2),
-                          Text(
+                          AutoLocalizedText(
                             goal.productSite!,
                             style: TextStyle(
                               fontSize: 11,
@@ -1039,7 +1046,9 @@ class _HomePageState extends State<HomePage> {
                         if (extraDays > 0) ...[
                           const SizedBox(height: 4),
                           Text(
-                            '+$extraDays extra days added due to negative balance',
+                            AppLocalizations.of(
+                              context,
+                            )!.extraDaysNegativeBalance(extraDays),
                             style: const TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
@@ -1052,7 +1061,9 @@ class _HomePageState extends State<HomePage> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              'Saved so far: $formattedSaved',
+                              AppLocalizations.of(
+                                context,
+                              )!.savedSoFar(formattedSaved),
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,

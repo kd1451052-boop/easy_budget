@@ -9,6 +9,7 @@ import 'streak_page.dart';
 import 'gamification_provider.dart';
 import 'settings_provider.dart';
 import 'package:easy_budget/l10n/app_localizations.dart';
+import 'auto_translator.dart';
 import 'profile_page.dart';
 import 'profile_avatar.dart';
 import 'login_page.dart';
@@ -57,8 +58,10 @@ class _SettingsPageState extends State<SettingsPage> {
           Consumer<GamificationProvider>(
             builder: (context, gamification, _) => _buildSettingTile(
               Icons.local_fire_department_rounded,
-              'Daily Streak',
-              '${gamification.currentStreak} Days',
+              AppLocalizations.of(context)!.dailyStreak,
+              AppLocalizations.of(
+                context,
+              )!.streakDaysCount(gamification.currentStreak),
               onTap: () {
                 Navigator.push(
                   context,
@@ -69,7 +72,7 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
           _buildSettingTile(
             Icons.emoji_events,
-            'Achievements & Badges',
+            AppLocalizations.of(context)!.achievementsAndBadges,
             null,
             onTap: () {
               Navigator.push(
@@ -89,7 +92,7 @@ class _SettingsPageState extends State<SettingsPage> {
           _buildSettingTile(
             Icons.language_outlined,
             AppLocalizations.of(context)!.language,
-            settings.selectedLanguage,
+            getLocalizedLanguageName(context, settings.selectedLanguage),
             onTap: _showLanguagePicker,
           ),
           _buildThemeToggle(),
@@ -105,7 +108,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
           _buildSettingTile(
             Icons.backup_outlined,
-            'Backup Data (ZIP)',
+            AppLocalizations.of(context)!.backupDataZip,
             null,
             onTap: () => _backupDataToZip(context),
           ),
@@ -117,20 +120,20 @@ class _SettingsPageState extends State<SettingsPage> {
             onTap: () => _showClearDataDialog(context),
           ),
           const SizedBox(height: 16),
-          _buildSectionHeader('Account'),
+          _buildSectionHeader(AppLocalizations.of(context)!.accountSection),
           _buildSettingTile(
             settings.isGuestUser
                 ? Icons.login_outlined
                 : Icons.switch_account_outlined,
             settings.isGuestUser
                 ? AppLocalizations.of(context)!.login
-                : 'Switch Account',
+                : AppLocalizations.of(context)!.switchAccount,
             null,
             onTap: () => _handleSignOut(context, isSwitchAccount: true),
           ),
           _buildSettingTile(
             Icons.logout,
-            'Log Out',
+            AppLocalizations.of(context)!.logOut,
             null,
             isDestructive: true,
             onTap: () => _handleSignOut(context, isSwitchAccount: false),
@@ -250,6 +253,7 @@ class _SettingsPageState extends State<SettingsPage> {
         ),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         children: languages.map((lang) {
+          final displayLang = getLocalizedLanguageName(context, lang);
           return SimpleDialogOption(
             onPressed: () {
               Navigator.pop(ctx); // Close picker
@@ -257,7 +261,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 // Trigger Confirmation
                 _confirmChange(
                   AppLocalizations.of(context)!.confirmLanguage,
-                  AppLocalizations.of(context)!.confirmLanguageDesc(lang),
+                  AppLocalizations.of(context)!.confirmLanguageDesc(displayLang),
                   () {
                     Provider.of<SettingsProvider>(
                       context,
@@ -269,7 +273,7 @@ class _SettingsPageState extends State<SettingsPage> {
             },
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 12),
-              child: Text(lang, style: const TextStyle(fontSize: 16)),
+              child: Text(displayLang, style: const TextStyle(fontSize: 16)),
             ),
           );
         }).toList(),
@@ -324,9 +328,10 @@ class _SettingsPageState extends State<SettingsPage> {
 
   // Serializes all transactions to JSON, compresses them into a ZIP archive in the app documents folder, and offers sharing.
   void _backupDataToZip(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     _confirmChange(
-      'Backup Data',
-      'Are you sure you want to backup all your data? The file will be saved on your device.',
+      l10n.backupDataTitle,
+      l10n.backupDataConfirmDesc,
       () async {
         final provider = Provider.of<TransactionProvider>(
           context,
@@ -337,7 +342,7 @@ class _SettingsPageState extends State<SettingsPage> {
         if (transactions.isEmpty) {
           ScaffoldMessenger.of(
             context,
-          ).showSnackBar(const SnackBar(content: Text('No data to backup!')));
+          ).showSnackBar(SnackBar(content: Text(l10n.noDataToBackup)));
           return;
         }
 
@@ -388,13 +393,11 @@ class _SettingsPageState extends State<SettingsPage> {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
-              title: const Text(
-                'Backup Successful',
-                style: TextStyle(fontWeight: FontWeight.bold),
+              title: Text(
+                l10n.backupSuccessful,
+                style: const TextStyle(fontWeight: FontWeight.bold),
               ),
-              content: Text(
-                'Your backup has been saved to:\n\n${zipFile.path}',
-              ),
+              content: Text(l10n.backupSavedTo(zipFile.path)),
               actions: [
                 TextButton(
                   onPressed: () {
@@ -403,7 +406,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       XFile(zipFile.path),
                     ], text: 'My Easy Budget Backup');
                   },
-                  child: const Text('Share/Export'),
+                  child: Text(l10n.shareExport),
                 ),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
@@ -434,17 +437,16 @@ class _SettingsPageState extends State<SettingsPage> {
   void _handleSignOut(BuildContext context, {required bool isSwitchAccount}) {
     final settings = Provider.of<SettingsProvider>(context, listen: false);
     final isGuest = settings.isGuestUser;
+    final l10n = AppLocalizations.of(context)!;
 
     final String title;
     final String desc;
     if (isSwitchAccount) {
-      title = isGuest ? AppLocalizations.of(context)!.login : 'Switch Account';
-      desc = isGuest
-          ? 'Are you sure you want to log in to an account?'
-          : 'Are you sure you want to switch accounts?';
+      title = isGuest ? l10n.login : l10n.switchAccount;
+      desc = isGuest ? l10n.loginAccountConfirmDesc : l10n.switchAccountConfirmDesc;
     } else {
-      title = 'Log Out';
-      desc = 'Are you sure you want to log out?';
+      title = l10n.logOut;
+      desc = l10n.logOutConfirmDesc;
     }
 
     _confirmChange(

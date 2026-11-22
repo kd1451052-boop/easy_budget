@@ -332,23 +332,11 @@ abstract class AppLocalizations {
   /// **'Expense Analytics'**
   String get expenseAnalytics;
 
-  /// No description provided for @totalSpent.
-  ///
-  /// In en, this message translates to:
-  /// **'Total Spent'**
-  String get totalSpent;
-
   /// No description provided for @noExpensesYet.
   ///
   /// In en, this message translates to:
   /// **'No expenses yet!'**
   String get noExpensesYet;
-
-  /// No description provided for @recentTransactions.
-  ///
-  /// In en, this message translates to:
-  /// **'Recent Transactions'**
-  String get recentTransactions;
 
   /// No description provided for @yearly.
   ///
@@ -379,12 +367,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Expense'**
   String get expense;
-
-  /// No description provided for @noRecentTransactions.
-  ///
-  /// In en, this message translates to:
-  /// **'No recent transactions.'**
-  String get noRecentTransactions;
 
   /// No description provided for @budgetAlert.
   ///
@@ -482,29 +464,11 @@ abstract class AppLocalizations {
   /// **'Changes applied successfully!'**
   String get changesApplied;
 
-  /// No description provided for @editProfileName.
-  ///
-  /// In en, this message translates to:
-  /// **'Edit Profile Name'**
-  String get editProfileName;
-
   /// No description provided for @enterYourName.
   ///
   /// In en, this message translates to:
   /// **'Enter your name'**
   String get enterYourName;
-
-  /// No description provided for @confirmNameChange.
-  ///
-  /// In en, this message translates to:
-  /// **'Confirm Name Change'**
-  String get confirmNameChange;
-
-  /// No description provided for @confirmNameChangeDesc.
-  ///
-  /// In en, this message translates to:
-  /// **'Are you sure you want to change your profile name to {newName}?'**
-  String confirmNameChangeDesc(String newName);
 
   /// No description provided for @save.
   ///
@@ -589,30 +553,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Pro Member'**
   String get proMember;
-
-  /// No description provided for @confirmThemeChange.
-  ///
-  /// In en, this message translates to:
-  /// **'Confirm Theme Change'**
-  String get confirmThemeChange;
-
-  /// No description provided for @confirmThemeChangeDesc.
-  ///
-  /// In en, this message translates to:
-  /// **'Are you sure you want to turn {on_off} Dark Mode?'**
-  String confirmThemeChangeDesc(String on_off);
-
-  /// No description provided for @on.
-  ///
-  /// In en, this message translates to:
-  /// **'on'**
-  String get on;
-
-  /// No description provided for @off.
-  ///
-  /// In en, this message translates to:
-  /// **'off'**
-  String get off;
 
   /// No description provided for @budgetPageTitle.
   ///
@@ -1165,6 +1105,246 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Add item'**
   String get addItem;
+
+  /// No description provided for @dailyStreak.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily Streak'**
+  String get dailyStreak;
+
+  /// No description provided for @streakDaysCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} Days'**
+  String streakDaysCount(int count);
+
+  /// No description provided for @dayStreakBanner.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} Day Streak!'**
+  String dayStreakBanner(int count);
+
+  /// No description provided for @achievementsAndBadges.
+  ///
+  /// In en, this message translates to:
+  /// **'Achievements & Badges'**
+  String get achievementsAndBadges;
+
+  /// No description provided for @backupDataZip.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup Data (ZIP)'**
+  String get backupDataZip;
+
+  /// No description provided for @backupDataTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup Data'**
+  String get backupDataTitle;
+
+  /// No description provided for @backupDataConfirmDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to backup all your data? The file will be saved on your device.'**
+  String get backupDataConfirmDesc;
+
+  /// No description provided for @noDataToBackup.
+  ///
+  /// In en, this message translates to:
+  /// **'No data to backup!'**
+  String get noDataToBackup;
+
+  /// No description provided for @backupSuccessful.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup Successful'**
+  String get backupSuccessful;
+
+  /// No description provided for @backupSavedTo.
+  ///
+  /// In en, this message translates to:
+  /// **'Your backup has been saved to:\n\n{path}'**
+  String backupSavedTo(String path);
+
+  /// No description provided for @shareExport.
+  ///
+  /// In en, this message translates to:
+  /// **'Share/Export'**
+  String get shareExport;
+
+  /// No description provided for @accountSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Account'**
+  String get accountSection;
+
+  /// No description provided for @switchAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch Account'**
+  String get switchAccount;
+
+  /// No description provided for @switchAccountConfirmDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to switch accounts?'**
+  String get switchAccountConfirmDesc;
+
+  /// No description provided for @loginAccountConfirmDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to log in to an account?'**
+  String get loginAccountConfirmDesc;
+
+  /// No description provided for @logOut.
+  ///
+  /// In en, this message translates to:
+  /// **'Log Out'**
+  String get logOut;
+
+  /// No description provided for @logOutConfirmDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to log out?'**
+  String get logOutConfirmDesc;
+
+  /// No description provided for @calendarMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'Month'**
+  String get calendarMonth;
+
+  /// No description provided for @calendarTwoWeeks.
+  ///
+  /// In en, this message translates to:
+  /// **'2 Weeks'**
+  String get calendarTwoWeeks;
+
+  /// No description provided for @calendarWeek.
+  ///
+  /// In en, this message translates to:
+  /// **'Week'**
+  String get calendarWeek;
+
+  /// No description provided for @addTransaction.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Transaction'**
+  String get addTransaction;
+
+  /// No description provided for @tapToAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to add'**
+  String get tapToAdd;
+
+  /// No description provided for @otherTransactionsInPeriod.
+  ///
+  /// In en, this message translates to:
+  /// **'Other transactions in {period}'**
+  String otherTransactionsInPeriod(String period);
+
+  /// No description provided for @deleteTransactionConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete this transaction?'**
+  String get deleteTransactionConfirm;
+
+  /// No description provided for @transactionDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Transaction deleted.'**
+  String get transactionDeleted;
+
+  /// No description provided for @delete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get delete;
+
+  /// No description provided for @incomeVsExpense.
+  ///
+  /// In en, this message translates to:
+  /// **'Income vs Expense'**
+  String get incomeVsExpense;
+
+  /// No description provided for @daysLeftCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} days left'**
+  String daysLeftCount(int count);
+
+  /// No description provided for @goalReached.
+  ///
+  /// In en, this message translates to:
+  /// **'Goal Reached!'**
+  String get goalReached;
+
+  /// No description provided for @savedSoFar.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved so far: {amount}'**
+  String savedSoFar(String amount);
+
+  /// No description provided for @extraDaysNegativeBalance.
+  ///
+  /// In en, this message translates to:
+  /// **'+{count} extra days added due to negative balance'**
+  String extraDaysNegativeBalance(int count);
+
+  /// No description provided for @timeOptional.
+  ///
+  /// In en, this message translates to:
+  /// **'Time (Optional)'**
+  String get timeOptional;
+
+  /// No description provided for @optionalHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional'**
+  String get optionalHint;
+
+  /// No description provided for @continueAsGuest.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue as Guest'**
+  String get continueAsGuest;
+
+  /// No description provided for @editProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Profile'**
+  String get editProfile;
+
+  /// No description provided for @nameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get nameLabel;
+
+  /// No description provided for @profileFrame.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile Frame'**
+  String get profileFrame;
+
+  /// No description provided for @expired.
+  ///
+  /// In en, this message translates to:
+  /// **'Expired'**
+  String get expired;
+
+  /// No description provided for @equipFrame.
+  ///
+  /// In en, this message translates to:
+  /// **'Equip Frame'**
+  String get equipFrame;
+
+  /// No description provided for @equipped.
+  ///
+  /// In en, this message translates to:
+  /// **'Equipped'**
+  String get equipped;
 }
 
 class _AppLocalizationsDelegate

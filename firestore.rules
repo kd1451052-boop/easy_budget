@@ -1,0 +1,323 @@
+rules_version = '2';
+
+// ===============================================================
+// Assumed Data Model
+// ===============================================================
+//
+// This security rules file assumes the following data structures:
+//
+// Collection: /users/{userId}
+// Document ID: {userId} (matches Firebase Auth UID)
+// Fields:
+//   - Optional user profile document owned strictly by {userId}.
+//
+// Collection: /users/{userId}/transactions/{transactionId}
+// Document ID: {transactionId}
+// Fields:
+//   - id: string (required, immutable, matches transactionId, 1..128 chars)
+//   - type: string (required, enum: ['income', 'expense'])
+//   - category: string (required, 0..100 chars)
+//   - description: string (required, 0..500 chars)
+//   - amount: number (required, >= 0, <= 1000000000000)
+//   - dateTime: string (required, ISO-8601 date string, 1..64 chars)
+//   - iconCodePoint: int (required)
+//   - iconColorValue: int (required)
+//
+// Collection: /users/{userId}/budgets/{budgetId}
+// Document ID: {budgetId}
+// Fields:
+//   - id: string (required, immutable, matches budgetId, 1..128 chars)
+//   - name: string (required, 0..200 chars)
+//   - note: string (required, 0..1000 chars)
+//   - amount: number (required, >= 0, <= 1000000000000)
+//   - isFixed: bool (required)
+//   - targetDate: string or null (optional/nullable, ISO-8601 date string, 1..64 chars)
+//   - period: string or null (optional/nullable, enum: ['weekly', 'monthly', 'yearly'])
+//   - category: string (required, 0..100 chars)
+//   - createdAt: string (required, immutable on update, ISO-8601 date string, 1..64 chars)
+//
+// Collection: /users/{userId}/savings_goals/{goalId}
+// Document ID: {goalId}
+// Fields:
+//   - id: string (required, immutable, matches goalId, 1..128 chars)
+//   - name: string (required, 0..200 chars)
+//   - note: string (required, 0..2000 chars)
+//   - amount: number (required, >= 0, <= 1000000000000)
+//   - isFixed: bool (required)
+//   - targetDate: string or null (optional/nullable, ISO-8601 date string, 1..64 chars)
+//   - period: string or null (optional/nullable, enum: ['weekly', 'monthly', 'yearly'])
+//   - category: string (required, 0..100 chars)
+//   - createdAt: string (required, immutable on update, ISO-8601 date string, 1..64 chars)
+//   - productSite: string or null (optional/nullable, 0..100 chars)
+//   - productImageUrl: string or null (optional/nullable, 0..2000 chars)
+//   - productSiteUrl: string or null (optional/nullable, 0..2000 chars)
+//   - planMode: string or null (optional/nullable, 0..50 chars)
+//   - plannedDailySaving: number or null (optional/nullable, >= 0, <= 1000000000000)
+//   - initialSavedBalance: number or null (optional/nullable, -1000000000000..1000000000000)
+//   - aiPlanSummary: string or null (optional/nullable, 0..5000 chars)
+//   - isCompleted: bool (required)
+//   - completedAt: string or null (optional/nullable, ISO-8601 date string, 1..64 chars)
+//
+// ===============================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+
+    // Check if the user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Check if user owns the resource (for user-scoped documents)
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Validate required fields exist
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    // Validate that the document contains only the allowed fields
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    // Validate string length
+    function validStringLength(field, minLen, maxLen) {
+      return request.resource.data[field] is string &&
+        request.resource.data[field].size() >= minLen &&
+        request.resource.data[field].size() <= maxLen;
+    }
+
+    // Validate optional or nullable string (if present and non-null, must be string within length bounds)
+    function isValidNullableString(field, minLen, maxLen) {
+      return !(field in request.resource.data) ||
+        request.resource.data[field] == null ||
+        (request.resource.data[field] is string &&
+         request.resource.data[field].size() >= minLen &&
+         request.resource.data[field].size() <= maxLen);
+    }
+
+    // Validate ISO 8601 date string format (e.g. YYYY-MM-DDTHH:MM:SS.sss)
+    function isValidDateString(dateStr) {
+      return dateStr is string &&
+        dateStr.size() >= 10 &&
+        dateStr.size() <= 64 &&
+        dateStr.matches("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}.*");
+    }
+
+    // Validate optional or nullable ISO 8601 date string
+    function isValidNullableDateString(field) {
+      return !(field in request.resource.data) ||
+        request.resource.data[field] == null ||
+        isValidDateString(request.resource.data[field]);
+    }
+
+    // Validate optional or nullable budget period enum
+    function isValidNullablePeriod(field) {
+      return !(field in request.resource.data) ||
+        request.resource.data[field] == null ||
+        (request.resource.data[field] is string &&
+         request.resource.data[field] in ['weekly', 'monthly', 'yearly']);
+    }
+
+    // Validate non-negative bounded number
+    function isValidAmount(value) {
+      return value is number && value >= 0 && value <= 1000000000000;
+    }
+
+    // Validate optional or nullable non-negative number
+    function isValidNullableNonNegativeNumber(field) {
+      return !(field in request.resource.data) ||
+        request.resource.data[field] == null ||
+        isValidAmount(request.resource.data[field]);
+    }
+
+    // Validate optional or nullable bounded signed number (e.g. initialSavedBalance)
+    function isValidNullableSignedNumber(field) {
+      return !(field in request.resource.data) ||
+        request.resource.data[field] == null ||
+        (request.resource.data[field] is number &&
+         request.resource.data[field] >= -1000000000000 &&
+         request.resource.data[field] <= 1000000000000);
+    }
+
+    // ===============================================================
+    // Domain Validators (Used in both create and update)
+    // ===============================================================
+
+    function isValidTransaction(data, transactionId) {
+      let requiredFields = [
+        'id',
+        'type',
+        'category',
+        'description',
+        'amount',
+        'dateTime',
+        'iconCodePoint',
+        'iconColorValue'
+      ];
+      return hasRequiredFields(requiredFields) &&
+        hasOnlyAllowedFields(requiredFields) &&
+        data.id is string &&
+        data.id == transactionId &&
+        validStringLength('id', 1, 128) &&
+        data.type is string &&
+        data.type in ['income', 'expense'] &&
+        validStringLength('category', 0, 100) &&
+        validStringLength('description', 0, 500) &&
+        isValidAmount(data.amount) &&
+        isValidDateString(data.dateTime) &&
+        data.iconCodePoint is int &&
+        data.iconColorValue is int;
+    }
+
+    function isValidBudget(data, budgetId) {
+      let requiredFields = [
+        'id',
+        'name',
+        'note',
+        'amount',
+        'isFixed',
+        'category',
+        'createdAt'
+      ];
+      let allowedFields = [
+        'id',
+        'name',
+        'note',
+        'amount',
+        'isFixed',
+        'targetDate',
+        'period',
+        'category',
+        'createdAt'
+      ];
+      return hasRequiredFields(requiredFields) &&
+        hasOnlyAllowedFields(allowedFields) &&
+        data.id is string &&
+        data.id == budgetId &&
+        validStringLength('id', 1, 128) &&
+        validStringLength('name', 0, 200) &&
+        validStringLength('note', 0, 1000) &&
+        isValidAmount(data.amount) &&
+        data.isFixed is bool &&
+        isValidNullableDateString('targetDate') &&
+        isValidNullablePeriod('period') &&
+        validStringLength('category', 0, 100) &&
+        isValidDateString(data.createdAt);
+    }
+
+    function isValidSavingsGoal(data, goalId) {
+      let requiredFields = [
+        'id',
+        'name',
+        'note',
+        'amount',
+        'isFixed',
+        'category',
+        'createdAt',
+        'isCompleted'
+      ];
+      let allowedFields = [
+        'id',
+        'name',
+        'note',
+        'amount',
+        'isFixed',
+        'targetDate',
+        'period',
+        'category',
+        'createdAt',
+        'productSite',
+        'productImageUrl',
+        'productSiteUrl',
+        'planMode',
+        'plannedDailySaving',
+        'initialSavedBalance',
+        'aiPlanSummary',
+        'isCompleted',
+        'completedAt'
+      ];
+      return hasRequiredFields(requiredFields) &&
+        hasOnlyAllowedFields(allowedFields) &&
+        data.id is string &&
+        data.id == goalId &&
+        validStringLength('id', 1, 128) &&
+        validStringLength('name', 0, 200) &&
+        validStringLength('note', 0, 2000) &&
+        isValidAmount(data.amount) &&
+        data.isFixed is bool &&
+        isValidNullableDateString('targetDate') &&
+        isValidNullablePeriod('period') &&
+        validStringLength('category', 0, 100) &&
+        isValidDateString(data.createdAt) &&
+        isValidNullableString('productSite', 0, 100) &&
+        isValidNullableString('productImageUrl', 0, 2000) &&
+        isValidNullableString('productSiteUrl', 0, 2000) &&
+        isValidNullableString('planMode', 0, 50) &&
+        isValidNullableNonNegativeNumber('plannedDailySaving') &&
+        isValidNullableSignedNumber('initialSavedBalance') &&
+        isValidNullableString('aiPlanSummary', 0, 5000) &&
+        data.isCompleted is bool &&
+        isValidNullableDateString('completedAt');
+    }
+
+    // ===============================================================
+    // Security Rules
+    // ===============================================================
+
+    // User root document and subcollections
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow create, update: if isOwner(userId) &&
+        request.resource.data.keys().size() <= 20;
+      allow delete: if isOwner(userId);
+
+      // Transactions subcollection
+      match /transactions/{transactionId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) &&
+          isValidTransaction(request.resource.data, transactionId);
+        allow update: if isOwner(userId) &&
+          isValidTransaction(request.resource.data, transactionId) &&
+          request.resource.data.id == resource.data.id;
+        allow delete: if isOwner(userId);
+      }
+
+      // Budgets subcollection
+      match /budgets/{budgetId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) &&
+          isValidBudget(request.resource.data, budgetId);
+        allow update: if isOwner(userId) &&
+          isValidBudget(request.resource.data, budgetId) &&
+          request.resource.data.id == resource.data.id &&
+          request.resource.data.createdAt == resource.data.createdAt;
+        allow delete: if isOwner(userId);
+      }
+
+      // Savings Goals subcollection
+      match /savings_goals/{goalId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) &&
+          isValidSavingsGoal(request.resource.data, goalId);
+        allow update: if isOwner(userId) &&
+          isValidSavingsGoal(request.resource.data, goalId) &&
+          request.resource.data.id == resource.data.id &&
+          request.resource.data.createdAt == resource.data.createdAt;
+        allow delete: if isOwner(userId);
+      }
+    }
+
+    // Default deny for all other paths
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

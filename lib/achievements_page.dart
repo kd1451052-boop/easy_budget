@@ -4,6 +4,7 @@ import 'gamification_provider.dart';
 import 'package:easy_budget/l10n/app_localizations.dart';
 import 'settings_provider.dart';
 import 'guest_registration_dialog.dart';
+import 'auto_translator.dart';
 
 class AchievementsPage extends StatelessWidget {
   const AchievementsPage({super.key});
@@ -15,7 +16,13 @@ class AchievementsPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: const Color(0xFFF3F4F6), // Light background
       appBar: AppBar(
-        title: const Text('Achievements', style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold)),
+        title: Text(
+          AppLocalizations.of(context)!.achievementsAndBadges,
+          style: const TextStyle(
+            color: Colors.black87,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         backgroundColor: Colors.transparent,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.black87),
@@ -191,10 +198,21 @@ class AchievementsPage extends StatelessWidget {
                                       }
                                       settings.updateProfileFrame(frameToEquip);
                                       ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(content: Text('Avatar Frame Equipped!')),
+                                        SnackBar(
+                                          content: Text(
+                                            tr(
+                                              context,
+                                              'Avatar Frame Equipped!',
+                                              'アバターフレームを装着しました！',
+                                            ),
+                                          ),
+                                        ),
                                       );
                                     },
-                              child: Text(isEquipped ? 'Equipped' : 'Equip Frame', style: const TextStyle(fontSize: 12)),
+                              child: Text(
+                                isEquipped ? loc.equipped : loc.equipFrame,
+                                style: const TextStyle(fontSize: 12),
+                              ),
                             );
                           },
                         ),
