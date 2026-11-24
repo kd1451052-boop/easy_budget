@@ -6,6 +6,7 @@ import 'settings_provider.dart';
 import 'profile_avatar.dart';
 import 'guest_registration_dialog.dart';
 import 'package:easy_budget/l10n/app_localizations.dart';
+import 'auto_translator.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -27,6 +28,20 @@ class _ProfilePageState extends State<ProfilePage> {
     {'id': 'neon', 'label': 'Neon'},
     {'id': 'minimal', 'label': 'Minimal'},
   ];
+
+  String _localizedFrameLabel(BuildContext context, String id) {
+    switch (id) {
+      case 'gold':
+        return tr(context, 'Gold', 'ゴールド', 'ရွှေရောင်');
+      case 'neon':
+        return tr(context, 'Neon', 'ネオン', 'နီယွန်');
+      case 'minimal':
+        return tr(context, 'Minimal', 'ミニマル', 'ရိုးရှင်း');
+      case 'none':
+      default:
+        return tr(context, 'None', 'なし', 'မထားပါ');
+    }
+  }
 
   // Loads the user's current name and equipped profile frame from SettingsProvider.
   @override
@@ -214,7 +229,7 @@ class _ProfilePageState extends State<ProfilePage> {
                           ),
                           const SizedBox(height: 12),
                           Text(
-                            frame['label']!,
+                            _localizedFrameLabel(context, frame['id']!),
                             style: TextStyle(
                               fontWeight: isSelected
                                   ? FontWeight.bold

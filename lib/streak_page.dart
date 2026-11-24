@@ -141,6 +141,7 @@ class _StreakPageState extends State<StreakPage>
                               context,
                               'Streak Goals & Rewards',
                               '連続記録の目標と報酬',
+                              'ဆက်တိုက်မှတ်တမ်း ရည်မှန်းချက်နှင့် ဆုလာဘ်များ',
                             ),
                             style: TextStyle(
                               fontSize: 18,
@@ -158,7 +159,12 @@ class _StreakPageState extends State<StreakPage>
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Text(
-                              tr(context, 'Rewards Soon', '報酬は近日公開'),
+                              tr(
+                                context,
+                                'Rewards Soon',
+                                '報酬は近日公開',
+                                'ဆုလာဘ်များ မကြာမီလာမည်',
+                              ),
                               style: const TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
@@ -255,6 +261,7 @@ class _StreakPageState extends State<StreakPage>
               context,
               streak == 1 ? 'DAY STREAK!' : 'DAYS STREAK!',
               '日連続記録！',
+              'ရက် ဆက်တိုက်မှတ်တမ်း!',
             ),
             style: const TextStyle(
               fontSize: 16,
@@ -270,11 +277,13 @@ class _StreakPageState extends State<StreakPage>
                     context,
                     'You are on fire! Keep tracking your expenses every day.',
                     '絶好調です！毎日支出を記録して連続記録を伸ばしましょう。',
+                    'အရမ်းကောင်းနေပါပြီ! နေ့စဉ် အသုံးစရိတ်များကို ဆက်လက်မှတ်တမ်းတင်ပါ။',
                   )
                 : tr(
                     context,
                     'Open the app or log a transaction today to start your streak!',
                     '今日アプリを開くか取引を記録して連続記録を始めましょう！',
+                    'သင်၏ ဆက်တိုက်မှတ်တမ်း စတင်ရန် ယနေ့ အက်ပ်ကိုဖွင့်ပါ သို့မဟုတ် ငွေစာရင်းမှတ်ပါ!',
                   ),
             textAlign: TextAlign.center,
             style: TextStyle(
@@ -288,24 +297,34 @@ class _StreakPageState extends State<StreakPage>
               Expanded(
                 child: _buildStatPill(
                   icon: Icons.local_fire_department_rounded,
-                  label: tr(context, 'Current', '現在'),
-                  value: tr(context, '$streak d', '$streak日'),
+                  label: tr(context, 'Current', '現在', 'လက်ရှိ'),
+                  value: tr(context, '$streak d', '$streak日', '$streak ရက်'),
                 ),
               ),
               const SizedBox(width: 10),
               Expanded(
                 child: _buildStatPill(
                   icon: Icons.emoji_events_rounded,
-                  label: tr(context, 'Best Streak', '最高記録'),
-                  value: tr(context, '$longestStreak d', '$longestStreak日'),
+                  label: tr(context, 'Best Streak', '最高記録', 'အမြင့်ဆုံးစံချိန်'),
+                  value: tr(
+                    context,
+                    '$longestStreak d',
+                    '$longestStreak日',
+                    '$longestStreak ရက်',
+                  ),
                 ),
               ),
               const SizedBox(width: 10),
               Expanded(
                 child: _buildStatPill(
                   icon: Icons.calendar_month_rounded,
-                  label: tr(context, 'Total Days', '合計日数'),
-                  value: tr(context, '$totalActiveDays d', '$totalActiveDays日'),
+                  label: tr(context, 'Total Days', '合計日数', 'စုစုပေါင်းရက်'),
+                  value: tr(
+                    context,
+                    '$totalActiveDays d',
+                    '$totalActiveDays日',
+                    '$totalActiveDays ရက်',
+                  ),
                 ),
               ),
             ],
@@ -362,10 +381,12 @@ class _StreakPageState extends State<StreakPage>
     required int activeThisWeek,
     required bool isDark,
   }) {
-    final isJa = Localizations.localeOf(context).languageCode == 'ja';
-    final dayLabels = isJa
+    final code = Localizations.localeOf(context).languageCode;
+    final dayLabels = code == 'ja'
         ? const ['月', '火', '水', '木', '金', '土', '日']
-        : const ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+        : (code == 'my'
+              ? const ['တနင်္လာ', 'အင်္ဂါ', 'ဗုဒ္ဓဟူး', 'ကြာသပတေး', 'သောကြာ', 'စနေ', 'တနင်္ဂနွေ']
+              : const ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']);
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -399,7 +420,12 @@ class _StreakPageState extends State<StreakPage>
                 ),
               ),
               Text(
-                tr(context, '$activeThisWeek / 7 days', '$activeThisWeek / 7日'),
+                tr(
+                  context,
+                  '$activeThisWeek / 7 days',
+                  '$activeThisWeek / 7日',
+                  '$activeThisWeek / ၇ ရက်',
+                ),
                 style: const TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.bold,
@@ -553,7 +579,7 @@ class _StreakPageState extends State<StreakPage>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  tr(context, 'Streak Freeze', '連続記録フリーズ'),
+                  tr(context, 'Streak Freeze', '連続記録フリーズ', 'ဆက်တိုက်မှတ်တမ်း ကာကွယ်မှု'),
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 15,
@@ -566,6 +592,7 @@ class _StreakPageState extends State<StreakPage>
                     context,
                     'Protect your streak if you miss a day. Earned via streak goal rewards (coming soon).',
                     '1日記録を忘れても連続記録を保護します。目標達成報酬で獲得できます（近日公開）。',
+                    '၁ ရက် ပျက်ကွက်ခဲ့လျှင် သင်၏ ဆက်တိုက်မှတ်တမ်းကို ကာကွယ်ပေးပါသည်။ ရည်မှန်းချက်ပြည့်မီသည့် ဆုလာဘ်မှ ရရှိနိုင်သည် (မကြာမီလာမည်)။',
                   ),
                   style: TextStyle(
                     fontSize: 12,
@@ -640,14 +667,17 @@ class _StreakPageState extends State<StreakPage>
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          milestone.title,
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Theme.of(context).colorScheme.onSurface,
+                        Expanded(
+                          child: AutoLocalizedText(
+                            milestone.title,
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).colorScheme.onSurface,
+                            ),
                           ),
                         ),
+                        const SizedBox(width: 8),
                         Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 8,
@@ -663,8 +693,13 @@ class _StreakPageState extends State<StreakPage>
                           ),
                           child: Text(
                             isReached
-                                ? 'Goal Reached!'
-                                : '${currentStreak.clamp(0, milestone.targetDays)} / ${milestone.targetDays} d',
+                                ? AppLocalizations.of(context)!.goalReached
+                                : tr(
+                                    context,
+                                    '${currentStreak.clamp(0, milestone.targetDays)} / ${milestone.targetDays} d',
+                                    '${currentStreak.clamp(0, milestone.targetDays)} / ${milestone.targetDays}日',
+                                    '${currentStreak.clamp(0, milestone.targetDays)} / ${milestone.targetDays} ရက်',
+                                  ),
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.bold,
@@ -680,7 +715,7 @@ class _StreakPageState extends State<StreakPage>
                       ],
                     ),
                     const SizedBox(height: 4),
-                    Text(
+                    AutoLocalizedText(
                       milestone.subtitle,
                       style: TextStyle(
                         fontSize: 13,
@@ -714,25 +749,29 @@ class _StreakPageState extends State<StreakPage>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  Icon(
-                    Icons.card_giftcard_rounded,
-                    size: 16,
-                    color: milestone.accentColor,
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    'Reward: ${milestone.rewardLabel}',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.onSurface.withValues(alpha: 0.75),
+              Expanded(
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.card_giftcard_rounded,
+                      size: 16,
+                      color: milestone.accentColor,
                     ),
-                  ),
-                ],
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: AutoLocalizedText(
+                        '${AppLocalizations.of(context)!.reward}: ${milestone.rewardLabel}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.75),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
               if (isReached)
                 TextButton.icon(
@@ -749,9 +788,14 @@ class _StreakPageState extends State<StreakPage>
                     // call `gamification.claimMilestoneReward(milestone.id)` once the
                     // reward inventory system is implemented.
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
+                      SnackBar(
                         content: Text(
-                          'Reward system coming soon! Your streak goal progress is saved.',
+                          tr(
+                            context,
+                            'Reward system coming soon! Your streak goal progress is saved.',
+                            '報酬システムは近日公開予定です！連続記録の進行状況は保存されています。',
+                            'ဆုလာဘ်စနစ် မကြာမီလာပါမည်! သင်၏ ရည်မှန်းချက် တိုးတက်မှုကို သိမ်းဆည်းထားပါသည်။',
+                          ),
                         ),
                       ),
                     );
@@ -762,7 +806,7 @@ class _StreakPageState extends State<StreakPage>
                     color: milestone.accentColor,
                   ),
                   label: Text(
-                    'Claim Soon',
+                    tr(context, 'Claim Soon', '近日公開', 'မကြာမီ ရယူနိုင်မည်'),
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,

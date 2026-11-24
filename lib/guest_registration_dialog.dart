@@ -11,12 +11,15 @@ Future<void> showGuestRegistrationDialog(
     context: context,
     builder: (BuildContext context) {
       return AlertDialog(
-        title: Text(tr(context, 'Register Account', 'アカウント登録')),
+        title: Text(
+          tr(context, 'Register Account', 'アカウント登録', 'အကောင့် မှတ်ပုံတင်ရန်'),
+        ),
         content: Text(
           tr(
             context,
             'Please register an account to access $featureName. Guest users have limited access.',
             'この機能を利用するにはアカウントを登録してください。ゲストユーザーは一部機能が制限されています。',
+            'ဤလုပ်ဆောင်ချက်ကို အသုံးပြုရန် အကောင့်မှတ်ပုံတင်ပါ။ ဧည့်သည်အသုံးပြုသူများသည် အကန့်အသတ်ဖြင့်သာ အသုံးပြုနိုင်ပါသည်။',
           ),
         ),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),

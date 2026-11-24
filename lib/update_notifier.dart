@@ -9,21 +9,28 @@ import 'update_ffi_stub.dart'
 /// Whenever you push a new Shorebird patch, increment [kCurrentPatchNumber]
 /// and update [kWhatsNewItemsEn] / [kWhatsNewItemsJa] so users see a popup explaining what changed.
 class UpdateNotifier {
-  static const int kCurrentPatchNumber = 2;
-  static const String kUpdateVersionLabel = 'v1.0.0 • Update #2';
+  static const int kCurrentPatchNumber = 3;
+  static const String kUpdateVersionLabel = 'v1.0.1 • Update #3';
 
   static const List<String> kWhatsNewItemsEn = [
-    'Full Japanese & English localization across Settings, Calendar, Home, and Add Transaction.',
-    'Receipt scan results, notes, and saving goals now automatically translate to match your selected app language.',
-    'Calendar markers now show Green for Income and Red for Expenses (instead of orange).',
-    'New Easy Budget app logo and improved Login & Guest Registration flow.',
+    'Added full Burmese (မြန်မာဘာသာ) language and Myanmar Kyat (MMK / Ks) currency support across all screens.',
+    'Full Japanese, English, and Burmese localization across Settings, Calendar, Home, and Add Transaction.',
+    'Receipt scan results, notes, and saving goals automatically translate to match your selected app language.',
+    'Calendar markers show Green for Income and Red for Expenses, with improved Login & Guest Registration flow.',
   ];
 
   static const List<String> kWhatsNewItemsJa = [
-    '設定、カレンダー、ホーム、取引追加画面の日本語・英語ローカライズを完全対応しました。',
+    'すべての画面でビルマ語（မြန်မာဘာသာ）とミャンマーチャット（MMK / Ks）通貨に完全対応しました。',
+    '設定、カレンダー、ホーム、取引追加画面の日本語・英語・ビルマ語ローカライズを完全対応しました。',
     'レシートのスキャン結果、メモ、貯金目標が選択中のアプリ言語に自動翻訳されるようになりました。',
-    'カレンダーのドットが収入は緑、支出は赤で表示されるようになりました。',
-    '新しいEasy Budgetロゴとログイン・ゲスト登録フローを改善しました。',
+    'カレンダーのドットが収入は緑、支出は赤で表示され、ログイン・ゲスト登録フローを改善しました。',
+  ];
+
+  static const List<String> kWhatsNewItemsMy = [
+    'ဆက်တင်များ၊ ပြက္ခဒိန်၊ ပင်မစာမျက်နှာနှင့် ငွေစာရင်းထည့်သွင်းသည့် မျက်နှာပြင်များအားလုံးတွင် မြန်မာဘာသာနှင့် မြန်မာကျပ်ငွေ (MMK / Ks) အပြည့်အဝ အသုံးပြုနိုင်ပါပြီ။',
+    'ဘောင်ချာ စကန်ဖတ်ထားသော ရလဒ်များ၊ မှတ်စုများနှင့် စုငွေရည်မှန်းချက်များကို ရွေးချယ်ထားသော ဘာသာစကားသို့ အလိုအလျောက် ဘာသာပြန်ပေးပါသည်။',
+    'ပြက္ခဒိန်တွင် ဝင်ငွေကို အစိမ်းရောင်၊ ထွက်ငွေကို အနီရောင် အစက်များဖြင့် ပြသပေးပါသည်။',
+    'Easy Budget လိုဂိုအသစ်နှင့် အကောင့်ဝင်ခြင်း/ဧည့်သည်အသုံးပြုမှု စနစ်ကို ပိုမိုကောင်းမွန်အောင် ပြုလုပ်ထားပါသည်။',
   ];
 
   static const String _prefKeyLastSeenPatch = 'last_seen_patch_number';
@@ -52,8 +59,10 @@ class UpdateNotifier {
       return;
     }
 
-    final isJa = Localizations.localeOf(context).languageCode == 'ja';
-    final items = isJa ? kWhatsNewItemsJa : kWhatsNewItemsEn;
+    final code = Localizations.localeOf(context).languageCode;
+    final items = code == 'ja'
+        ? kWhatsNewItemsJa
+        : (code == 'my' ? kWhatsNewItemsMy : kWhatsNewItemsEn);
 
     await showDialog<void>(
       context: context,
@@ -85,7 +94,12 @@ class UpdateNotifier {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      tr(ctx, 'New Update Downloaded!', '新しいアップデートを適用しました！'),
+                      tr(
+                        ctx,
+                        'New Update Downloaded!',
+                        '新しいアップデートを適用しました！',
+                        'အပ်ဒိတ်အသစ် ထည့်သွင်းပြီးပါပြီ!',
+                      ),
                       style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -114,6 +128,7 @@ class UpdateNotifier {
                   ctx,
                   'Your app has been automatically updated to the latest version. Here is what\'s new:',
                   'アプリが最新バージョンに自動更新されました。更新内容は以下の通りです:',
+                  'သင့်အက်ပ်ကို နောက်ဆုံးဗားရှင်းသို့ အလိုအလျောက် အပ်ဒိတ်လုပ်ပြီးပါပြီ။ အသစ်ပါဝင်လာသော အချက်များမှာ -',
                 ),
                 style: const TextStyle(fontSize: 13.5, height: 1.4),
               ),
@@ -159,7 +174,7 @@ class UpdateNotifier {
                 ),
                 onPressed: () => Navigator.of(ctx).pop(),
                 child: Text(
-                  tr(ctx, 'Got It!', 'OK'),
+                  tr(ctx, 'Got It!', 'OK', 'သိပါပြီ!'),
                   style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
               ),
@@ -195,6 +210,7 @@ class UpdateNotifier {
                         context,
                         'New update downloaded! Restart the app to apply the latest changes.',
                         '新しいアップデートがダウンロードされました！アプリを再起動すると反映されます。',
+                        'အပ်ဒိတ်အသစ် ဒေါင်းလုဒ်ဆွဲပြီးပါပြီ! ပြောင်းလဲမှုများ အသက်ဝင်စေရန် အက်ပ်ကို ပြန်ဖွင့်ပေးပါ။',
                       ),
                       style: const TextStyle(color: Colors.white),
                     ),

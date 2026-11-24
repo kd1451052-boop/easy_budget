@@ -39,6 +39,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get languageKorean => '韓国語';
 
   @override
+  String get languageMyanmar => 'ミャンマー語（ビルマ語）';
+
+  @override
   String get welcomeBack => 'お帰りなさい';
 
   @override

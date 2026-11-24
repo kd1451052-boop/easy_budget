@@ -92,13 +92,18 @@ class _HomePageState extends State<HomePage> {
 
   // Maps a bucket index to its X-axis label on the Income vs Expense chart ('Mon'-'Sun', 'W1'-'W5', or 'Jan'-'Dec').
   String _getBucketLabel(int index, AppLocalizations l10n) {
-    final isJa = Localizations.localeOf(context).languageCode == 'ja';
+    final code = Localizations.localeOf(context).languageCode;
     if (_selectedPeriod == FilterPeriod.week) {
       const daysEn = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
       const daysJa = ['月', '火', '水', '木', '金', '土', '日'];
-      return isJa ? daysJa[index % 7] : daysEn[index % 7];
+      const daysMy = ['တနင်္လာ', 'အင်္ဂါ', 'ဗုဒ္ဓဟူး', 'ကြာသပတေး', 'သောကြာ', 'စနေ', 'တနင်္ဂနွေ'];
+      if (code == 'ja') return daysJa[index % 7];
+      if (code == 'my') return daysMy[index % 7];
+      return daysEn[index % 7];
     } else if (_selectedPeriod == FilterPeriod.month) {
-      return isJa ? '第${index + 1}週' : 'W${index + 1}';
+      if (code == 'ja') return '第${index + 1}週';
+      if (code == 'my') return 'အပတ် ${index + 1}';
+      return 'W${index + 1}';
     } else {
       final months = [
         l10n.monthJan,
@@ -883,12 +888,12 @@ class _HomePageState extends State<HomePage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                AutoLocalizedText(
                   title,
                   style: TextStyle(fontWeight: FontWeight.bold, color: color),
                 ),
                 const SizedBox(height: 4),
-                Text(
+                AutoLocalizedText(
                   subtitle,
                   style: TextStyle(
                     fontSize: 12,

@@ -7,6 +7,7 @@ import 'package:easy_budget/l10n/app_localizations.dart';
 import 'settings_provider.dart';
 import 'main_navigation_screen.dart';
 import 'update_notifier.dart';
+import 'auto_translator.dart';
 
 class LoginPage extends StatefulWidget {
   final bool initialIsLogin;
@@ -155,16 +156,36 @@ class _LoginPageState extends State<LoginPage> {
         normalized.contains('invalid_credential') ||
         normalized.contains('wrong-password') ||
         normalized.contains('user-not-found')) {
-      return 'Incorrect email or password. If you do not have an account yet, please tap Sign Up below.';
+      return tr(
+        context,
+        'Incorrect email or password. If you do not have an account yet, please tap Sign Up below.',
+        'メールアドレスまたはパスワードが正しくありません。アカウントをお持ちでない場合は下のサインアップをタップしてください。',
+        'အီးမေးလ် သို့မဟုတ် စကားဝှက် မှားယွင်းနေပါသည်။ အကောင့်မရှိသေးပါက အောက်ပါ အကောင့်ဖွင့်ရန် ကို နှိပ်ပါ။',
+      );
     }
     if (normalized.contains('email-already-in-use')) {
-      return 'This email is already registered. Please switch to Login.';
+      return tr(
+        context,
+        'This email is already registered. Please switch to Login.',
+        'このメールアドレスは既に登録されています。ログインに切り替えてください。',
+        'ဤအီးမေးလ်သည် မှတ်ပုံတင်ပြီးသား ဖြစ်ပါသည်။ အကောင့်ဝင်ရန်သို့ ပြောင်းပါ။',
+      );
     }
     if (normalized.contains('weak-password')) {
-      return 'Password should be at least 6 characters.';
+      return tr(
+        context,
+        'Password should be at least 6 characters.',
+        'パスワードは6文字以上で入力してください。',
+        'စကားဝှက်သည် အနည်းဆုံး စာလုံးရေ ၆ လုံး ရှိရပါမည်။',
+      );
     }
     if (normalized.contains('invalid-email')) {
-      return 'Please enter a valid email address.';
+      return tr(
+        context,
+        'Please enter a valid email address.',
+        '有効なメールアドレスを入力してください。',
+        'ကျေးဇူးပြု၍ မှန်ကန်သော အီးမေးလ်လိပ်စာကို ထည့်သွင်းပါ။',
+      );
     }
     return rawMessage ?? AppLocalizations.of(context)!.authFailed;
   }

@@ -4,18 +4,30 @@ import 'package:firebase_ai/firebase_ai.dart';
 import 'package:easy_budget/l10n/app_localizations.dart';
 import 'settings_provider.dart';
 
-/// Helper to return [ja] when the active locale is Japanese, or [en] otherwise.
-String tr(BuildContext context, String en, String ja) {
+/// Helper to return [ja] when the active locale is Japanese, [my] when Burmese/Myanmar, or [en] otherwise.
+/// If [my] is not explicitly provided while in Burmese mode, it automatically translates [en] via [AutoTranslator].
+String tr(BuildContext context, String en, String ja, [String? my]) {
   final code = Localizations.localeOf(context).languageCode;
-  return code == 'ja' ? ja : en;
+  if (code == 'ja') return ja;
+  if (code == 'my') {
+    if (my != null && my.isNotEmpty) return my;
+    if (AutoTranslator.needsAsyncTranslation(en, 'my')) {
+      AutoTranslator.translateAsync(en, 'my');
+    }
+    return AutoTranslator.localizeSync(context, en);
+  }
+  return en;
 }
 
-/// Returns the localized display name for a language key ('English' or 'Japanese').
+/// Returns the localized display name for a language key ('English', 'Japanese', or 'Myanmar').
 String getLocalizedLanguageName(BuildContext context, String langKey) {
   final l10n = AppLocalizations.of(context)!;
   switch (langKey) {
     case 'Japanese':
       return l10n.languageJapanese;
+    case 'Myanmar':
+    case 'Burmese':
+      return l10n.languageMyanmar;
     case 'Spanish':
       return l10n.languageSpanish;
     case 'French':
@@ -31,24 +43,26 @@ String getLocalizedLanguageName(BuildContext context, String langKey) {
 }
 
 /// Automatically translates and caches dynamic/saved text (such as scanned receipt
-/// items, notes like "No note" / "メモなし", store names, and product titles)
-/// so that switching the app between English and Japanese displays everything
-/// in the currently selected language.
+/// items, notes like "No note" / "メモなし" / "မှတ်စု မရှိပါ", store names, and product titles)
+/// so that switching the app between English, Japanese, and Myanmar (Burmese) displays
+/// everything in the currently selected language.
 class AutoTranslator {
   static final Map<String, String> _memoryCache = {};
   static final Map<String, Future<String>> _inFlight = {};
 
   static final RegExp _japaneseRegex = RegExp(r'[\u3040-\u30FF\u4E00-\u9FFF]');
+  static final RegExp _myanmarRegex = RegExp(r'[\u1000-\u109F\uAA60-\uAA7F]');
   static final RegExp _latinWordRegex = RegExp(r'[A-Za-z]{3,}');
 
   static const Set<String> _noNoteVariants = {
     'no note',
     'メモなし',
+    'မှတ်စု မရှိပါ',
     '메모 없음',
     '无备注',
   };
 
-  /// Synchronously translates known phrases ("No note" / "メモなし", store names,
+  /// Synchronously translates known phrases ("No note" / "メモなし" / "မှတ်စု မရှိပါ", store names,
   /// receipt labels) or returns a previously cached AI translation if available.
   static String localizeSync(BuildContext context, String rawText) {
     final trimmed = rawText.trim();
@@ -59,16 +73,47 @@ class AutoTranslator {
 
     final langCode = Localizations.localeOf(context).languageCode;
     final isJa = langCode == 'ja';
+    final isMy = langCode == 'my';
 
     // Known store names
     if (isJa) {
-      if (trimmed == 'Rakuten Ichiba') return '楽天市場';
-      if (trimmed == 'Yahoo! Shopping') return 'Yahoo!ショッピング';
-      if (trimmed == 'Mercari') return 'メルカリ';
+      if (trimmed == 'Rakuten Ichiba' || trimmed == 'ရကုတန် (Rakuten Ichiba)') {
+        return '楽天市場';
+      }
+      if (trimmed == 'Yahoo! Shopping' ||
+          trimmed == 'ယာဟူး ရှော့ပင်း (Yahoo! Shopping)') {
+        return 'Yahoo!ショッピング';
+      }
+      if (trimmed == 'Mercari' || trimmed == 'မာကာရီ (Mercari)') {
+        return 'メルカリ';
+      }
+    } else if (isMy) {
+      if (trimmed == 'Rakuten Ichiba' || trimmed == '楽天市場') {
+        return 'ရကုတန် (Rakuten Ichiba)';
+      }
+      if (trimmed == 'Yahoo! Shopping' || trimmed == 'Yahoo!ショッピング') {
+        return 'ယာဟူး ရှော့ပင်း (Yahoo! Shopping)';
+      }
+      if (trimmed == 'Mercari' || trimmed == 'メルカリ') {
+        return 'မာကာရီ (Mercari)';
+      }
+      if (trimmed == 'Amazon') {
+        return 'အမေဇုံ (Amazon)';
+      }
     } else {
-      if (trimmed == '楽天市場') return 'Rakuten Ichiba';
-      if (trimmed == 'Yahoo!ショッピング') return 'Yahoo! Shopping';
-      if (trimmed == 'メルカリ') return 'Mercari';
+      if (trimmed == '楽天市場' || trimmed == 'ရကုတန် (Rakuten Ichiba)') {
+        return 'Rakuten Ichiba';
+      }
+      if (trimmed == 'Yahoo!ショッピング' ||
+          trimmed == 'ယာဟူး ရှော့ပင်း (Yahoo! Shopping)') {
+        return 'Yahoo! Shopping';
+      }
+      if (trimmed == 'メルカリ' || trimmed == 'မာကာရီ (Mercari)') {
+        return 'Mercari';
+      }
+      if (trimmed == 'အမေဇုံ (Amazon)') {
+        return 'Amazon';
+      }
     }
 
     final cacheKey = 'autotr_${langCode}_$trimmed';
@@ -88,25 +133,54 @@ class AutoTranslator {
     if (isJa) {
       result = result
           .replaceAll('Receipt Date:', 'レシート日付:')
+          .replaceAll('ဘောင်ချာရက်စွဲ:', 'レシート日付:')
           .replaceAll('Note: Split receipt', 'メモ: 分割レシート')
+          .replaceAll('မှတ်စု: ခွဲထားသောဘောင်ချာ', 'メモ: 分割レシート')
           .replaceAll('Note: Majority category', 'メモ: メインカテゴリー')
+          .replaceAll('မှတ်စု: အဓိကအမျိုးအစား', 'メモ: メインカテゴリー')
           .replaceAll('Note:', 'メモ:')
+          .replaceAll('မှတ်စု:', 'メモ:')
           .replaceAll('Unknown Merchant', '不明な店舗')
-          .replaceAll('Multiple Receipts', '複数のレシート');
+          .replaceAll('အမည်မသိဆိုင်', '不明な店舗')
+          .replaceAll('Multiple Receipts', '複数のレシート')
+          .replaceAll('ဘောင်ချာများ', '複数のレシート');
+    } else if (isMy) {
+      result = result
+          .replaceAll('Receipt Date:', 'ဘောင်ချာရက်စွဲ:')
+          .replaceAll('レシート日付:', 'ဘောင်ချာရက်စွဲ:')
+          .replaceAll('Note: Split receipt', 'မှတ်စု: ခွဲထားသောဘောင်ချာ')
+          .replaceAll('メモ: 分割レシート', 'မှတ်စု: ခွဲထားသောဘောင်ချာ')
+          .replaceAll('Note: Majority category', 'မှတ်စု: အဓိကအမျိုးအစား')
+          .replaceAll('メモ: メインカテゴリー', 'မှတ်စု: အဓိကအမျိုးအစား')
+          .replaceAll('Note:', 'မှတ်စု:')
+          .replaceAll('メモ:', 'မှတ်စု:')
+          .replaceAll('Unknown Merchant', 'အမည်မသိဆိုင်')
+          .replaceAll('不明な店舗', 'အမည်မသိဆိုင်')
+          .replaceAll('Multiple Receipts', 'ဘောင်ချာများ')
+          .replaceAll('複数のレシート', 'ဘောင်ချာများ')
+          .replaceAll('Cut Unnecessary Expenses Plan', 'မလိုအပ်သော အသုံးစရိတ်လျှော့ချရေး အစီအစဉ်')
+          .replaceAll('Usual Saving Plan', 'ပုံမှန် စုငွေအစီအစဉ်');
     } else {
       result = result
           .replaceAll('レシート日付:', 'Receipt Date:')
+          .replaceAll('ဘောင်ချာရက်စွဲ:', 'Receipt Date:')
           .replaceAll('メモ: 分割レシート', 'Note: Split receipt')
+          .replaceAll('မှတ်စု: ခွဲထားသောဘောင်ချာ', 'Note: Split receipt')
+          .replaceAll('メモ: メインカテゴリー', 'Note: Majority category')
+          .replaceAll('မှတ်စု: အဓိကအမျိုးအစား', 'Note: Majority category')
           .replaceAll('メモ:', 'Note:')
+          .replaceAll('မှတ်စု:', 'Note:')
           .replaceAll('不明な店舗', 'Unknown Merchant')
-          .replaceAll('複数のレシート', 'Multiple Receipts');
+          .replaceAll('အမည်မသိဆိုင်', 'Unknown Merchant')
+          .replaceAll('複数のレシート', 'Multiple Receipts')
+          .replaceAll('ဘောင်ချာများ', 'Multiple Receipts');
     }
     return result;
   }
 
   /// Returns true if [text] needs AI translation for [langCode]
-  /// (e.g., contains Japanese characters when app is in English, or
-  /// contains English words without Japanese characters when app is in Japanese).
+  /// (e.g., contains Japanese/Burmese characters when app is in English,
+  /// or contains English/Japanese text when app is in Burmese).
   static bool needsAsyncTranslation(String text, String langCode) {
     final trimmed = text.trim();
     if (trimmed.isEmpty || _noNoteVariants.contains(trimmed.toLowerCase())) {
@@ -119,15 +193,19 @@ class AutoTranslator {
     } catch (_) {}
 
     if (langCode == 'en') {
-      return _japaneseRegex.hasMatch(trimmed);
+      return _japaneseRegex.hasMatch(trimmed) || _myanmarRegex.hasMatch(trimmed);
     } else if (langCode == 'ja') {
-      return !_japaneseRegex.hasMatch(trimmed) &&
-          _latinWordRegex.hasMatch(trimmed);
+      return (!_japaneseRegex.hasMatch(trimmed) &&
+              _latinWordRegex.hasMatch(trimmed)) ||
+          _myanmarRegex.hasMatch(trimmed);
+    } else if (langCode == 'my') {
+      return !_myanmarRegex.hasMatch(trimmed) &&
+          (_latinWordRegex.hasMatch(trimmed) || _japaneseRegex.hasMatch(trimmed));
     }
     return false;
   }
 
-  /// Translates [rawText] into [langCode] ('en' or 'ja') using Gemini Flash
+  /// Translates [rawText] into [langCode] ('en', 'ja', or 'my') using Gemini Flash
   /// and caches the result in memory and SharedPreferences.
   static Future<String> translateAsync(String rawText, String langCode) async {
     final trimmed = rawText.trim();
@@ -162,7 +240,9 @@ class AutoTranslator {
     String langCode,
     String cacheKey,
   ) async {
-    final targetLanguageName = langCode == 'ja' ? 'Japanese' : 'English';
+    final targetLanguageName = langCode == 'ja'
+        ? 'Japanese'
+        : (langCode == 'my' ? 'Burmese (Myanmar Unicode)' : 'English');
     try {
       final googleAI = FirebaseAI.googleAI();
       final model = googleAI.generativeModel(model: 'gemini-flash-latest');
@@ -190,7 +270,7 @@ class AutoTranslator {
 }
 
 /// Drop-in replacement for [Text] that automatically localizes stored transaction
-/// descriptions, receipt scan results, "No note" / "メモなし", and product names
+/// descriptions, receipt scan results, "No note" / "メモなし" / "မှတ်စု မရှိပါ", and product names
 /// into the user's currently selected app language.
 class AutoLocalizedText extends StatefulWidget {
   final String text;

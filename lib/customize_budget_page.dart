@@ -5,6 +5,7 @@ import 'settings_provider.dart';
 import 'history.dart';
 import 'currency_input_formatter.dart';
 import 'package:easy_budget/l10n/app_localizations.dart';
+import 'category_localization.dart';
 
 class CustomizeBudgetPage extends StatefulWidget {
   const CustomizeBudgetPage({super.key});
@@ -209,7 +210,13 @@ class _CustomizeBudgetPageState extends State<CustomizeBudgetPage> {
                       border: Border.all(color: isSelected ? headerColor : Colors.grey.shade300),
                       borderRadius: BorderRadius.circular(24),
                     ),
-                    child: Text(cat, style: TextStyle(color: isSelected ? headerColor : Colors.black54, fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal)),
+                    child: Text(
+                      getLocalizedCategory(context, cat),
+                      style: TextStyle(
+                        color: isSelected ? headerColor : Colors.black54,
+                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                      ),
+                    ),
                   ),
                 );
               }).toList(),

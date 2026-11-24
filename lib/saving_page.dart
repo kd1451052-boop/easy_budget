@@ -11,6 +11,7 @@ import 'history.dart';
 import 'currency_input_formatter.dart';
 import 'store_api_service.dart';
 import 'package:easy_budget/l10n/app_localizations.dart';
+import 'auto_translator.dart';
 
 // HTTP client wrapper that attaches the cached Firebase App Check token and retries
 // with a refreshed token if the Gemini API returns HTTP 401.
@@ -1032,6 +1033,8 @@ class _SavingPageState extends State<SavingPage> {
         return 15000;
       case 'KRW':
         return 150000;
+      case 'MMK':
+        return 350000;
       default:
         return 120;
     }
@@ -1283,6 +1286,13 @@ class _SavingPageState extends State<SavingPage> {
           .map((e) => '${e.key}: $symbol${settings.formatAmount(e.value)}')
           .join(', ');
 
+      final targetLang = settings.selectedLanguage == 'Japanese'
+          ? 'Japanese'
+          : (settings.selectedLanguage == 'Myanmar' ||
+                    settings.selectedLanguage == 'Burmese'
+                ? 'Burmese (Myanmar Unicode)'
+                : 'English');
+
       final prompt = TextPart(
         'Analyze this user\'s transaction history to create 2 saving plans for buying '
         '"${offer.title}" (${offer.siteName}) costing $symbol${settings.formatAmount(offer.price)}.\n'
@@ -1292,15 +1302,15 @@ class _SavingPageState extends State<SavingPage> {
         '- Total Historical Income: $symbol${settings.formatAmount(totalIncome)} over $spanDays days\n'
         '- Total Historical Expense: $symbol${settings.formatAmount(totalExpense)} over $spanDays days\n'
         '- Expense Breakdown by Category: ${catSummary.isEmpty ? "No expenses recorded yet" : catSummary}\n\n'
-        'Return ONLY valid JSON with two plans:\n'
+        'Return ONLY valid JSON with two plans (write usualSummary, cutSummary, and cutTips in natural $targetLang):\n'
         '1. "usual": Saving naturally with little to no cutting of unnecessary expenses.\n'
         '2. "cut": Aggressively cutting unnecessary/discretionary expenses (e.g. Food/snacks, Shopping, Entertainment) to save faster.\n'
         'Exact JSON format:\n'
         '{"usualDays":$fallbackUsualDays,"usualDailySaving":${fallbackUsualDaily.toStringAsFixed(2)},'
-        '"usualSummary":"Short explanation of usual pace",'
+        '"usualSummary":"Short explanation of usual pace in $targetLang",'
         '"cutDays":$fallbackCutDays,"cutDailySaving":${fallbackCutDaily.toStringAsFixed(2)},'
-        '"cutSummary":"Short explanation of how much faster they can buy it by cutting expenses",'
-        '"cutTips":["Specific tip 1 based on their categories","Specific tip 2"]}',
+        '"cutSummary":"Short explanation of how much faster they can buy it by cutting expenses in $targetLang",'
+        '"cutTips":["Specific tip 1 in $targetLang","Specific tip 2 in $targetLang"]}',
       );
 
       const candidateModels = ['gemini-flash-latest'];
@@ -1436,10 +1446,15 @@ class _SavingPageState extends State<SavingPage> {
                       ),
                     ),
                     const SizedBox(width: 12),
-                    const Expanded(
+                    Expanded(
                       child: Text(
-                        'AI Saving Plan Advisor',
-                        style: TextStyle(
+                        tr(
+                          ctx,
+                          'AI Saving Plan Advisor',
+                          'AI貯金プランアドバイザー',
+                          'AI စုငွေအစီအစဉ် အကြံပေး',
+                        ),
+                        style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
                         ),
@@ -1449,7 +1464,12 @@ class _SavingPageState extends State<SavingPage> {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  'Will you make the saving plan usually or cut the unnecessary expenses?',
+                  tr(
+                    ctx,
+                    'Will you make the saving plan usually or cut the unnecessary expenses?',
+                    '通常通り貯金しますか、それとも不要な支出を削減して早く達成しますか？',
+                    'ပုံမှန်အတိုင်း စုဆောင်းမည်လား သို့မဟုတ် မလိုအပ်သော အသုံးစရိတ်များကို လျှော့ချ၍ စုဆောင်းမည်လား?',
+                  ),
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
@@ -1461,10 +1481,19 @@ class _SavingPageState extends State<SavingPage> {
                 // Option 1: Usual Plan
                 _buildPlanOptionCard(
                   ctx: ctx,
-                  title: '1. Save Usually (Little to No Cutting)',
+                  title: tr(
+                    ctx,
+                    '1. Save Usually (Little to No Cutting)',
+                    '1. 通常プラン（無理なく貯金）',
+                    '၁။ ပုံမှန်အတိုင်း စုဆောင်းမည် (အသုံးစရိတ် မလျှော့ဘဲ)',
+                  ),
                   days: analysis.usualDays,
-                  dailyAmount:
-                      '$symbol${settings.formatAmount(analysis.usualDailySaving)} / day',
+                  dailyAmount: tr(
+                    ctx,
+                    '$symbol${settings.formatAmount(analysis.usualDailySaving)} / day',
+                    '$symbol${settings.formatAmount(analysis.usualDailySaving)} / 日',
+                    'တစ်ရက်လျှင် $symbol${settings.formatAmount(analysis.usualDailySaving)}',
+                  ),
                   description: analysis.usualSummary,
                   accentColor: const Color(0xFF3B82F6),
                   icon: Icons.schedule_rounded,
@@ -1475,10 +1504,19 @@ class _SavingPageState extends State<SavingPage> {
                 // Option 2: Cut Unnecessary Expenses Plan
                 _buildPlanOptionCard(
                   ctx: ctx,
-                  title: '2. Cut Unnecessary Expenses (Fastest)',
+                  title: tr(
+                    ctx,
+                    '2. Cut Unnecessary Expenses (Fastest)',
+                    '2. 節約プラン（不要な支出をカットして最速達成）',
+                    '၂။ မလိုအပ်သော အသုံးစရိတ်များ လျှော့ချမည် (အမြန်ဆုံး)',
+                  ),
                   days: analysis.cutDays,
-                  dailyAmount:
-                      '$symbol${settings.formatAmount(analysis.cutDailySaving)} / day',
+                  dailyAmount: tr(
+                    ctx,
+                    '$symbol${settings.formatAmount(analysis.cutDailySaving)} / day',
+                    '$symbol${settings.formatAmount(analysis.cutDailySaving)} / 日',
+                    'တစ်ရက်လျှင် $symbol${settings.formatAmount(analysis.cutDailySaving)}',
+                  ),
                   description: analysis.cutSummary,
                   tips: analysis.cutTips,
                   accentColor: const Color(0xFF10B981),
@@ -1551,7 +1589,7 @@ class _SavingPageState extends State<SavingPage> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
-                    '$days Days',
+                    AppLocalizations.of(ctx)!.streakDaysCount(days),
                     style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
@@ -1563,11 +1601,16 @@ class _SavingPageState extends State<SavingPage> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Target Pace: $dailyAmount',
+              tr(
+                ctx,
+                'Target Pace: $dailyAmount',
+                '目標ペース: $dailyAmount',
+                'ရည်မှန်းချက် နှုန်းထား: $dailyAmount',
+              ),
               style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
             ),
             const SizedBox(height: 4),
-            Text(
+            AutoLocalizedText(
               description,
               style: TextStyle(
                 fontSize: 12,
@@ -1587,7 +1630,10 @@ class _SavingPageState extends State<SavingPage> {
                       Icon(Icons.check_circle, size: 14, color: accentColor),
                       const SizedBox(width: 6),
                       Expanded(
-                        child: Text(t, style: const TextStyle(fontSize: 12)),
+                        child: AutoLocalizedText(
+                          t,
+                          style: const TextStyle(fontSize: 12),
+                        ),
                       ),
                     ],
                   ),
@@ -1731,7 +1777,12 @@ class _SavingPageState extends State<SavingPage> {
                             ),
                             const SizedBox(width: 6),
                             Text(
-                              'AI Store Search',
+                              tr(
+                                context,
+                                'AI Store Search',
+                                'AIストア検索',
+                                'AI စတိုးဆိုင် ရှာဖွေမှု',
+                              ),
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 13,
@@ -1773,7 +1824,12 @@ class _SavingPageState extends State<SavingPage> {
                             ),
                             const SizedBox(width: 6),
                             Text(
-                              'Manual Custom Item',
+                              tr(
+                                context,
+                                'Manual Custom Item',
+                                '手動でアイテム登録',
+                                'စိတ်ကြိုက်ပစ္စည်း ကိုယ်တိုင်ထည့်ရန်',
+                              ),
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 13,
@@ -1817,10 +1873,15 @@ class _SavingPageState extends State<SavingPage> {
                           size: 20,
                         ),
                         const SizedBox(width: 8),
-                        const Expanded(
+                        Expanded(
                           child: Text(
-                            'AI Product Finder & Saving Planner',
-                            style: TextStyle(
+                            tr(
+                              context,
+                              'AI Product Finder & Saving Planner',
+                              'AI商品検索＆貯金プランナー',
+                              'AI ပစ္စည်းရှာဖွေရေးနှင့် စုငွေအစီအစဉ်ရေးဆွဲသူ',
+                            ),
+                            style: const TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 15,
                             ),
@@ -1830,7 +1891,12 @@ class _SavingPageState extends State<SavingPage> {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      'Search any item from Amazon, Rakuten Ichiba, Yahoo! Shopping, or Mercari to build a personalized AI saving plan.',
+                      tr(
+                        context,
+                        'Search any item from Amazon, Rakuten Ichiba, Yahoo! Shopping, or Mercari to build a personalized AI saving plan.',
+                        'Amazon、楽天市場、Yahoo!ショッピング、メルカリから商品を検索し、AIが最適な貯金プランを作成します。',
+                        'Amazon၊ Rakuten Ichiba၊ Yahoo! Shopping သို့မဟုတ် Mercari မှ မည်သည့်ပစ္စည်းကိုမဆို ရှာဖွေပြီး သင့်အတွက် သီးသန့် AI စုငွေအစီအစဉ်ကို ရေးဆွဲပါ။',
+                      ),
                       style: TextStyle(
                         fontSize: 12,
                         color: Theme.of(
@@ -1873,8 +1939,18 @@ class _SavingPageState extends State<SavingPage> {
                             Expanded(
                               child: Text(
                                 _credentials.hasAny
-                                    ? 'Connected: ${[if (_credentials.hasRakuten) "Rakuten", if (_credentials.hasYahoo) "Yahoo!"].join(" & ")} (Live price search active)'
-                                    : 'Results are AI estimates • Tap to connect Rakuten / Yahoo! account',
+                                    ? tr(
+                                        context,
+                                        'Connected: ${[if (_credentials.hasRakuten) "Rakuten", if (_credentials.hasYahoo) "Yahoo!"].join(" & ")} (Live price search active)',
+                                        '連携済み: ${[if (_credentials.hasRakuten) "楽天市場", if (_credentials.hasYahoo) "Yahoo!"].join(" & ")}（リアルタイム価格検索）',
+                                        'ချိတ်ဆက်ပြီး: ${[if (_credentials.hasRakuten) "Rakuten", if (_credentials.hasYahoo) "Yahoo!"].join(" & ")} (တိုက်ရိုက်ဈေးနှုန်း ရှာဖွေမှု)',
+                                      )
+                                    : tr(
+                                        context,
+                                        'Results are AI estimates • Tap to connect Rakuten / Yahoo! account',
+                                        'AI推定価格を表示中 • タップして楽天 / Yahoo!アカウントを連携',
+                                        'AI ခန့်မှန်းဈေးနှုန်းများ • Rakuten / Yahoo! ချိတ်ဆက်ရန် နှိပ်ပါ',
+                                      ),
                                 style: TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w600,
@@ -1903,8 +1979,12 @@ class _SavingPageState extends State<SavingPage> {
                             onChanged: _onSearchQueryChanged,
                             onSubmitted: (_) => _searchProductsWithAi(),
                             decoration: InputDecoration(
-                              hintText:
-                                  'Search item (e.g. Apple MacBook, PS5)...',
+                              hintText: tr(
+                                context,
+                                'Search item (e.g. Apple MacBook, PS5)...',
+                                '商品を検索（例: Apple MacBook, PS5）...',
+                                'ပစ္စည်းရှာရန် (ဥပမာ - Apple MacBook, PS5)...',
+                              ),
                               prefixIcon: const Icon(Icons.search),
                               suffixIcon: _searchController.text.isNotEmpty
                                   ? IconButton(
@@ -1953,7 +2033,9 @@ class _SavingPageState extends State<SavingPage> {
                                     color: Colors.white,
                                   ),
                                 )
-                              : const Text('Search'),
+                              : Text(
+                                  tr(context, 'Search', '検索', 'ရှာမည်'),
+                                ),
                         ),
                       ],
                     ),
@@ -2028,9 +2110,17 @@ class _SavingPageState extends State<SavingPage> {
               // PRODUCT SEARCH RESULTS (Visual Picture + Site + Price)
               if (_searchResults.isNotEmpty) ...[
                 const SizedBox(height: 20),
-                const Text(
-                  'Select Product & Store to Save For:',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                Text(
+                  tr(
+                    context,
+                    'Select Product & Store to Save For:',
+                    '貯金する商品とストアを選択:',
+                    'စုဆောင်းလိုသော ပစ္စည်းနှင့် ဆိုင်ကို ရွေးချယ်ပါ:',
+                  ),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                  ),
                 ),
                 const SizedBox(height: 12),
                 SizedBox(
@@ -2134,8 +2224,18 @@ class _SavingPageState extends State<SavingPage> {
                                       ),
                                       child: Text(
                                         offer.isEstimate
-                                            ? 'AI estimate'
-                                            : 'Live price',
+                                            ? tr(
+                                                context,
+                                                'AI estimate',
+                                                'AI推定',
+                                                'AI ခန့်မှန်းချက်',
+                                              )
+                                            : tr(
+                                                context,
+                                                'Live price',
+                                                '実価格',
+                                                'တိုက်ရိုက်ဈေး',
+                                              ),
                                         style: const TextStyle(
                                           color: Colors.white,
                                           fontSize: 9,
@@ -2165,7 +2265,7 @@ class _SavingPageState extends State<SavingPage> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(
+                                    AutoLocalizedText(
                                       offer.title,
                                       maxLines: 2,
                                       overflow: TextOverflow.ellipsis,
@@ -2175,7 +2275,7 @@ class _SavingPageState extends State<SavingPage> {
                                       ),
                                     ),
                                     const SizedBox(height: 4),
-                                    Text(
+                                    AutoLocalizedText(
                                       offer.badge,
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
@@ -2250,10 +2350,15 @@ class _SavingPageState extends State<SavingPage> {
                           size: 20,
                         ),
                         const SizedBox(width: 8),
-                        const Expanded(
+                        Expanded(
                           child: Text(
-                            'Manual Custom Item + AI Saving Plan',
-                            style: TextStyle(
+                            tr(
+                              context,
+                              'Manual Custom Item + AI Saving Plan',
+                              '手動アイテム登録＋AI貯金プラン',
+                              'စိတ်ကြိုက်ပစ္စည်း + AI စုငွေအစီအစဉ်',
+                            ),
+                            style: const TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 15,
                             ),
@@ -2263,7 +2368,12 @@ class _SavingPageState extends State<SavingPage> {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      'Enter any custom item and price manually. AI will fetch its visual photo, analyze your transactions, and build your saving plan.',
+                      tr(
+                        context,
+                        'Enter any custom item and price manually. AI will fetch its visual photo, analyze your transactions, and build your saving plan.',
+                        '欲しい商品と価格を手動で入力してください。AIが商品画像を取得し、取引履歴を分析して貯金プランを作成します。',
+                        'မည်သည့်ပစ္စည်းနှင့် ဈေးနှုန်းကိုမဆို ကိုယ်တိုင်ထည့်သွင်းပါ။ AI မှ ပစ္စည်းပုံရှာပေးပြီး သင်၏ ငွေစာရင်းများကို သုံးသပ်၍ စုငွေအစီအစဉ် ရေးဆွဲပေးပါမည်။',
+                      ),
                       style: TextStyle(
                         fontSize: 12,
                         color: Theme.of(
@@ -2278,7 +2388,12 @@ class _SavingPageState extends State<SavingPage> {
                       controller: _manualNameController,
                       decoration: InputDecoration(
                         labelText: AppLocalizations.of(context)!.goalName,
-                        hintText: 'e.g. Custom Gaming PC, Trip to Kyoto, Guitar',
+                        hintText: tr(
+                          context,
+                          'e.g. Custom Gaming PC, Trip to Kyoto, Guitar',
+                          '例: ゲーミングPC、京都旅行、ギター',
+                          'ဥပမာ - Gaming PC, ခရီးစဉ်, ဂစ်တာ',
+                        ),
                         prefixIcon: const Icon(Icons.shopping_bag_outlined),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(14),
@@ -2309,8 +2424,18 @@ class _SavingPageState extends State<SavingPage> {
                     TextField(
                       controller: _manualStoreController,
                       decoration: InputDecoration(
-                        labelText: 'Store or Source (Optional)',
-                        hintText: 'e.g. Apple Store, Amazon, Local Shop',
+                        labelText: tr(
+                          context,
+                          'Store or Source (Optional)',
+                          '店舗・ブランド（任意）',
+                          'ဆိုင် သို့မဟုတ် အရင်းအမြစ် (ထည့်လိုက ထည့်ရန်)',
+                        ),
+                        hintText: tr(
+                          context,
+                          'e.g. Apple Store, Amazon, Local Shop',
+                          '例: Apple Store、Amazon、近所のお店',
+                          'ဥပမာ - Apple Store, Amazon, ပြည်တွင်းဆိုင်',
+                        ),
                         prefixIcon: const Icon(Icons.storefront_outlined),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(14),
@@ -2340,8 +2465,13 @@ class _SavingPageState extends State<SavingPage> {
                             ? null
                             : _analyzeManualGoalWithAi,
                         icon: const Icon(Icons.auto_awesome, size: 18),
-                        label: const Text(
-                          'Analyze My Transactions & Choose AI Saving Plan',
+                        label: Text(
+                          tr(
+                            context,
+                            'Analyze My Transactions & Choose AI Saving Plan',
+                            '取引履歴を分析してAI貯金プランを選択',
+                            'ငွေစာရင်းများကို သုံးသပ်၍ AI စုငွေအစီအစဉ် ရွေးချယ်မည်',
+                          ),
                         ),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: headerColor,
@@ -2370,9 +2500,9 @@ class _SavingPageState extends State<SavingPage> {
                   color: headerColor.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: const Row(
+                child: Row(
                   children: [
-                    SizedBox(
+                    const SizedBox(
                       width: 20,
                       height: 20,
                       child: CircularProgressIndicator(
@@ -2380,11 +2510,16 @@ class _SavingPageState extends State<SavingPage> {
                         color: headerColor,
                       ),
                     ),
-                    SizedBox(width: 12),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        'AI is analyzing your transaction history to calculate the best saving plan...',
-                        style: TextStyle(fontSize: 13),
+                        tr(
+                          context,
+                          'AI is analyzing your transaction history to calculate the best saving plan...',
+                          'AIが取引履歴を分析し、最適な貯金プランを計算しています...',
+                          'အကောင်းဆုံး စုငွေအစီအစဉ် တွက်ချက်ရန် AI မှ သင်၏ ငွေစာရင်းမှတ်တမ်းကို သုံးသပ်နေပါသည်...',
+                        ),
+                        style: const TextStyle(fontSize: 13),
                       ),
                     ),
                   ],
@@ -2473,7 +2608,7 @@ class _SavingPageState extends State<SavingPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
+                    AutoLocalizedText(
                       offer.title,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -2485,8 +2620,18 @@ class _SavingPageState extends State<SavingPage> {
                     const SizedBox(height: 2),
                     Text(
                       isCut
-                          ? 'Plan: Cut Unnecessary Expenses'
-                          : 'Plan: Save Usually',
+                          ? tr(
+                              context,
+                              'Plan: Cut Unnecessary Expenses',
+                              'プラン: 不要な支出をカット',
+                              'အစီအစဉ်: မလိုအပ်သော အသုံးစရိတ်များ လျှော့ချမည်',
+                            )
+                          : tr(
+                              context,
+                              'Plan: Save Usually',
+                              'プラン: 通常通り貯金',
+                              'အစီအစဉ်: ပုံမှန်အတိုင်း စုဆောင်းမည်',
+                            ),
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         color: headerColor,
@@ -2495,7 +2640,12 @@ class _SavingPageState extends State<SavingPage> {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      '$days days • $symbol${settings.formatAmount(daily)}/day • Goal: $symbol${settings.formatAmount(offer.price)}${offer.isEstimate ? " (AI estimate)" : " (Live price)"}',
+                      tr(
+                        context,
+                        '$days days • $symbol${settings.formatAmount(daily)}/day • Goal: $symbol${settings.formatAmount(offer.price)}${offer.isEstimate ? " (AI estimate)" : " (Live price)"}',
+                        '$days日 • $symbol${settings.formatAmount(daily)}/日 • 目標: $symbol${settings.formatAmount(offer.price)}${offer.isEstimate ? " (AI推定)" : " (リアルタイム価格)"}',
+                        '$days ရက် • တစ်ရက် $symbol${settings.formatAmount(daily)} • ရည်မှန်းချက်: $symbol${settings.formatAmount(offer.price)}${offer.isEstimate ? " (AI ခန့်မှန်းချက်)" : " (တိုက်ရိုက်ဈေးနှုန်း)"}',
+                      ),
                       style: const TextStyle(
                         fontWeight: FontWeight.w600,
                         fontSize: 12,
@@ -2506,12 +2656,14 @@ class _SavingPageState extends State<SavingPage> {
               ),
               TextButton(
                 onPressed: () => _showPlanChoiceModal(offer, analysis),
-                child: const Text('Change'),
+                child: Text(
+                  tr(context, 'Change', '変更', 'ပြောင်းမည်'),
+                ),
               ),
             ],
           ),
           const SizedBox(height: 10),
-          Text(
+          AutoLocalizedText(
             summary,
             style: TextStyle(
               fontSize: 12,

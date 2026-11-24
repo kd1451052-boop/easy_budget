@@ -343,7 +343,10 @@ class _ScannerState extends State<Scanner> with SingleTickerProviderStateMixin {
 
       final targetLanguage = settings.selectedLanguage == 'Japanese'
           ? 'Japanese'
-          : 'English';
+          : (settings.selectedLanguage == 'Myanmar' ||
+                    settings.selectedLanguage == 'Burmese'
+                ? 'Burmese (Myanmar Unicode)'
+                : 'English');
 
       final prompt = TextPart(
         'Analyze this receipt image and return ONLY valid JSON in this exact format: '
@@ -359,8 +362,8 @@ class _ScannerState extends State<Scanner> with SingleTickerProviderStateMixin {
         '${_iconMap.keys.join(", ")}. '
         '5. IMPORTANT LANGUAGE RULE: The app language is currently set to $targetLanguage. '
         'Write the "merchant" name, every item "name", and any "note" translated into natural $targetLanguage '
-        '(if $targetLanguage is English and the receipt is printed in Japanese, translate all Japanese item names and merchant into clear English; '
-        'if $targetLanguage is Japanese, write them in Japanese).',
+        '(if $targetLanguage is English and the receipt is printed in Japanese or Burmese, translate all item names and merchant into clear English; '
+        'if $targetLanguage is Japanese, write them in Japanese; if $targetLanguage is Burmese (Myanmar Unicode), write them in Burmese).',
       );
       final imagePart = InlineDataPart('image/jpeg', bytes);
 
@@ -474,6 +477,7 @@ class _ScannerState extends State<Scanner> with SingleTickerProviderStateMixin {
           'JPY',
           'AUD',
           'CAD',
+          'MMK',
         ].contains(scannedCurrency)) {
           settings.updateCurrency(scannedCurrency);
         }
@@ -633,11 +637,13 @@ class _ScannerState extends State<Scanner> with SingleTickerProviderStateMixin {
                                 context,
                                 'Mixed items detected: Will save ${groups.length} separate transactions ($categorySummary).',
                                 '複数カテゴリーを検出: ${groups.length}件の取引（$categorySummary）に分けて保存します。',
+                                'အမျိုးအစားစုံ ပစ္စည်းများ တွေ့ရှိသည်: စာရင်း ${groups.length} ခု ($categorySummary) ခွဲ၍ သိမ်းဆည်းပါမည်။',
                               )
                             : tr(
                                 context,
                                 'Mixed items detected: Will save under majority category with a note.',
                                 '複数カテゴリーを検出: メインカテゴリーとメモで保存します。',
+                                'အမျိုးအစားစုံ ပစ္စည်းများ တွေ့ရှိသည်: အဓိကအမျိုးအစားနှင့် မှတ်စုဖြင့် သိမ်းဆည်းပါမည်။',
                               ),
                         style: const TextStyle(
                           fontSize: 12,

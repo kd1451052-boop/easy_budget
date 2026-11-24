@@ -14,6 +14,8 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:provider/provider.dart';
 import 'gamification_provider.dart';
 import 'update_notifier.dart';
+import 'auto_translator.dart';
+import 'package:easy_budget/l10n/app_localizations.dart';
 
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key});
@@ -138,10 +140,10 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                 ),
               ),
               const SizedBox(height: 14),
-              const Text(
-                'Goal Reached! 🎉',
+              Text(
+                '${AppLocalizations.of(dialogCtx)!.goalReached} 🎉',
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
                   color: Color(0xFF10B981),
@@ -188,7 +190,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
+                          AutoLocalizedText(
                             reachedGoal.name,
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
@@ -200,7 +202,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                           if (reachedGoal.productSite != null &&
                               reachedGoal.productSite!.isNotEmpty) ...[
                             const SizedBox(height: 2),
-                            Text(
+                            AutoLocalizedText(
                               reachedGoal.productSite!,
                               style: TextStyle(
                                 fontSize: 12,
@@ -210,7 +212,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                           ],
                           const SizedBox(height: 4),
                           Text(
-                            'Saved: $formattedSaved / $formattedTarget',
+                            '${AppLocalizations.of(dialogCtx)!.savedSoFar(formattedSaved)} / $formattedTarget',
                             style: const TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
@@ -225,7 +227,12 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
               ),
               const SizedBox(height: 14),
               Text(
-                'Congratulations! Your saving goal has been achieved and moved to Budget & Saving History.',
+                tr(
+                  dialogCtx,
+                  'Congratulations! Your saving goal has been achieved and moved to Budget & Saving History.',
+                  'おめでとうございます！貯金目標を達成し、「予算と貯金の履歴」に移動しました。',
+                  'ဂုဏ်ယူပါတယ်! သင်၏ စုငွေရည်မှန်းချက် ပြည့်မီသွားပြီဖြစ်ပြီး ဘတ်ဂျက်နှင့် စုငွေမှတ်တမ်းသို့ ရွှေ့ပြောင်းပြီးပါပြီ။',
+                ),
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 13,
@@ -245,9 +252,14 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                   MaterialPageRoute(builder: (_) => const BAndSHistoryPage()),
                 );
               },
-              child: const Text(
-                'View in B&S History',
-                style: TextStyle(
+              child: Text(
+                tr(
+                  dialogCtx,
+                  'View in B&S History',
+                  '履歴で確認する',
+                  'မှတ်တမ်းတွင် ကြည့်ရန်',
+                ),
+                style: const TextStyle(
                   color: Color(0xFF5442F5),
                   fontWeight: FontWeight.bold,
                 ),
@@ -262,9 +274,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                 ),
               ),
               onPressed: () => Navigator.of(dialogCtx).pop(),
-              child: const Text(
-                'Awesome!',
-                style: TextStyle(fontWeight: FontWeight.bold),
+              child: Text(
+                tr(dialogCtx, 'Awesome!', '素晴らしい！', 'အရမ်းကောင်းတယ်!'),
+                style: const TextStyle(fontWeight: FontWeight.bold),
               ),
             ),
           ],

@@ -204,6 +204,7 @@ class AchievementsPage extends StatelessWidget {
                                               context,
                                               'Avatar Frame Equipped!',
                                               'アバターフレームを装着しました！',
+                                              'ပရိုဖိုင်ဘောင် တပ်ဆင်ပြီးပါပြီ!',
                                             ),
                                           ),
                                         ),

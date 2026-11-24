@@ -29,12 +29,20 @@ class _BudgetPageState extends State<BudgetPage> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text(tr(context, 'Delete $title?', '$titleを削除しますか？')),
+        title: Text(
+          tr(
+            context,
+            'Delete $title?',
+            '$titleを削除しますか？',
+            '$title ကို ဖျက်မည်လား?',
+          ),
+        ),
         content: Text(
           tr(
             context,
             'Are you sure you want to delete this $title? This action cannot be undone.',
             'この$titleを削除してもよろしいですか？この操作は元に戻せません。',
+            'ဤ $title ကို ဖျက်ရန် သေချာပါသလား? ဤလုပ်ဆောင်ချက်ကို ပြန်လည်ပြင်ဆင်၍ မရပါ။',
           ),
         ),
         actions: [

@@ -83,16 +83,18 @@ class SettingsProvider extends ChangeNotifier {
       case 'JPY': return '¥';
       case 'AUD': return 'A\$';
       case 'CAD': return 'C\$';
+      case 'MMK': return 'Ks';
       case 'USD':
       default: return '\$';
     }
   }
 
-  /// Returns false for currencies that do not use decimal subunits (e.g., JPY ¥).
+  /// Returns false for currencies that do not use decimal subunits (e.g., JPY ¥, MMK Ks).
   bool get currencyHasDecimals {
     switch (selectedCurrency) {
       case 'JPY':
       case 'KRW':
+      case 'MMK':
         return false;
       default:
         return true;
@@ -116,6 +118,8 @@ class SettingsProvider extends ChangeNotifier {
       case 'German': return const Locale('de');
       case 'Japanese': return const Locale('ja');
       case 'Korean': return const Locale('ko');
+      case 'Myanmar':
+      case 'Burmese': return const Locale('my');
       case 'English':
       default: return const Locale('en');
     }

@@ -200,7 +200,7 @@ class _SettingsPageState extends State<SettingsPage> {
       context,
       listen: false,
     ).selectedCurrency;
-    final currencies = ['USD', 'EUR', 'GBP', 'JPY', 'AUD', 'CAD'];
+    final currencies = ['USD', 'EUR', 'GBP', 'JPY', 'AUD', 'CAD', 'MMK'];
     showDialog(
       context: context,
       builder: (ctx) => SimpleDialog(
@@ -243,7 +243,7 @@ class _SettingsPageState extends State<SettingsPage> {
       context,
       listen: false,
     ).selectedLanguage;
-    final languages = ['English', 'Japanese'];
+    final languages = ['English', 'Japanese', 'Myanmar'];
     showDialog(
       context: context,
       builder: (ctx) => SimpleDialog(

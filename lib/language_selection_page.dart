@@ -14,14 +14,17 @@ class LanguageSelectionPage extends StatefulWidget {
 class _LanguageSelectionPageState extends State<LanguageSelectionPage> {
   final Color _primaryIndigo = const Color(0xFF5442F5);
 
-  final List<String> _languages = ['English', 'Japanese'];
+  final List<String> _languages = ['English', 'Japanese', 'Myanmar'];
 
-  // Converts an internal language key ('English' or 'Japanese') into its localized display label.
+  // Converts an internal language key ('English', 'Japanese', or 'Myanmar') into its localized display label.
   String _getLanguageDisplayName(BuildContext context, String langCode) {
     final l10n = AppLocalizations.of(context)!;
     switch (langCode) {
       case 'Japanese':
         return l10n.languageJapanese;
+      case 'Myanmar':
+      case 'Burmese':
+        return l10n.languageMyanmar;
       case 'English':
       default:
         return l10n.languageEnglish;
