@@ -125,7 +125,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get monthDec => 'Dec';
 
   @override
+  String get thisYear => 'This Year';
+
+  @override
+  String get thisMonth => 'This Month';
+
+  @override
   String get thisWeek => 'This Week';
+
+  @override
+  String get today => 'Today';
 
   @override
   String get expenseAnalytics => 'Expense Analytics';

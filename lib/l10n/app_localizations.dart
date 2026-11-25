@@ -328,11 +328,29 @@ abstract class AppLocalizations {
   /// **'Dec'**
   String get monthDec;
 
+  /// No description provided for @thisYear.
+  ///
+  /// In en, this message translates to:
+  /// **'This Year'**
+  String get thisYear;
+
+  /// No description provided for @thisMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'This Month'**
+  String get thisMonth;
+
   /// No description provided for @thisWeek.
   ///
   /// In en, this message translates to:
   /// **'This Week'**
   String get thisWeek;
+
+  /// No description provided for @today.
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get today;
 
   /// No description provided for @expenseAnalytics.
   ///

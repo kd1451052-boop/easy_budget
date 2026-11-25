@@ -123,7 +123,16 @@ class AppLocalizationsJa extends AppLocalizations {
   String get monthDec => '12月';
 
   @override
+  String get thisYear => '今年';
+
+  @override
+  String get thisMonth => '今月';
+
+  @override
   String get thisWeek => '今週';
+
+  @override
+  String get today => '今日';
 
   @override
   String get expenseAnalytics => '支出分析';

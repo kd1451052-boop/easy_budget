@@ -168,12 +168,18 @@ class BAndSHistoryPage extends StatelessWidget {
           ),
           Text(getLocalizedCategory(context, budget.category), style: TextStyle(color: Colors.grey.shade500, fontSize: 12)),
           const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(AppLocalizations.of(context)!.spentText(currency, NumberFormat("#,##0", "en_US").format(spent)), style: TextStyle(color: isWarning ? Colors.red : null)),
-              Text(AppLocalizations.of(context)!.limitText(currency, NumberFormat("#,##0", "en_US").format(limit)), style: const TextStyle(fontWeight: FontWeight.bold)),
-            ],
+          SizedBox(
+            width: double.infinity,
+            child: Wrap(
+              alignment: WrapAlignment.spaceBetween,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 8,
+              runSpacing: 4,
+              children: [
+                Text(AppLocalizations.of(context)!.spentText(currency, NumberFormat("#,##0", "en_US").format(spent)), style: TextStyle(color: isWarning ? Colors.red : null)),
+                Text(AppLocalizations.of(context)!.limitText(currency, NumberFormat("#,##0", "en_US").format(limit)), style: const TextStyle(fontWeight: FontWeight.bold)),
+              ],
+            ),
           ),
           const SizedBox(height: 8),
           LinearProgressIndicator(
@@ -317,31 +323,37 @@ class BAndSHistoryPage extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 10),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      AppLocalizations.of(context)!.savedText(
-                        currency,
-                        NumberFormat("#,##0", "en_US").format(displaySaved),
+                SizedBox(
+                  width: double.infinity,
+                  child: Wrap(
+                    alignment: WrapAlignment.spaceBetween,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 8,
+                    runSpacing: 4,
+                    children: [
+                      Text(
+                        AppLocalizations.of(context)!.savedText(
+                          currency,
+                          NumberFormat("#,##0", "en_US").format(displaySaved),
+                        ),
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: isReached ? const Color(0xFF10B981) : null,
+                        ),
                       ),
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: isReached ? const Color(0xFF10B981) : null,
+                      Text(
+                        AppLocalizations.of(context)!.goalText(
+                          currency,
+                          NumberFormat("#,##0", "en_US").format(target),
+                        ),
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    ),
-                    Text(
-                      AppLocalizations.of(context)!.goalText(
-                        currency,
-                        NumberFormat("#,##0", "en_US").format(target),
-                      ),
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 6),
                 LinearProgressIndicator(

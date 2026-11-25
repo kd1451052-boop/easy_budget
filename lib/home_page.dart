@@ -27,7 +27,7 @@ import 'package:easy_budget/l10n/app_localizations.dart';
 import 'package:intl/intl.dart';
 import 'auto_translator.dart';
 
-enum FilterPeriod { year, month, week }
+enum FilterPeriod { year, month, week, today }
 
 // Holds aggregated income, expense, and computed netBalance for a single chart time bucket.
 class TimeBucketData {
@@ -48,6 +48,7 @@ class _HomePageState extends State<HomePage> {
     0xFF5442F5,
   ); // Matches the Figma prototype
   FilterPeriod _selectedPeriod = FilterPeriod.year;
+  int _periodOffset = 0;
 
   // Checks and updates the user's daily streak in GamificationProvider once HomePage mounts.
   @override
@@ -62,38 +63,67 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
-  // Returns the localized display label for the currently selected FilterPeriod (Year, Month, or Week).
+  // Returns the localized display label for the currently selected FilterPeriod (Year, Month, Week, or Today).
   String _getPeriodLabel() {
     final now = DateTime.now();
     final l10n = AppLocalizations.of(context)!;
+    final months = [
+      l10n.monthJan,
+      l10n.monthFeb,
+      l10n.monthMar,
+      l10n.monthApr,
+      l10n.monthMay,
+      l10n.monthJun,
+      l10n.monthJul,
+      l10n.monthAug,
+      l10n.monthSep,
+      l10n.monthOct,
+      l10n.monthNov,
+      l10n.monthDec,
+    ];
     switch (_selectedPeriod) {
       case FilterPeriod.year:
-        return '${now.year}';
+        if (_periodOffset == 0) return l10n.thisYear;
+        return '${now.year + _periodOffset}';
       case FilterPeriod.month:
-        final months = [
-          l10n.monthJan,
-          l10n.monthFeb,
-          l10n.monthMar,
-          l10n.monthApr,
-          l10n.monthMay,
-          l10n.monthJun,
-          l10n.monthJul,
-          l10n.monthAug,
-          l10n.monthSep,
-          l10n.monthOct,
-          l10n.monthNov,
-          l10n.monthDec,
-        ];
-        return months[now.month - 1];
+        if (_periodOffset == 0) return l10n.thisMonth;
+        final targetMonth = DateTime(now.year, now.month + _periodOffset);
+        if (targetMonth.year != now.year) {
+          return '${months[targetMonth.month - 1]} ${targetMonth.year}';
+        }
+        return months[targetMonth.month - 1];
       case FilterPeriod.week:
-        return l10n.thisWeek;
+        if (_periodOffset == 0) return l10n.thisWeek;
+        DateTime startOfWeek = now.subtract(Duration(days: now.weekday - 1));
+        startOfWeek = DateTime(
+          startOfWeek.year,
+          startOfWeek.month,
+          startOfWeek.day + (_periodOffset * 7),
+        );
+        final endOfWeek = startOfWeek.add(const Duration(days: 6));
+        if (startOfWeek.month == endOfWeek.month) {
+          return '${months[startOfWeek.month - 1]} ${startOfWeek.day} - ${endOfWeek.day}';
+        }
+        return '${months[startOfWeek.month - 1]} ${startOfWeek.day} - ${months[endOfWeek.month - 1]} ${endOfWeek.day}';
+      case FilterPeriod.today:
+        if (_periodOffset == 0) return l10n.today;
+        final targetDate = DateTime(now.year, now.month, now.day + _periodOffset);
+        if (targetDate.year != now.year) {
+          return '${months[targetDate.month - 1]} ${targetDate.day}, ${targetDate.year}';
+        }
+        return '${months[targetDate.month - 1]} ${targetDate.day}';
     }
   }
 
-  // Maps a bucket index to its X-axis label on the Income vs Expense chart ('Mon'-'Sun', 'W1'-'W5', or 'Jan'-'Dec').
+  // Maps a bucket index to its X-axis label on the Income vs Expense chart ('0h'-'20h', 'Mon'-'Sun', 'W1'-'W5', or 'Jan'-'Dec').
   String _getBucketLabel(int index, AppLocalizations l10n) {
     final code = Localizations.localeOf(context).languageCode;
-    if (_selectedPeriod == FilterPeriod.week) {
+    if (_selectedPeriod == FilterPeriod.today) {
+      final hour = (index * 4) % 24;
+      if (code == 'ja') return '$hour時';
+      if (code == 'my') return '$hourနာရီ';
+      return '${hour}h';
+    } else if (_selectedPeriod == FilterPeriod.week) {
       const daysEn = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
       const daysJa = ['月', '火', '水', '木', '金', '土', '日'];
       const daysMy = ['တနင်္လာ', 'အင်္ဂါ', 'ဗုဒ္ဓဟူး', 'ကြာသပတေး', 'သောကြာ', 'စနေ', 'တနင်္ဂနွေ'];
@@ -123,15 +153,17 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  // Groups filtered transactions into time buckets (7 days, 5 weeks, or 12 months)
+  // Groups filtered transactions into time buckets (6 4-hour blocks, 7 days, 5 weeks, or 12 months)
   // and sums each bucket's income and expense for the combo BarChart + LineChart.
   Map<int, TimeBucketData> _getComboChartBuckets(
     List<AppTransaction> filteredTransactions,
   ) {
     Map<int, TimeBucketData> buckets = {};
-    int nBuckets = _selectedPeriod == FilterPeriod.week
-        ? 7
-        : (_selectedPeriod == FilterPeriod.month ? 5 : 12);
+    int nBuckets = _selectedPeriod == FilterPeriod.today
+        ? 6
+        : (_selectedPeriod == FilterPeriod.week
+            ? 7
+            : (_selectedPeriod == FilterPeriod.month ? 5 : 12));
 
     for (int i = 0; i < nBuckets; i++) {
       buckets[i] = TimeBucketData();
@@ -139,7 +171,9 @@ class _HomePageState extends State<HomePage> {
 
     for (var t in filteredTransactions) {
       int bucketKey;
-      if (_selectedPeriod == FilterPeriod.week) {
+      if (_selectedPeriod == FilterPeriod.today) {
+        bucketKey = (t.dateTime.hour ~/ 4).clamp(0, 5); // 0 to 5
+      } else if (_selectedPeriod == FilterPeriod.week) {
         bucketKey = t.dateTime.weekday - 1; // 0 to 6
       } else if (_selectedPeriod == FilterPeriod.month) {
         bucketKey = (t.dateTime.day - 1) ~/ 7; // 0 to 4
@@ -158,26 +192,31 @@ class _HomePageState extends State<HomePage> {
     return buckets;
   }
 
-  // Filters all transactions to only those occurring within the active _selectedPeriod (current year, month, or week).
+  // Filters all transactions to only those occurring within the active _selectedPeriod and _periodOffset.
   List<AppTransaction> _getFilteredTransactions(List<AppTransaction> all) {
     final now = DateTime.now();
     return all.where((t) {
       if (_selectedPeriod == FilterPeriod.year) {
-        return t.dateTime.year == now.year;
+        return t.dateTime.year == now.year + _periodOffset;
       } else if (_selectedPeriod == FilterPeriod.month) {
-        return t.dateTime.year == now.year && t.dateTime.month == now.month;
-      } else {
+        final targetMonth = DateTime(now.year, now.month + _periodOffset);
+        return t.dateTime.year == targetMonth.year &&
+            t.dateTime.month == targetMonth.month;
+      } else if (_selectedPeriod == FilterPeriod.week) {
         DateTime startOfWeek = now.subtract(Duration(days: now.weekday - 1));
         startOfWeek = DateTime(
           startOfWeek.year,
           startOfWeek.month,
-          startOfWeek.day,
+          startOfWeek.day + (_periodOffset * 7),
         );
         DateTime endOfWeek = startOfWeek.add(const Duration(days: 7));
-        return t.dateTime.isAfter(
-              startOfWeek.subtract(const Duration(seconds: 1)),
-            ) &&
+        return !t.dateTime.isBefore(startOfWeek) &&
             t.dateTime.isBefore(endOfWeek);
+      } else {
+        final targetDate = DateTime(now.year, now.month, now.day + _periodOffset);
+        return t.dateTime.year == targetDate.year &&
+            t.dateTime.month == targetDate.month &&
+            t.dateTime.day == targetDate.day;
       }
     }).toList();
   }
@@ -600,53 +639,85 @@ class _HomePageState extends State<HomePage> {
               );
             },
           ),
-          PopupMenuButton<FilterPeriod>(
-            initialValue: _selectedPeriod,
-            onSelected: (FilterPeriod result) {
+          GestureDetector(
+            onHorizontalDragEnd: (details) {
+              final velocity = details.primaryVelocity ?? 0;
+              if (velocity.abs() < 50) return;
               setState(() {
-                _selectedPeriod = result;
+                if (velocity > 0) {
+                  // Swiped right -> previous period (pulling left side into view)
+                  _periodOffset -= 1;
+                } else {
+                  // Swiped left -> next period (pulling right side into view)
+                  _periodOffset += 1;
+                }
               });
             },
-            offset: const Offset(0, 30),
-            color: Theme.of(context).cardColor,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            itemBuilder: (BuildContext context) =>
-                <PopupMenuEntry<FilterPeriod>>[
-                  PopupMenuItem<FilterPeriod>(
-                    value: FilterPeriod.year,
-                    child: Text(AppLocalizations.of(context)!.yearly),
-                  ),
-                  PopupMenuItem<FilterPeriod>(
-                    value: FilterPeriod.month,
-                    child: Text(AppLocalizations.of(context)!.monthly),
-                  ),
-                  PopupMenuItem<FilterPeriod>(
-                    value: FilterPeriod.week,
-                    child: Text(AppLocalizations.of(context)!.weekly),
-                  ),
-                ],
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(20),
+            child: PopupMenuButton<FilterPeriod>(
+              initialValue: _selectedPeriod,
+              onSelected: (FilterPeriod result) {
+                setState(() {
+                  _selectedPeriod = result;
+                  _periodOffset = 0;
+                });
+              },
+              offset: const Offset(0, 30),
+              color: Theme.of(context).cardColor,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    _getPeriodLabel(),
-                    style: const TextStyle(color: Colors.white70, fontSize: 14),
-                  ),
-                  const SizedBox(width: 4),
-                  const Icon(
-                    Icons.keyboard_arrow_down,
-                    color: Colors.white70,
-                    size: 16,
-                  ),
-                ],
+              itemBuilder: (BuildContext context) =>
+                  <PopupMenuEntry<FilterPeriod>>[
+                    PopupMenuItem<FilterPeriod>(
+                      value: FilterPeriod.year,
+                      child: Text(AppLocalizations.of(context)!.thisYear),
+                    ),
+                    PopupMenuItem<FilterPeriod>(
+                      value: FilterPeriod.month,
+                      child: Text(AppLocalizations.of(context)!.thisMonth),
+                    ),
+                    PopupMenuItem<FilterPeriod>(
+                      value: FilterPeriod.week,
+                      child: Text(AppLocalizations.of(context)!.thisWeek),
+                    ),
+                    PopupMenuItem<FilterPeriod>(
+                      value: FilterPeriod.today,
+                      child: Text(AppLocalizations.of(context)!.today),
+                    ),
+                  ],
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.chevron_left,
+                      color: Colors.white54,
+                      size: 16,
+                    ),
+                    const SizedBox(width: 2),
+                    Text(
+                      _getPeriodLabel(),
+                      style: const TextStyle(color: Colors.white70, fontSize: 14),
+                    ),
+                    const SizedBox(width: 4),
+                    const Icon(
+                      Icons.keyboard_arrow_down,
+                      color: Colors.white70,
+                      size: 16,
+                    ),
+                    const SizedBox(width: 2),
+                    const Icon(
+                      Icons.chevron_right,
+                      color: Colors.white54,
+                      size: 16,
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -1062,29 +1133,35 @@ class _HomePageState extends State<HomePage> {
                           ),
                         ],
                         const SizedBox(height: 8),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              AppLocalizations.of(
-                                context,
-                              )!.savedSoFar(formattedSaved),
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: isNegativeSaved
-                                    ? Colors.redAccent
-                                    : const Color(0xFF10B981),
+                        SizedBox(
+                          width: double.infinity,
+                          child: Wrap(
+                            alignment: WrapAlignment.spaceBetween,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            spacing: 8,
+                            runSpacing: 4,
+                            children: [
+                              Text(
+                                AppLocalizations.of(
+                                  context,
+                                )!.savedSoFar(formattedSaved),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: isNegativeSaved
+                                      ? Colors.redAccent
+                                      : const Color(0xFF10B981),
+                                ),
                               ),
-                            ),
-                            Text(
-                              formattedTarget,
-                              style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
+                              Text(
+                                formattedTarget,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                         const SizedBox(height: 6),
                         LinearProgressIndicator(

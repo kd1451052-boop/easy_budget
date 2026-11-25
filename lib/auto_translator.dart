@@ -1,8 +1,78 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http; // ignore: depend_on_referenced_packages
 import 'package:firebase_ai/firebase_ai.dart';
+import 'package:firebase_app_check/firebase_app_check.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:easy_budget/l10n/app_localizations.dart';
 import 'settings_provider.dart';
+
+class _AppCheckRetryClient extends http.BaseClient {
+  final http.Client _inner = http.Client();
+  final String? overrideAppCheckToken;
+
+  _AppCheckRetryClient({this.overrideAppCheckToken});
+
+  http.Request _cloneRequest(http.BaseRequest original, List<int> bodyBytes) {
+    final copy = http.Request(original.method, original.url)
+      ..followRedirects = original.followRedirects
+      ..maxRedirects = original.maxRedirects
+      ..persistentConnection = original.persistentConnection
+      ..headers.addAll(original.headers)
+      ..bodyBytes = bodyBytes;
+    return copy;
+  }
+
+  @override
+  Future<http.StreamedResponse> send(http.BaseRequest request) async {
+    final bodyBytes = await request.finalize().toBytes();
+
+    if (overrideAppCheckToken != null && overrideAppCheckToken!.isNotEmpty) {
+      request.headers['X-Firebase-AppCheck'] = overrideAppCheckToken!;
+    }
+
+    var reqToSend = _cloneRequest(request, bodyBytes);
+    var streamed = await _inner.send(reqToSend);
+    var bytes = await streamed.stream.toBytes();
+
+    if (streamed.statusCode == 401) {
+      for (final fetchToken in <Future<String?> Function()>[
+        () => FirebaseAppCheck.instance.getToken(true),
+        () => FirebaseAppCheck.instance.getLimitedUseToken(),
+      ]) {
+        try {
+          final fallbackToken = await fetchToken();
+          if (fallbackToken != null && fallbackToken.isNotEmpty) {
+            final retryReq = _cloneRequest(request, bodyBytes);
+            retryReq.headers['X-Firebase-AppCheck'] = fallbackToken;
+            streamed = await _inner.send(retryReq);
+            bytes = await streamed.stream.toBytes();
+            if (streamed.statusCode != 401) break;
+          }
+        } catch (e) {
+          debugPrint('AppCheck fallback token fetch failed: $e');
+        }
+      }
+    }
+
+    if (streamed.statusCode != 200) {
+      debugPrint(
+        'AutoTranslator HTTP (${streamed.statusCode}): ${utf8.decode(bytes, allowMalformed: true)}',
+      );
+    }
+    return http.StreamedResponse(
+      Stream.value(bytes),
+      streamed.statusCode,
+      contentLength: bytes.length,
+      request: streamed.request,
+      headers: streamed.headers,
+      isRedirect: streamed.isRedirect,
+      persistentConnection: streamed.persistentConnection,
+      reasonPhrase: streamed.reasonPhrase,
+    );
+  }
+}
 
 /// Helper to return [ja] when the active locale is Japanese, [my] when Burmese/Myanmar, or [en] otherwise.
 /// If [my] is not explicitly provided while in Burmese mode, it automatically translates [en] via [AutoTranslator].
@@ -244,16 +314,25 @@ class AutoTranslator {
         ? 'Japanese'
         : (langCode == 'my' ? 'Burmese (Myanmar Unicode)' : 'English');
     try {
-      final googleAI = FirebaseAI.googleAI();
-      final model = googleAI.generativeModel(model: 'gemini-flash-latest');
+      String? dbgToken;
+      try {
+        dbgToken = await FirebaseAppCheck.instance.getToken(false);
+      } catch (_) {}
+      final googleAI = FirebaseAI.googleAI(
+        appCheck: FirebaseAppCheck.instance,
+        auth: FirebaseAuth.instance,
+        useLimitedUseAppCheckTokens: false,
+      );
+      final model = googleAI.generativeModel(
+        model: 'gemini-flash-latest',
+        httpClient: _AppCheckRetryClient(overrideAppCheckToken: dbgToken),
+      );
       final prompt = TextPart(
         'Translate the following receipt/budget text into natural $targetLanguageName. '
         'Keep the exact line breaks, bullet points ("- "), numbers, and currency symbols/amounts unchanged. '
         'Return ONLY the translated text without quotes or explanations:\n$text',
       );
-      final response = await model
-          .generateContent([Content.multi([prompt])])
-          .timeout(const Duration(seconds: 8));
+      final response = await model.generateContent([Content.multi([prompt])]);
       final translated = response.text?.trim();
       if (translated != null && translated.isNotEmpty) {
         _memoryCache[cacheKey] = translated;

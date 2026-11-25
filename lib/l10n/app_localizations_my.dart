@@ -128,7 +128,16 @@ class AppLocalizationsMy extends AppLocalizations {
   String get monthDec => 'ဒီဇင်ဘာ';
 
   @override
+  String get thisYear => 'ယခုနှစ်';
+
+  @override
+  String get thisMonth => 'ယခုလ';
+
+  @override
   String get thisWeek => 'ယခုအပတ်';
+
+  @override
+  String get today => 'ယနေ့';
 
   @override
   String get expenseAnalytics => 'အသုံးစရိတ် သုံးသပ်ချက်';

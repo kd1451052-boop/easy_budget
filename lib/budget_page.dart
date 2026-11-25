@@ -116,13 +116,16 @@ class _BudgetPageState extends State<BudgetPage> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      AppLocalizations.of(context)!.activeBudgets,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
+                    Expanded(
+                      child: Text(
+                        AppLocalizations.of(context)!.activeBudgets,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
+                    const SizedBox(width: 8),
                     TextButton.icon(
                       onPressed: () {
                         Navigator.push(
@@ -160,13 +163,16 @@ class _BudgetPageState extends State<BudgetPage> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      AppLocalizations.of(context)!.savingGoals,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
+                    Expanded(
+                      child: Text(
+                        AppLocalizations.of(context)!.savingGoals,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
+                    const SizedBox(width: 8),
                     TextButton.icon(
                       onPressed: () {
                         Navigator.push(
@@ -287,24 +293,30 @@ class _BudgetPageState extends State<BudgetPage> {
             style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
           ),
           const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                AppLocalizations.of(context)!.spentText(
-                  currency,
-                  NumberFormat("#,##0", "en_US").format(spent),
+          SizedBox(
+            width: double.infinity,
+            child: Wrap(
+              alignment: WrapAlignment.spaceBetween,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 8,
+              runSpacing: 4,
+              children: [
+                Text(
+                  AppLocalizations.of(context)!.spentText(
+                    currency,
+                    NumberFormat("#,##0", "en_US").format(spent),
+                  ),
+                  style: TextStyle(color: isWarning ? Colors.red : null),
                 ),
-                style: TextStyle(color: isWarning ? Colors.red : null),
-              ),
-              Text(
-                AppLocalizations.of(context)!.limitText(
-                  currency,
-                  NumberFormat("#,##0", "en_US").format(limit),
+                Text(
+                  AppLocalizations.of(context)!.limitText(
+                    currency,
+                    NumberFormat("#,##0", "en_US").format(limit),
+                  ),
+                  style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ],
+              ],
+            ),
           ),
           const SizedBox(height: 8),
           LinearProgressIndicator(
@@ -469,27 +481,33 @@ class _BudgetPageState extends State<BudgetPage> {
                   ],
                 ),
                 const SizedBox(height: 10),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      AppLocalizations.of(context)!.savedSoFar(formattedSaved),
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: isNegativeSaved ? Colors.redAccent : null,
+                SizedBox(
+                  width: double.infinity,
+                  child: Wrap(
+                    alignment: WrapAlignment.spaceBetween,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 8,
+                    runSpacing: 4,
+                    children: [
+                      Text(
+                        AppLocalizations.of(context)!.savedSoFar(formattedSaved),
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: isNegativeSaved ? Colors.redAccent : null,
+                        ),
                       ),
-                    ),
-                    Text(
-                      AppLocalizations.of(
-                        context,
-                      )!.goalText(currency, settings.formatAmount(target)),
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.bold,
+                      Text(
+                        AppLocalizations.of(
+                          context,
+                        )!.goalText(currency, settings.formatAmount(target)),
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 6),
                 LinearProgressIndicator(
